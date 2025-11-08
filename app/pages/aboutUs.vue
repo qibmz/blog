@@ -15,14 +15,6 @@ useSeoMeta({
 
 <template>
   <div v-if="page">
-    <UPageHero
-      :title="page.title"
-      :description="page.description"
-      :links="page.hero.links"
-    >
-      <template #top>
-        <HeroBackground />
-      </template>
-    </UPageHero>
+    123
   </div>
 </template>

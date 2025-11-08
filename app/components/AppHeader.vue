@@ -1,20 +1,25 @@
 <script setup lang="ts">
 const route = useRoute()
-
 const items = computed(() => [{
-  label: 'Docs',
+  label: '首页',
+  to: '/',
+  active: route.path === '/'
+}, {
+  label: '常用网站/工具',
   to: '/docs',
   active: route.path.startsWith('/docs')
 }, {
-  label: 'Pricing',
-  to: '/pricing'
-}, {
-  label: 'Blog',
+  label: '博客',
   to: '/blog'
 }, {
-  label: 'Changelog',
-  to: '/changelog'
-}])
+  label: '关于我',
+  to: '/aboutUs'
+}
+//  {
+//   label: '期望待遇',
+//   to: '/pricing'
+// }
+])
 </script>
 
 <template>
@@ -23,7 +28,6 @@ const items = computed(() => [{
       <NuxtLink to="/">
         <AppLogo class="w-auto h-6 shrink-0" />
       </NuxtLink>
-      <TemplateMenu />
     </template>
 
     <UNavigationMenu
@@ -35,27 +39,12 @@ const items = computed(() => [{
       <UColorModeButton />
 
       <UButton
-        icon="i-lucide-log-in"
+        icon="i-lucide-github"
         color="neutral"
         variant="ghost"
-        to="/login"
-        class="lg:hidden"
-      />
-
-      <UButton
-        label="Sign in"
-        color="neutral"
-        variant="outline"
-        to="/login"
-        class="hidden lg:inline-flex"
-      />
-
-      <UButton
-        label="Sign up"
-        color="neutral"
-        trailing-icon="i-lucide-arrow-right"
-        class="hidden lg:inline-flex"
-        to="/signup"
+        to="https://github.com/qibmz"
+        target="_blank"
+        aria-label="GitHub"
       />
     </template>
 
@@ -65,23 +54,7 @@ const items = computed(() => [{
         orientation="vertical"
         class="-mx-2.5"
       />
-
       <USeparator class="my-6" />
-
-      <UButton
-        label="Sign in"
-        color="neutral"
-        variant="subtle"
-        to="/login"
-        block
-        class="mb-3"
-      />
-      <UButton
-        label="Sign up"
-        color="neutral"
-        to="/signup"
-        block
-      />
     </template>
   </UHeader>
 </template>
