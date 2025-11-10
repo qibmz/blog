@@ -15,6 +15,6 @@ useSeoMeta({
 
 <template>
   <div v-if="page">
-    123
+    12312212121
   </div>
 </template>
