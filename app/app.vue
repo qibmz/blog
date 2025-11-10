@@ -11,17 +11,12 @@ useHead({
   ],
   link: [
     { rel: 'icon', href: '/favicon.ico' }
-  ],
-  htmlAttrs: {
-    lang: 'en'
-  }
+  ]
 })
 
 useSeoMeta({
-  titleTemplate: '%s - Nuxt SaaS template',
-  ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/saas-light.png',
-  twitterImage: 'https://ui.nuxt.com/assets/templates/nuxt/saas-light.png',
-  twitterCard: 'summary_large_image'
+  titleTemplate: '%s - qibmz blog',
+  ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/saas-light.png'
 })
 
 const { data: navigation } = await useAsyncData('navigation', () => queryCollectionNavigation('docs'), {
