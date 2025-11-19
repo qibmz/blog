@@ -95,22 +95,8 @@ export const collections = {
       badge: z.object({ label: z.string().nonempty() })
     })
   }),
-  changelog: defineCollection({
-    source: '4.changelog.yml',
-    type: 'page'
-  }),
-  versions: defineCollection({
-    source: '4.changelog/**/*',
-    type: 'page',
-    schema: z.object({
-      title: z.string().nonempty(),
-      description: z.string(),
-      date: z.date(),
-      image: z.string()
-    })
-  }),
   aboutUs: defineCollection({
-    source: '1.aboutUs.yml',
+    source: '2.aboutUs.yml',
     type: 'page',
     schema: z.object({
       hero: z.object(({
@@ -120,8 +106,20 @@ export const collections = {
         links: z.array(createLinkSchema())
       })),
       content: z.array(
-        createBaseSchema()
-      )
+          createBaseSchema()
+      ),
+      versions: z.array(z.object({
+        title: z.string().nonempty(),
+        description: z.string().nonempty(),
+        image: z.string().optional(),
+        date: z.string().optional(),
+        to: z.string().optional(),
+        target: z.string().optional(),
+        ui: z.object({
+          container: z.string().optional()
+        }).optional()
+      })).optional()
     })
   })
+
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { data: page } = await useAsyncData('blog', () => queryCollection('blog').first())
+const { data: page } = await useAsyncData('aboutUs', () => queryCollection('aboutUs').first())
 
 const title = page.value?.seo?.title || page.value?.title
 const description = page.value?.seo?.description || page.value?.description
@@ -15,6 +15,8 @@ useSeoMeta({
 
 <template>
   <div v-if="page">
-    123
+    <UPageSection title="工作经历">
+      <UChangelogVersions :versions="page.versions" />
+    </UPageSection>
   </div>
 </template>
