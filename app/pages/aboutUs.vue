@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { data: page } = await useAsyncData('index', () => queryCollection('index').first())
+const { data: page } = await useAsyncData('blog', () => queryCollection('blog').first())
 
 const title = page.value?.seo?.title || page.value?.title
 const description = page.value?.seo?.description || page.value?.description
@@ -15,6 +15,6 @@ useSeoMeta({
 
 <template>
   <div v-if="page">
-    12312212121
+    123
   </div>
 </template>

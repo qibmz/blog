@@ -1,0 +1,30 @@
+title: 关于我
+description: 这里是关于我的介绍
+seo:
+  title: 关于我
+  description: 关于我的详细介绍
+navigation.icon: i-lucide-user
+hero:
+  title: 关于我
+  description: 欢迎来到我的个人页面
+  orientation: horizontal
+  links:
+    - label: 联系我
+      icon: i-lucide-mail
+      trailing: true
+      to: "mailto:example@email.com"
+      size: xl
+    - label: GitHub
+      icon: i-simple-icons-github
+      color: neutral
+      variant: subtle
+      to: "https://github.com"
+      target: _blank
+      size: xl
+content:
+  - title: 我是谁
+    description: 我是一个热爱技术的开发者
+  - title: 我的技能
+    description: 熟练掌握各种前端和后端技术
+  - title: 我的经验
+    description: 多年软件开发经验

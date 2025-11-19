@@ -75,39 +75,6 @@ export const collections = {
     source: '1.docs/**/*',
     type: 'page'
   }),
-  pricing: defineCollection({
-    source: '2.pricing.yml',
-    type: 'page',
-    schema: z.object({
-      plans: z.array(
-        z.object({
-          title: z.string().nonempty(),
-          description: z.string().nonempty(),
-          price: z.object({
-            month: z.string().nonempty(),
-            year: z.string().nonempty()
-          }),
-          billing_period: z.string().nonempty(),
-          billing_cycle: z.string().nonempty(),
-          button: createLinkSchema(),
-          features: z.array(z.string().nonempty()),
-          highlight: z.boolean().optional()
-        })
-      ),
-      logos: z.object({
-        title: z.string().nonempty(),
-        icons: z.array(z.string())
-      }),
-      faq: createBaseSchema().extend({
-        items: z.array(
-          z.object({
-            label: z.string().nonempty(),
-            content: z.string().nonempty()
-          })
-        )
-      })
-    })
-  }),
   blog: defineCollection({
     source: '3.blog.yml',
     type: 'page'
@@ -140,6 +107,21 @@ export const collections = {
       description: z.string(),
       date: z.date(),
       image: z.string()
+    })
+  }),
+  aboutUs: defineCollection({
+    source: '1.aboutUs.yml',
+    type: 'page',
+    schema: z.object({
+      hero: z.object(({
+        title: z.string().optional(),
+        description: z.string().optional(),
+        orientation: orientationEnum.optional(),
+        links: z.array(createLinkSchema())
+      })),
+      content: z.array(
+        createBaseSchema()
+      )
     })
   })
 }
