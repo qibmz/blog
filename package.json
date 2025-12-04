@@ -2,7 +2,7 @@
   "name": "nuxt-ui-template-saas",
   "private": true,
   "type": "module",
-  "scripts": {
+  "scripts": {  
     "build": "nuxt build",
     "dev": "nuxt dev",
     "preview": "nuxt preview",
