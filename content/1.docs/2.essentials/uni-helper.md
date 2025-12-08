@@ -1,0 +1,108 @@
+---
+title: uni-helper
+description: 专注于 uni-app 生态的工具集.
+navigation:
+  icon: i-lucide-box
+---
+
+## 什么是 uni-helper
+
+uni-helper 是一个专注于 uni-app 生态的工具集，旨在提升开发者在使用 uni-app 进行跨平台开发时的开发效率和体验。它补全了 uni-app 生态的短板，提供了一系列工具来让 uni-app 的开发体验达到 web 开发的效果。
+
+## 核心功能
+
+### 1. TypeScript 类型支持
+- **@uni-helper/uni-app-types**：提供了一套完整的 TypeScript 类型定义文件，专门针对 uni-app 平台设计
+- 支持 IDE 自动补全、参数提示等功能
+- 提升代码的可读性和可维护性
+
+### 2. 网络请求适配
+- **@uni-helper/axios-adapter**：封装了 axios 的核心功能，并针对 uni-app 做了定制化的配置和优化
+- 支持 uni-app 环境下的网络请求
+- 保持 axios 熟悉的 API 风格
+
+### 3. 开发体验增强
+- 提供一系列工具让 uni-app 开发体验达到 web 开发效果
+- 补全 uni-app 生态的短板
+
+## 安装使用
+
+### 前置条件
+- Node.js 版本 >= 12.0.0
+- 使用 npm 或 yarn 管理依赖
+
+### 安装示例
+
+```bash
+# 安装 TypeScript 类型定义
+npm install @uni-helper/uni-app-types -D
+
+# 安装 axios 适配器和 axios
+npm install @uni-helper/axios-adapter axios
+```
+
+### 使用示例
+
+#### 1. 使用 axios 适配器
+
+```javascript
+// main.js 或 api 配置文件
+import axios from 'axios'
+import { createUniAppAxiosAdapter } from '@uni-helper/axios-adapter'
+
+// 创建 axios 实例
+const api = axios.create({
+  baseURL: 'https://api.example.com',
+  timeout: 10000,
+  adapter: createUniAppAxiosAdapter() // 使用 uni-app 适配器
+})
+
+// 使用示例
+export const fetchData = async () => {
+  try {
+    const response = await api.get('/data')
+    return response.data
+  } catch (error) {
+    console.error('请求失败:', error)
+    throw error
+  }
+}
+```
+
+#### 2. 配置 TypeScript 类型支持
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "types": [
+      "@dcloudio/types",
+      "@uni-helper/uni-app-types",
+      "miniprogram-api-typings" // wx API 类型
+    ]
+  }
+}
+```
+
+## 支持的平台
+
+uni-helper 支持 uni-app 覆盖的所有平台，包括：
+- 微信小程序
+- 支付宝小程序
+- 百度小程序
+- 字节跳动小程序
+- QQ 小程序
+- 快应用
+- H5
+- App（iOS/Android）
+
+## 社区与贡献
+
+uni-helper 欢迎有意愿增强 uni-app 系列产品的开发体验的朋友加入，让我们一起把 uni-app 生态变得更好。
+
+- **GitHub 仓库**：[https://github.com/uni-helper](https://github.com/uni-helper)
+- **官网**：[https://uni-helper.js.org/](https://uni-helper.js.org/)
+
+## 许可证
+
+uni-helper 采用 MIT 许可证，详情请查看项目仓库中的 LICENSE 文件。

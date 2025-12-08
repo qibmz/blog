@@ -7,12 +7,12 @@ navigation: false
 hero:
   links:
     - label: 关于我
-      icon: i-lucide-user
+      icon: i-lucide-smile # 更换为笑脸图标
       trailing: true
       to: /aboutUs
       size: xl
     - label: 查看博客
-      icon: i-lucide-book-open
+      icon: i-lucide-file-text # 更换为文档图标
       color: neutral
       variant: subtle
       to: /blog
