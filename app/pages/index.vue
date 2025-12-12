@@ -18,11 +18,42 @@ useSeoMeta({
     <UPageHero
       :title="page.title"
       :description="page.description"
-      :links="page.hero.links"
     >
       <template #top>
         <HeroBackground />
         <StarsBg />
+      </template>
+
+      <template #links>
+        <div class="flex flex-wrap items-center justify-center gap-4 mt-6">
+          <FancyButton
+            variant="primary"
+            glow
+            @click="$router.push('/aboutUs')"
+          >
+            <template #icon>
+              <UIcon
+                name="i-lucide-smile"
+                class="w-5 h-5"
+              />
+            </template>
+            关于我
+          </FancyButton>
+
+          <FancyButton
+            variant="outline"
+            glow
+            @click="$router.push('/blog')"
+          >
+            <template #icon>
+              <UIcon
+                name="i-lucide-file-text"
+                class="w-5 h-5"
+              />
+            </template>
+            查看博客
+          </FancyButton>
+        </div>
       </template>
     </UPageHero>
 
@@ -34,12 +65,14 @@ useSeoMeta({
           :links="[{ label: '查看博客', to: '/blog', icon: 'i-lucide-arrow-right' }]"
           spotlight
         />
+
         <UPageCard
           title="项目文档"
           description="整理常用的技术文档和开发资源"
           :links="[{ label: '浏览文档', to: '/docs', icon: 'i-lucide-arrow-right' }]"
           spotlight
         />
+
         <UPageCard
           title="关于我"
           description="了解我的工作经验和技术背景"
