@@ -1,7 +1,7 @@
 <template>
   <button
     :class="[
-      'border text-gray-50 duration-300 relative group cursor-pointer overflow-hidden h-14 w-40 rounded-md p-2 font-extrabold text-sm',
+      'border duration-300 relative group cursor-pointer overflow-hidden h-14 w-40 rounded-md p-2 font-extrabold text-sm',
       'transition-all duration-300 ease-out transform hover:-translate-y-1 focus:outline-none',
       buttonClasses
     ]"
@@ -57,15 +57,16 @@ const handleMouseLeave = () => {
 }
 
 const buttonClasses = computed(() => {
+  const baseClasses = 'text-white dark:text-gray-50'
   switch (props.variant) {
     case 'primary':
-      return 'bg-neutral-800 hover:bg-sky-800 border-sky-900'
+      return `${baseClasses} bg-neutral-800 hover:bg-sky-800 border-sky-900`
     case 'secondary':
-      return 'bg-neutral-800 hover:bg-purple-800 border-purple-900'
+      return `${baseClasses} bg-neutral-800 hover:bg-purple-800 border-purple-900`
     case 'outline':
-      return 'bg-transparent hover:bg-sky-900/50 border-sky-700'
+      return `text-neutral-800 dark:text-gray-50 bg-transparent hover:bg-sky-900/50 border-sky-700 dark:hover:bg-sky-900/30`
     default:
-      return 'bg-neutral-800 hover:bg-sky-800 border-sky-900'
+      return `${baseClasses} bg-neutral-800 hover:bg-sky-800 border-sky-900`
   }
 })
 
