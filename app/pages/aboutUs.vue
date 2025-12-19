@@ -16,7 +16,9 @@ useSeoMeta({
 <template>
   <div v-if="page">
     <UPageSection title="工作经历">
-      <UChangelogVersions :versions="page.versions" />
+      <UChangelogVersions
+        :versions="page.versions"
+      />
     </UPageSection>
   </div>
 </template>

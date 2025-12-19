@@ -7,21 +7,37 @@ navigation:
   icon: i-lucide-user
 
 versions:
-  - title: 'Nuxt 3.17'
-    description: 'Nuxt 3.17 is out - bringing a major reworking of the async data layer, a new built-in component, better warnings, and performance improvements!'
-    image: 'https://nuxt.com/assets/blog/v3.17.png'
-    date: '2025-04-27'
-    to: 'https://nuxt.com/blog/v3-17'
-    target: '_blank'
-    ui:
-      container: 'max-w-lg'
+  - title: '深圳酷龙软件技术有限公司'
+    description: '负责区块链 DApp 前端开发，使用 Web3 技术栈实现去中心化应用的用户界面和交互功能。'
+    image: 'https://picsum.photos/id/15/512/288'
+    badge: {
+      label: '2025.06-now',
+      variant: 'subtle'
+    }
+    authors: [
+      {
+        name: '前端开发',
+        avatar: {
+          src: 'https://picsum.photos/id/1/288/288',
+          alt: '前端开发'
+        },
+      }
+    ]
 
-  - title: 'Nuxt 3.16'
-    description: 'Nuxt 3.16 is out - packed with features and performance improvements!'
-    image: 'https://nuxt.com/assets/blog/v3.16.png'
-    date: '2025-03-07'
-    to: 'https://nuxt.com/blog/v3-16'
-    target: '_blank'
-    ui:
-      container: 'max-w-lg'
+  - title: '深圳市微行销信息技术有限公司'
+    description: '专注前端开发，负责电商和本地生活服务类项目的Web及移动端界面实现和用户体验优化。'
+    image: 'https://picsum.photos/id/10/512/288'
+    badge: {
+      label: '2023.03-2025.06',
+      variant: 'subtle'
+    }
+    authors: [
+      {
+        name: '前端开发',
+        avatar: {
+          src: 'https://picsum.photos/id/1/288/288',
+          alt: '前端开发'
+        },
+      }
+    ]
 
