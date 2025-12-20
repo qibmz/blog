@@ -106,7 +106,7 @@ export const collections = {
         links: z.array(createLinkSchema())
       })),
       content: z.array(
-          createBaseSchema()
+        createBaseSchema()
       ),
       versions: z.array(z.object({
         title: z.string().nonempty(),

@@ -15,6 +15,12 @@ useSeoMeta({
 
 <template>
   <div v-if="page">
+    <UPageSection
+      title="技术栈"
+      class="mt-12"
+    >
+      <TechStack />
+    </UPageSection>
     <UPageSection title="工作经历">
       <UChangelogVersions
         :versions="page.versions"
