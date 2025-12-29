@@ -25,8 +25,17 @@ const items = computed(() => [{
 <template>
   <UHeader>
     <template #left>
-      <NuxtLink to="/">
-        <AppLogo class="w-auto h-6 shrink-0" />
+      <NuxtLink
+        to="/"
+        class="flex items-center space-x-2"
+      >
+        <NuxtImg
+          src="/image/logo.png"
+          width="40"
+          height="40"
+          class="rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+        />
+        <span class="text-xl font-bold text-gray-800 dark:text-white">qibmz</span>
       </NuxtLink>
     </template>
 

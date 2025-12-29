@@ -18,7 +18,7 @@ versions:
       {
         name: '前端开发',
         avatar: {
-          src: 'https://picsum.photos/id/1/288/288',
+          src: '/image/avatar.avif',
           alt: '前端开发'
         },
       }
@@ -35,7 +35,7 @@ versions:
       {
         name: '前端开发',
         avatar: {
-          src: 'https://picsum.photos/id/1/288/288',
+          src: '/image/avatar.avif',
           alt: '前端开发'
         },
       }
