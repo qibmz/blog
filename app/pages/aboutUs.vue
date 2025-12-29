@@ -15,22 +15,18 @@ useSeoMeta({
 
 <template>
   <div v-if="page">
-    <div class="flex flex-col items-center mb-12">
+    <div class="flex flex-col items-center mt-6">
       <NuxtImg
         src="/image/avatar.avif"
         alt="头像"
-        width="120"
-        height="120"
-        class="rounded-full mb-4 border-4 border-gray-200 dark:border-gray-700"
+        width="352"
+        height="589"
+        class=" mb-4 border-4 border-gray-200 dark:border-gray-700"
       />
-      <h1 class="text-3xl font-bold">
-        qibmz
-      </h1>
     </div>
 
     <UPageSection
       title="技术栈"
-      class="mt-12"
     >
       <TechStack />
     </UPageSection>

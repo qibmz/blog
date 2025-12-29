@@ -14,7 +14,16 @@ useSeoMeta({
 </script>
 
 <template>
-  <div v-if="page">
+  <div
+    v-if="page"
+    class="relative min-h-screen"
+  >
+    <!-- 背景图片 -->
+    <div
+      class="absolute inset-0 bg-cover bg-center bg-fixed opacity-20 z-0"
+      :style="{ backgroundImage: `url('/image/index-bg.png')` }"
+    />
+
     <UPageHero
       :title="page.title"
       :description="page.description"
@@ -27,31 +36,15 @@ useSeoMeta({
       <template #links>
         <div class="flex flex-wrap items-center justify-center gap-4 mt-6">
           <FancyButton
-            variant="primary"
-            glow
             @click="$router.push('/aboutUs')"
           >
-            <template #icon>
-              <UIcon
-                name="i-lucide-smile"
-                class="w-5 h-5"
-              />
-            </template>
             关于我
           </FancyButton>
 
           <FancyButton
-            variant="outline"
-            glow
             @click="$router.push('/blog')"
           >
-            <template #icon>
-              <UIcon
-                name="i-lucide-file-text"
-                class="w-5 h-5"
-              />
-            </template>
-            查看博客
+            博客
           </FancyButton>
         </div>
       </template>
