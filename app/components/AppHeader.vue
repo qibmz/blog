@@ -36,8 +36,11 @@ const items = computed(() => [{
     />
 
     <template #right>
+      <UContentSearchButton
+        :collapsed="false"
+        class="hidden lg:inline-flex"
+      />
       <UColorModeButton />
-
       <UButton
         icon="i-lucide-github"
         color="neutral"
@@ -55,6 +58,10 @@ const items = computed(() => [{
         class="-mx-2.5"
       />
       <USeparator class="my-6" />
+      <UContentSearchButton
+        :collapsed="false"
+        class="w-full"
+      />
     </template>
   </UHeader>
 </template>
