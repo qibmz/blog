@@ -4,7 +4,10 @@
 
 <template>
   <USeparator
-    icon="i-simple-icons-nuxtdotjs"
+    :avatar="{
+      src: '/image/logo.png'
+    }"
+
     class="h-px"
   />
 
@@ -25,7 +28,7 @@
         variant="ghost"
       />
       <UButton
-        to="tencent://message/?uin=1583326640&Site=&Menu=yes"
+        to="tencent://message/?uin=1583326640&Site=qq&Menu=yes"
         target="_blank"
         icon="i-simple-icons-tencentqq"
         aria-label="QQ联系"
