@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import type { ContentNavigationItem } from '@nuxt/content'
-
-const navigation = inject<Ref<ContentNavigationItem[]>>('navigation')
+const { data: docsNavigation } = await useAsyncData('docsNavigation', () => queryCollectionNavigation('docs'), {
+  transform: data => data.find(item => item.path === '/docs')?.children || []
+})
 </script>
 
 <template>
@@ -14,7 +14,7 @@ const navigation = inject<Ref<ContentNavigationItem[]>>('navigation')
           <template #left>
             <UPageAside>
               <UContentNavigation
-                :navigation="navigation"
+                :navigation="docsNavigation"
                 highlight
               />
             </UPageAside>

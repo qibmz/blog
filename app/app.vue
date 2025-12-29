@@ -19,13 +19,17 @@ useSeoMeta({
   ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/saas-light.png'
 })
 
-const { data: navigation } = await useAsyncData('navigation', () => queryCollectionNavigation('docs'), {
+const { data: docsNavigation } = await useAsyncData('docsNavigation', () => queryCollectionNavigation('docs'), {
   transform: data => data.find(item => item.path === '/docs')?.children || []
 })
-const { data: files } = useLazyAsyncData('search', () => queryCollectionSearchSections('docs'), {
+
+const { data: docsFiles } = useLazyAsyncData('docsSearch', () => queryCollectionSearchSections('docs'), {
   server: false
 })
-
+const { data: blogNavigation } = await useAsyncData('blogNavigation', () => queryCollectionNavigation('posts'))
+const { data: blogFiles } = useLazyAsyncData('blogSearch', () => queryCollectionSearchSections('posts'), {
+  server: false
+})
 const links = [{
   label: '网站/工具/Tips',
   icon: 'i-lucide-pen-tool',
@@ -41,7 +45,17 @@ const links = [{
 }
 ]
 
-provide('navigation', navigation)
+// 合并文件数据
+const mergedFiles = computed(() => [
+  ...(blogFiles.value || []),
+  ...(docsFiles.value || [])
+])
+
+// 搜索导航数据
+const searchNavigation = computed(() => [
+  ...(blogNavigation.value || []),
+  ...(docsNavigation.value || [])
+])
 </script>
 
 <template>
@@ -54,9 +68,9 @@ provide('navigation', navigation)
 
     <ClientOnly>
       <LazyUContentSearch
-        :files="files"
+        :files="mergedFiles"
         shortcut="meta_k"
-        :navigation="navigation"
+        :navigation="searchNavigation"
         :links="links"
         :fuse="{ resultLimit: 42 }"
       />
