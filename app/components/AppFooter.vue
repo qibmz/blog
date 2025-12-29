@@ -27,14 +27,6 @@
         color="neutral"
         variant="ghost"
       />
-      <UButton
-        to="tencent://message/?uin=1583326640&Site=qq&Menu=yes"
-        target="_blank"
-        icon="i-simple-icons-tencentqq"
-        aria-label="QQ联系"
-        color="neutral"
-        variant="ghost"
-      />
     </template>
   </UFooter>
 </template>
