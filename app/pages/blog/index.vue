@@ -21,7 +21,7 @@ defineOgImageComponent('Saas')
   <UContainer>
     <UPageHeader
       v-bind="page"
-      class="py-[50px]"
+      class="py-12.5"
     />
 
     <UPageBody>

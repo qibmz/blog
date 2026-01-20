@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 const { data: page } = await useAsyncData('index', () => queryCollection('index').first())
 
 const title = page.value?.seo?.title || page.value?.title
@@ -21,15 +23,23 @@ const stats = [
 ]
 
 // 最新动态
-const recentUpdates = [
-  { title: 'Nuxt项目导入nuxt-echarts实现图表渲染', date: '2026-01-20', type: 'blog', to: '/blog/nuxt-echarts-implementation' },
-  { title: 'Nuxt项目部署后报错修复', date: '2026-01-13', type: 'blog', to: '/blog/nuxt-payload-extraction' },
-  { title: 'wangEditor图片过滤问题解决', date: '2026-01-12', type: 'blog', to: '/blog/wangeditor-img-filter-issue' }
-]
+const { data: posts } = await useAsyncData('posts', () => queryCollection('posts').all())
+
+const recentUpdates = computed(() =>
+  (posts.value || [])
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 3)
+    .map(post => ({
+      title: post.title,
+      date: new Date(post.date).toISOString().split('T')[0],
+      type: 'blog',
+      to: `/${post.path}`
+    }))
+)
 
 // 技能亮点
 const highlights = [
-  { title: '跨平台应用', description: 'UniApp、Taro 等跨平台开发经验', icon: 'i-lucide-smartphone', gradient: 'from-green-500 to-emerald-500' },
+  { title: '跨平台应用', description: 'UniApp跨平台开发经验', icon: 'i-lucide-smartphone', gradient: 'from-green-500 to-emerald-500' },
   { title: '区块链开发', description: 'Web3、DApp 去中心化应用开发', icon: 'i-lucide-blocks', gradient: 'from-purple-500 to-pink-500' },
   { title: '性能优化', description: '前端性能调优与最佳实践', icon: 'i-lucide-zap', gradient: 'from-yellow-500 to-orange-500' },
   { title: '现代化工具', description: 'Vue/Nuxt 生态与工程化技术', icon: 'i-lucide-wrench', gradient: 'from-blue-500 to-indigo-500' }
