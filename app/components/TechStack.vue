@@ -27,6 +27,8 @@ const techStack: TechItem[] = [
   { name: 'Element Plus', icon: 'i-logos-element', color: 'from-blue-500 to-indigo-600', category: 'UI组件库' },
   { name: 'Nuxt UI', icon: 'i-lucide-layout-grid', color: 'from-green-400 to-green-600', category: 'UI组件库' },
   { name: 'Avue', icon: 'i-lucide-table-properties', color: 'from-cyan-500 to-blue-600', category: 'UI组件库' },
+  { name: 'uview', icon: 'i-lucide-box', color: 'from-purple-500 to-pink-600', category: 'UI组件库' },
+  { name: 'Wot UI', icon: 'i-lucide-component', color: 'from-orange-500 to-red-600', category: 'UI组件库' },
 
   // 跨平台开发
   { name: 'UniApp', icon: 'i-lucide-smartphone', color: 'from-green-500 to-emerald-600', category: '跨平台' },
@@ -39,7 +41,7 @@ const techStack: TechItem[] = [
 
   // 版本控制
   { name: 'Git', icon: 'i-logos-git-icon', color: 'from-orange-500 to-red-600', category: '构建工具' },
-  { name: 'GitHub', icon: 'i-logos-github-icon', color: 'from-blue-400 to-purple-500', category: '构建工具' },
+  { name: 'GitHub', icon: 'grommet-icons:github', color: 'from-blue-400 to-purple-500', category: '构建工具' },
 
   // 区块链
   { name: 'Web3.js', icon: 'i-lucide-link', color: 'from-purple-500 to-indigo-600', category: '区块链' },
@@ -48,7 +50,8 @@ const techStack: TechItem[] = [
   { name: 'Reown/AppKit', icon: 'i-lucide-wallet', color: 'from-violet-500 to-fuchsia-600', category: '区块链' },
 
   // 可视化
-  { name: 'ECharts', icon: 'i-lucide-bar-chart-3', color: 'from-red-500 to-orange-600', category: '可视化' }
+  { name: 'ECharts', icon: 'i-lucide-bar-chart-3', color: 'from-red-500 to-orange-600', category: '可视化' },
+  { name: 'KLineCharts', icon: 'i-lucide-trending-up', color: 'from-indigo-500 to-blue-600', category: '可视化' }
 
 ]
 
