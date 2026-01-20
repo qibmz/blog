@@ -18,7 +18,7 @@ versions:
       {
         name: '前端开发',
         avatar: {
-          src: '/image/avatar.avif',
+          src: '/image/avatar.avif', 
           alt: '前端开发'
         },
       }
