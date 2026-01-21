@@ -33,7 +33,7 @@ const recentUpdates = computed(() =>
       title: post.title,
       date: new Date(post.date).toISOString().split('T')[0],
       type: 'blog',
-      to: `/${post.path}`
+      to: `${post.path}`
     }))
 )
 
