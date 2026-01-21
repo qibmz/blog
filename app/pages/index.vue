@@ -208,9 +208,24 @@ const highlights = [
             <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
               让我们一起创造些什么
             </h2>
-            <p class="text-white/90 text-lg mb-8 max-w-2xl mx-auto">
-              如果你有任何项目合作或技术交流的想法，随时欢迎联系我
+            <p class="text-white/90 text-lg mb-6 max-w-2xl mx-auto">
+              如果你有任何项目合作或技术交流的想法,随时欢迎联系我
             </p>
+            <div
+              v-if="page?.contact?.email"
+              class="flex items-center justify-center gap-2 text-white/95"
+            >
+              <UIcon
+                name="i-lucide-mail"
+                class="w-5 h-5"
+              />
+              <a
+                :href="`mailto:${page.contact.email}`"
+                class="hover:underline text-lg font-medium"
+              >
+                {{ page.contact.email }}
+              </a>
+            </div>
           </div>
         </div>
       </div>

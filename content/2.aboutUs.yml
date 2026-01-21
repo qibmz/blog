@@ -6,6 +6,9 @@ seo:
 navigation:
   icon: i-lucide-user
 
+contact:
+  email: 1583326640@qq.com
+
 versions:
   - title: '深圳酷龙软件技术有限公司'
     description: '负责区块链 DApp 前端开发，使用 Web3 技术栈实现去中心化应用的用户界面和交互功能。'

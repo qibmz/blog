@@ -16,7 +16,9 @@ useHead({
 
 useSeoMeta({
   titleTemplate: '%s - qibmz blog',
-  ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/saas-light.png'
+  ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/saas-light.png',
+  twitterImage: 'https://ui.nuxt.com/assets/templates/nuxt/saas-light.png',
+  twitterCard: 'summary_large_image'
 })
 
 const { data: docsNavigation } = await useAsyncData('docsNavigation', () => queryCollectionNavigation('docs'), {

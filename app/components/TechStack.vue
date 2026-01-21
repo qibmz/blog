@@ -128,14 +128,6 @@ const filteredStack = computed(() => {
         <div class="absolute inset-0 rounded-2xl ring-1 ring-gray-200 dark:ring-gray-800 group-hover:ring-2 group-hover:ring-primary-400 dark:group-hover:ring-primary-500 transition-all duration-300" />
       </div>
     </div>
-
-    <!-- 统计信息 -->
-    <div class="mt-12 text-center">
-      <p class="text-sm text-gray-600 dark:text-gray-400">
-        共掌握 <span class="font-bold text-primary-500">{{ filteredStack.length }}</span> 项技术
-        <span v-if="selectedCategory !== '全部'"> · {{ selectedCategory }}</span>
-      </p>
-    </div>
   </div>
 </template>
 

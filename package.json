@@ -24,6 +24,7 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@iconify-json/logos": "^1.2.10",
     "@nuxt/eslint": "^1.12.1",
     "eslint": "^9.39.2",
     "typescript": "^5.9.3",

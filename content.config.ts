@@ -40,6 +40,9 @@ export const collections = {
       hero: z.object(({
         links: z.array(createLinkSchema())
       })),
+      contact: z.object({
+        email: z.string().email().optional()
+      }).optional(),
       sections: z.array(
         createBaseSchema().extend({
           id: z.string().nonempty(),
@@ -99,6 +102,9 @@ export const collections = {
     source: '2.aboutUs.yml',
     type: 'page',
     schema: z.object({
+      contact: z.object({
+        email: z.string().email().optional()
+      }).optional(),
       hero: z.object(({
         title: z.string().optional(),
         description: z.string().optional(),
