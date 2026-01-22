@@ -62,7 +62,6 @@
     text-shadow: 2px 2px rgb(116, 116, 116);
     text-transform: uppercase;
     cursor: pointer;
-    border: solid 2px black;
     letter-spacing: 1px;
     font-weight: 600;
     font-size: 17px;

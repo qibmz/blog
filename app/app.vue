@@ -11,7 +11,10 @@ useHead({
   ],
   link: [
     { rel: 'icon', href: '/favicon.ico' }
-  ]
+  ],
+  htmlAttrs: {
+    class: 'dark'
+  }
 })
 
 useSeoMeta({
