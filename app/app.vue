@@ -17,10 +17,11 @@ useHead({
   }
 })
 
+const { origin } = useRequestURL()
 useSeoMeta({
   titleTemplate: '%s - qibmz blog',
-  ogImage: 'https://ui.nuxt.com/assets/templates/nuxt/saas-light.png',
-  twitterImage: 'https://ui.nuxt.com/assets/templates/nuxt/saas-light.png',
+  ogImage: `${origin}/image/blog.png`,
+  twitterImage: `${origin}/image/blog.png`,
   twitterCard: 'summary_large_image'
 })
 
