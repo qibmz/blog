@@ -1,62 +1,56 @@
-# Nuxt SaaS Template
+# 个人博客
 
 [![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
 
-Fully built SaaS application to launch your next project with a landing page, a pricing page, a documentation and a blog powered by [Nuxt UI](https://ui.nuxt.com) components.
+基于 [Nuxt UI SaaS 模板](https://github.com/nuxt-ui-templates/saas) 改造的个人博客，使用 [Nuxt UI](https://ui.nuxt.com) 组件构建，包含首页、关于页、文档和博客功能。
 
-- [Live demo](https://saas-template.nuxt.dev/)
-- [Documentation](https://ui.nuxt.com/docs/getting-started/installation/nuxt)
+- [原模板演示](https://saas-template.nuxt.dev/)
+- [Nuxt UI 文档](https://ui.nuxt.com/docs/getting-started/installation/nuxt)
 
-<a href="https://saas-template.nuxt.dev/" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://ui.nuxt.com/assets/templates/nuxt/saas-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://ui.nuxt.com/assets/templates/nuxt/saas-light.png">
-    <img alt="Nuxt SaaS Template" src="https://ui.nuxt.com/assets/templates/nuxt/saas-light.png">
-  </picture>
-</a>
+## 项目简介
 
-## Quick Start
+这是一个基于 Nuxt 4 和 Nuxt UI 构建的个人技术博客，内容由 `@nuxt/content` 驱动，支持 Markdown 格式的文档和博客文章。
 
-```bash [Terminal]
-npm create nuxt@latest -- -t github:nuxt-ui-templates/saas
-```
+## 本地开发
 
-## Deploy your own
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-name=saas&repository-url=https%3A%2F%2Fgithub.com%2Fnuxt-ui-templates%2Fsaas&demo-image=https%3A%2F%2Fui.nuxt.com%2Fassets%2Ftemplates%2Fnuxt%2Fsaas-dark.png&demo-url=https%3A%2F%2Fsaas-template.nuxt.dev%2F&demo-title=Nuxt%20SaaS%20Template&demo-description=A%20SaaS%20template%20with%20landing%2C%20pricing%2C%20docs%20and%20blog%20powered%20by%20Nuxt%20Content.)
-
-## Setup
-
-Make sure to install the dependencies:
+安装依赖：
 
 ```bash
 pnpm install
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
+启动开发服务器（默认运行在 `http://localhost:3000`）：
 
 ```bash
 pnpm dev
 ```
 
-## Production
+## 构建部署
 
-Build the application for production:
+构建生产版本：
 
 ```bash
 pnpm build
 ```
 
-Locally preview production build:
+本地预览生产构建：
 
 ```bash
 pnpm preview
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+更多部署信息请查看 [Nuxt 部署文档](https://nuxt.com/docs/getting-started/deployment)。
 
-## Renovate integration
+## 代码质量
 
-Install [Renovate GitHub app](https://github.com/apps/renovate/installations/select_target) on your repository and you are good to go.
+运行 ESLint 检查并自动修复：
+
+```bash
+pnpm lint
+```
+
+运行 TypeScript 类型检查：
+
+```bash
+pnpm typecheck
+```
