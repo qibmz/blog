@@ -2,7 +2,9 @@
 @import "@nuxt/ui";
 
 @source "../../../content/**/*";
-
+:root{
+  --ui-container:90rem
+}
 @theme static {
   --font-sans: 'Public Sans', sans-serif;
 
