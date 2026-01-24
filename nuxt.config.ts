@@ -23,6 +23,9 @@ export default defineNuxtConfig({
     }
   },
   css: ['~/assets/css/main.css'],
+  runtimeConfig: {
+    databaseUrl: process.env.DATABASE_URL
+  },
 
   routeRules: {
     '/docs': { redirect: '/docs/getting-started', prerender: false }

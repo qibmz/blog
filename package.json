@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev --host",
+    "dev": "nuxt dev --host --dotenv .env.development.local",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint . --fix",
@@ -13,6 +13,7 @@
   "dependencies": {
     "@iconify-json/lucide": "^1.2.81",
     "@iconify-json/simple-icons": "^1.2.63",
+    "@neondatabase/serverless": "^1.0.2",
     "@nuxt/content": "^3.9.0",
     "@nuxt/image": "^1.11.0",
     "@nuxt/ui": "^4.3.0",
