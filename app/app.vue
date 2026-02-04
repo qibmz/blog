@@ -3,6 +3,8 @@ import { Analytics } from '@vercel/analytics/nuxt'
 
 const colorMode = useColorMode()
 
+const runtimeConfig = useRuntimeConfig()
+
 const color = computed(() => colorMode.value === 'dark' ? '#020618' : 'white')
 
 useHead({
@@ -21,8 +23,8 @@ useHead({
 
 useSeoMeta({
   titleTemplate: '%s - qibmz blog',
-  // ogImage: `${origin}/image/blog.png`,
-  // twitterImage: `${origin}/image/blog.png`,
+  ogImage: `${runtimeConfig.public.origin}/image/blog.png`,
+  twitterImage: `${runtimeConfig.public.origin}/image/blog.png`,
   twitterCard: 'summary_large_image'
 })
 

@@ -24,7 +24,10 @@ export default defineNuxtConfig({
   },
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
-    databaseUrl: process.env.DATABASE_URL
+    databaseUrl: process.env.DATABASE_URL,
+    public: {
+      origin: process.env.NUXT_PUBLIC_ORIGIN || 'https://qibmz-blog.vercel.app'
+    }
   },
 
   routeRules: {
