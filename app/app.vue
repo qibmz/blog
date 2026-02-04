@@ -19,11 +19,10 @@ useHead({
   }
 })
 
-const { origin } = useRequestURL()
 useSeoMeta({
   titleTemplate: '%s - qibmz blog',
-  ogImage: `${origin}/image/blog.png`,
-  twitterImage: `${origin}/image/blog.png`,
+  // ogImage: `${origin}/image/blog.png`,
+  // twitterImage: `${origin}/image/blog.png`,
   twitterCard: 'summary_large_image'
 })
 
