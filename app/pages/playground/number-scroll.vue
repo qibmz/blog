@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
 const title = '数字滚动动画试炼场'
 const description = '高性能数字滚动动画组件的交互式演示'
@@ -14,8 +14,22 @@ useSeoMeta({
 // 基础计数
 const counter1 = ref(0)
 
-// 小数点
-const decimal1 = ref(0)
+// 自动递增定时器
+let autoIncrementTimer: ReturnType<typeof setInterval> | null = null
+
+onMounted(() => {
+  // 每秒增加 2.3
+  autoIncrementTimer = setInterval(() => {
+    counter1.value = +(counter1.value + 2.3).toFixed(1)
+  }, 2000)
+})
+
+onUnmounted(() => {
+  if (autoIncrementTimer) {
+    clearInterval(autoIncrementTimer)
+    autoIncrementTimer = null
+  }
+})
 
 // 实时数据
 const visits = ref(12345)
@@ -89,52 +103,7 @@ const simulateUpdate = () => {
             </div>
           </div>
           <div class="text-sm text-gray-600 dark:text-gray-400">
-            💡 提示：点击按钮改变数值，观察平滑的滚动动画效果
-          </div>
-        </div>
-
-        <!-- 小数点演示 -->
-        <div class="space-y-4">
-          <h2 class="text-2xl font-bold">
-            小数点支持
-          </h2>
-          <div class="flex items-center justify-center gap-8 p-8 bg-linear-to-br from-green-500/10 to-emerald-500/10 rounded-2xl ring-1 ring-green-500/20">
-            <div class="text-5xl font-bold text-green-500">
-              <NumberScroll
-                :value="decimal1"
-                :duration="1000"
-              />
-            </div>
-            <div class="space-y-3">
-              <UButton
-                color="success"
-                size="lg"
-                class="w-40"
-                @click="decimal1 = 99.99"
-              >
-                设置 99.99
-              </UButton>
-              <UButton
-                color="success"
-                size="lg"
-                class="w-40"
-                variant="outline"
-                @click="decimal1 = 999.99"
-              >
-                设置 999.99
-              </UButton>
-              <UButton
-                color="neutral"
-                size="lg"
-                class="w-40"
-                @click="decimal1 = 0"
-              >
-                清空
-              </UButton>
-            </div>
-          </div>
-          <div class="text-sm text-gray-600 dark:text-gray-400">
-            💡 提示：支持小数点显示，适合价格、汇率等场景
+            💡 提示：数字每秒自动增加 2.3，点击按钮可手动改变数值
           </div>
         </div>
 
