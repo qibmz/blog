@@ -3,8 +3,8 @@ import { computed } from 'vue'
 
 const route = useRoute()
 
-const pageSize = 10
-const dateFormatter = new Intl.DateTimeFormat('en', { year: 'numeric', month: 'short', day: 'numeric' })
+const pageSize = 7
+const dateFormatter = new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })
 
 const { data: page } = await useAsyncData('blog', () => queryCollection('blog').first())
 const { data: totalPosts } = await useAsyncData('posts-count', () => queryCollection('posts').count())
@@ -99,7 +99,7 @@ defineOgImageComponent('Saas')
         :total="totalPosts || 0"
         :items-per-page="pageSize"
         :to="pageLink"
-        class="mt-10 justify-center"
+        class="mt-10 justify-center flex"
       />
     </UPageBody>
   </UContainer>
