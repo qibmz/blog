@@ -12,13 +12,13 @@ const items = computed(() => [{
   label: '博客',
   to: '/blog'
 }, {
+  label: '试炼场',
+  to: '/playground',
+  active: route.path.startsWith('/playground')
+}, {
   label: '关于我',
   to: '/aboutUs'
 }
-//  {
-//   label: '期望待遇',
-//   to: '/pricing'
-// }
 ])
 </script>
 

@@ -67,18 +67,18 @@ const simulateUpdate = () => {
           <h2 class="text-2xl font-bold">
             基础计数演示
           </h2>
-          <div class="flex  justify-center gap-8 p-8 bg-linear-to-br from-primary-500/10 to-purple-500/10 rounded-2xl ring-1 ring-primary-500/20">
-            <div class="text-6xl font-bold">
+          <div class="flex flex-col md:flex-row justify-center items-center md:items-center gap-4 md:gap-8 p-4 md:p-8 bg-linear-to-br from-primary-500/10 to-purple-500/10 rounded-2xl ring-1 ring-primary-500/20">
+            <div class="text-4xl md:text-6xl font-bold">
               <NumberScroll
                 :value="counter1"
                 :duration="800"
               />
             </div>
-            <div class="space-y-3">
+            <div class="space-y-3 w-full md:w-auto">
               <UButton
                 color="primary"
                 size="lg"
-                class="w-32"
+                class="w-full md:w-32"
                 @click="counter1 += 100"
               >
                 +100
@@ -86,7 +86,7 @@ const simulateUpdate = () => {
               <UButton
                 color="primary"
                 size="lg"
-                class="w-32"
+                class="w-full md:w-32"
                 variant="outline"
                 @click="counter1 += 1000"
               >
@@ -95,7 +95,7 @@ const simulateUpdate = () => {
               <UButton
                 color="neutral"
                 size="lg"
-                class="w-32"
+                class="w-full md:w-32"
                 @click="counter1 = 0"
               >
                 重置
@@ -156,10 +156,9 @@ const simulateUpdate = () => {
                     :value="conversion"
                     :duration="800"
                   />
-                  <span class="text-2xl">%</span>
                 </div>
                 <p class="text-xs text-gray-500">
-                  用户转化百分比
+                  用户转化百分比(%)
                 </p>
               </div>
             </div>
