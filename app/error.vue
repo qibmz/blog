@@ -65,7 +65,15 @@ const searchNavigation = computed(() => [
     <UMain>
       <UContainer>
         <UPage>
-          <UError :error="error" />
+          <UError
+            :error="error"
+            :clear="{
+              color: 'neutral',
+              size: 'xl',
+              icon: 'i-lucide-arrow-left',
+              class: 'rounded-full'
+            }"
+          />
         </UPage>
       </UContainer>
     </UMain>

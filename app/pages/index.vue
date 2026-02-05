@@ -51,12 +51,6 @@ const highlights = [
     v-if="page"
     class="relative min-h-screen"
   >
-    <!-- 背景图片 -->
-    <div
-      class="absolute inset-0 bg-cover bg-center bg-fixed opacity-20 z-0 pointer-events-none"
-      :style="{ backgroundImage: `url('/image/index-bg.png')` }"
-    />
-
     <UPageHero
       :title="page.title"
       :description="page.description"
@@ -193,38 +187,6 @@ const highlights = [
                   </p>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CTA 区域 -->
-      <div class="py-12 border-t border-gray-200 dark:border-gray-800">
-        <div class="relative overflow-hidden bg-linear-to-br from-primary-500 to-purple-600 rounded-3xl p-12 text-center">
-          <!-- 装饰性背景 -->
-          <div class="absolute inset-0 bg-grid-white/10 mask-[linear-gradient(0deg,white,rgba(255,255,255,0.6))]" />
-
-          <div class="relative">
-            <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">
-              让我们一起创造些什么
-            </h2>
-            <p class="text-white/90 text-lg mb-6 max-w-2xl mx-auto">
-              如果你有任何项目合作或技术交流的想法,随时欢迎联系我
-            </p>
-            <div
-              v-if="page?.contact?.email"
-              class="flex items-center justify-center gap-2 text-white/95"
-            >
-              <UIcon
-                name="i-lucide-mail"
-                class="w-5 h-5"
-              />
-              <a
-                :href="`mailto:${page.contact.email}`"
-                class="hover:underline text-lg font-medium"
-              >
-                {{ page.contact.email }}
-              </a>
             </div>
           </div>
         </div>
