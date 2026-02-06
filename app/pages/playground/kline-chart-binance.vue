@@ -41,7 +41,7 @@ const { klineData, latestTrade, status } = useBinanceBusiness(symbol, binanceInt
 const trades = ref<BinanceTradeData[]>([])
 watch(latestTrade, (newTrade) => {
   if (newTrade) {
-    trades.value = [newTrade, ...trades.value].slice(0, 50)
+    trades.value = [newTrade, ...trades.value].slice(0, 1000)
   }
 })
 

@@ -78,22 +78,48 @@ export function useBinanceBusiness(symbol: MaybeRefOrGetter<string>, interval: M
   const klineData = ref<BinanceKlineData | null>(null)
   const latestTrade = ref<BinanceTradeData | null>(null)
 
-  const { status, open, close } = useWebSocket(url, {
+  const { status, open, close, send } = useWebSocket(url, {
     autoReconnect: true,
-    heartbeat: {
-      message: '{"method": "PING", "id": 1}',
-      interval: 20000,
-      responseMessage: '{"result": null, "id": 1}'
-    },
     onMessage: (_, event) => {
+      const raw = event.data
+      if (typeof raw === 'string') {
+        const trimmed = raw.trim()
+        if (trimmed.toLowerCase() === 'ping') {
+          send('PONG')
+          return
+        }
+      }
+
       try {
-        const msg = JSON.parse(event.data) as BinanceCombinedMessage<BinanceKlineEvent | BinanceTradeData>
-        if (msg.stream && msg.data) {
-          const streamType = msg.stream.split('@')[1]
+        const msg = JSON.parse(raw) as Record<string, unknown>
+
+        if (msg?.method === 'PING') {
+          const payload: Record<string, unknown> = { method: 'PONG' }
+          if ('id' in msg) payload.id = msg.id
+          if ('params' in msg) payload.params = msg.params
+          if ('payload' in msg) payload.payload = msg.payload
+          send(JSON.stringify(payload))
+          return
+        }
+
+        if ('ping' in msg) {
+          send(JSON.stringify({ pong: msg.ping }))
+          return
+        }
+
+        if (msg?.op === 'ping') {
+          const payload = { ...msg, op: 'pong' }
+          send(JSON.stringify(payload))
+          return
+        }
+
+        if ('stream' in msg && 'data' in msg) {
+          const combined = msg as unknown as BinanceCombinedMessage<BinanceKlineEvent | BinanceTradeData>
+          const streamType = combined.stream.split('@')[1]
           if (streamType && streamType.startsWith('kline')) {
-            klineData.value = (msg.data as BinanceKlineEvent).k
+            klineData.value = (combined.data as BinanceKlineEvent).k
           } else if (streamType === 'trade') {
-            latestTrade.value = msg.data as BinanceTradeData
+            latestTrade.value = combined.data as BinanceTradeData
           }
         }
       } catch (e) {
