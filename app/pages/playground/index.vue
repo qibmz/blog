@@ -18,7 +18,7 @@ const playgrounds = [
     gradient: 'from-purple-500 to-pink-500'
   },
   {
-    title: 'K线图表',
+    title: 'K线图表(拷打ai中)',
     description: '币安K线图表组件演示',
     icon: 'i-lucide-trending-up',
     to: '/playground/kline-chart-binance',

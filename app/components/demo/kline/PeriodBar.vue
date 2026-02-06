@@ -45,7 +45,10 @@ const binanceSymbol = computed(() => {
 
 const { data: tickerData, pending: tickerLoading } = useFetch<TickerData>(
   () => `${binanceApiUrl}/api/v3/ticker/24hr?symbol=${binanceSymbol.value}`,
-  { watch: [binanceSymbol] }
+  {
+    watch: [binanceSymbol],
+    server: false
+  }
 )
 
 const formatPrice = (price: string) => {
