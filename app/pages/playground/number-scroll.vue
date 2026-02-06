@@ -69,7 +69,7 @@ const simulateUpdate = () => {
           </h2>
           <div class="flex flex-col md:flex-row justify-center items-center md:items-center gap-4 md:gap-8 p-4 md:p-8 bg-linear-to-br from-primary-500/10 to-purple-500/10 rounded-2xl ring-1 ring-primary-500/20">
             <div class="text-4xl md:text-6xl font-bold">
-              <NumberScroll
+              <DemoNumberScroll
                 :value="counter1"
                 :duration="800"
               />
@@ -120,7 +120,7 @@ const simulateUpdate = () => {
                   👥 访客数
                 </p>
                 <div class="text-4xl font-bold text-purple-500 mb-2">
-                  <NumberScroll
+                  <DemoNumberScroll
                     :value="visits"
                     :duration="600"
                   />
@@ -136,7 +136,7 @@ const simulateUpdate = () => {
                   📊 浏览量
                 </p>
                 <div class="text-4xl font-bold text-pink-500 mb-2">
-                  <NumberScroll
+                  <DemoNumberScroll
                     :value="pageviews"
                     :duration="600"
                   />
@@ -152,7 +152,7 @@ const simulateUpdate = () => {
                   📈 转化率
                 </p>
                 <div class="text-4xl font-bold text-indigo-500 mb-2">
-                  <NumberScroll
+                  <DemoNumberScroll
                     :value="conversion"
                     :duration="800"
                   />
