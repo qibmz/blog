@@ -4,10 +4,20 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 interface Props {
   value: number | string
   duration?: number // 动画持续时间，默认1000ms
+  fontSize?: string // 字体大小，如 'text-2xl', 'text-4xl'，默认 'text-2xl'
+  textColor?: string // 文字颜色，如 'text-gray-900 dark:text-white'
+  digitWidth?: string // 数字宽度，如 'w-10', 'w-12', 'w-16'，默认 'w-10'
+  digitHeight?: string // 数字高度，如 'h-14', 'h-16', 'h-20'，默认 'h-14'
+  bgClass?: string // 背景样式类，默认为有边框和渐变背景
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  duration: 1000
+  duration: 2000,
+  fontSize: 'text-2xl',
+  textColor: 'text-gray-900 dark:text-white',
+  digitWidth: 'w-10',
+  digitHeight: 'h-14',
+  bgClass: 'border border-gray-200 dark:border-gray-700 bg-linear-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-400/10 dark:to-purple-400/10'
 })
 
 // 内部状态
@@ -50,16 +60,16 @@ onUnmounted(() => clearTimer())
     <div
       v-for="(char, index) in displayedChars"
       :key="index"
-      class="relative flex  justify-center overflow-hidden rounded"
+      class="relative flex justify-center overflow-hidden rounded"
       :class="[
         char === '.'
           ? 'w-4 bg-transparent'
-          : 'w-10 h-14 border border-gray-200 dark:border-gray-700 bg-linear-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-400/10 dark:to-purple-400/10'
+          : `${props.digitWidth} ${props.digitHeight} ${props.bgClass}`
       ]"
     >
       <!-- 小数点 -->
       <template v-if="char === '.'">
-        <div class="text-3xl font-bold leading-none text-gray-900 dark:text-white">
+        <div :class="`text-3xl font-bold leading-none ${props.textColor}`">
           .
         </div>
       </template>
@@ -67,7 +77,7 @@ onUnmounted(() => clearTimer())
       <!-- 数字 -->
       <template v-else>
         <div
-          class="flex flex-col  h-14 transition-transform duration-300 ease-out"
+          class="flex flex-col transition-transform duration-300 ease-out"
           :style="{
             transform: `translateY(${getTranslateY(char)})`,
             transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
@@ -76,7 +86,7 @@ onUnmounted(() => clearTimer())
           <div
             v-for="n in 10"
             :key="n"
-            class="flex w-10 h-14 items-center justify-center shrink-0 text-2xl font-bold leading-none text-gray-900 dark:text-white"
+            :class="`flex h-full items-center justify-center shrink-0 ${props.fontSize} font-bold leading-none ${props.textColor}`"
           >
             {{ n - 1 }}
           </div>
