@@ -79,8 +79,7 @@ onUnmounted(() => clearTimer())
         <div
           class="flex flex-col transition-transform duration-300 ease-out"
           :style="{
-            transform: `translateY(${getTranslateY(char)})`,
-            transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
+            transform: `translateY(${getTranslateY(char)})`, transitionDuration: `${props.duration}ms`, transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)'
           }"
         >
           <div

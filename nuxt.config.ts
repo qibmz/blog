@@ -34,7 +34,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
     public: {
-      origin: process.env.NUXT_PUBLIC_ORIGIN || 'https://qibmz-blog.vercel.app'
+      origin: process.env.NUXT_PUBLIC_ORIGIN || 'https://qibmz-blog.vercel.app',
+      binanceWs: process.env.NUXT_PUBLIC_BINANCE_WS || 'wss://data-stream.binance.vision'
     }
   },
 

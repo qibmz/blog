@@ -51,12 +51,20 @@ const simulateUpdate = () => {
       class="py-12.5"
     >
       <template #links>
-        <NuxtLink to="/blog/number-scroll-animation">
+        <div class="flex gap-2">
           <UButton
-            icon="i-lucide-arrow-left"
-            label="返回文章"
+            icon="i-lucide-code"
+            label="源代码"
+            to="https://github.com/qibmz/blog/blob/main/app/components/demo/NumberScroll.vue"
+            target="_blank"
           />
-        </NuxtLink>
+          <NuxtLink to="/blog/number-scroll-animation">
+            <UButton
+              icon="i-lucide-arrow-left"
+              label="返回文章"
+            />
+          </NuxtLink>
+        </div>
       </template>
     </UPageHeader>
 
