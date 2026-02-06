@@ -28,6 +28,9 @@ export default defineNuxtConfig({
     fallback: 'dark',
     classSuffix: ''
   },
+  ui: {
+    fonts: false
+  },
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
     public: {
