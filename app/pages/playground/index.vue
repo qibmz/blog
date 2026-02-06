@@ -16,6 +16,13 @@ const playgrounds = [
     icon: 'i-lucide-bar-chart-3',
     to: '/playground/number-scroll',
     gradient: 'from-purple-500 to-pink-500'
+  },
+  {
+    title: 'K线图表',
+    description: '币安K线图表组件演示',
+    icon: 'i-lucide-trending-up',
+    to: '/playground/kline-chart-binance',
+    gradient: 'from-orange-500 to-red-500'
   }
 ]
 </script>
@@ -39,12 +46,12 @@ const playgrounds = [
           <div class="relative overflow-hidden bg-white dark:bg-gray-900 rounded-2xl p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ring-1 ring-gray-200 dark:ring-gray-800 h-full">
             <!-- 渐变背景 -->
             <div
-              :class="`absolute inset-0 bg-gradient-to-br ${playground.gradient} opacity-0 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity duration-300`"
+              :class="`absolute inset-0 bg-linear-to-br ${playground.gradient} opacity-0 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity duration-300`"
             />
 
             <!-- 内容 -->
             <div class="relative">
-              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 p-2 mb-4 group-hover:scale-110 transition-transform duration-300">
+              <div class="w-12 h-12 rounded-xl bg-linear-to-br from-indigo-500 to-purple-500 p-2 mb-4 group-hover:scale-110 transition-transform duration-300">
                 <UIcon
                   :name="playground.icon"
                   class="w-full h-full text-white"

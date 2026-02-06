@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
-
-const title = '数字滚动动画试炼场'
+const title = '数字滚动动画'
 const description = '高性能数字滚动动画组件的交互式演示'
 
 useSeoMeta({
