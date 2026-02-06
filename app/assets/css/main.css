@@ -2,6 +2,12 @@
 @import "@nuxt/ui";
 
 @source "../../../content/**/*";
+
+/* 全屏时移除浏览器默认的黑色背景层 */
+:not(:root):fullscreen::backdrop {
+  background-color:var(--ui-bg)
+} 
+  
 :root{
   --ui-container:90rem
 }
