@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-type PeriodType = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
+import type { PeriodType } from 'klinecharts'
+import type { BinanceTradeData } from '~/composables/useBinanceBusiness'
 
 const title = 'K线图表'
 const description = '基于币安实现的实时K线图表组件演示'
@@ -17,19 +18,32 @@ const { isFullscreen, enter, exit } = useFullscreen(pageBodyRef)
 const symbol = ref('BNB/USDT')
 const period = ref<{ span: number, type: PeriodType }>({ span: 1, type: 'day' })
 
-// Mock 交易数据
-const trades = ref([
-  { e: 'trade', E: 1672515782136, s: 'BNBUSDT', t: 12345, p: '0.001', q: '100', T: 1672515782136, m: true, M: true },
-  { e: 'trade', E: 1672515783136, s: 'BNBUSDT', t: 12346, p: '0.0011', q: '50', T: 1672515783136, m: false, M: true },
-  { e: 'trade', E: 1672515784136, s: 'BNBUSDT', t: 12347, p: '0.00105', q: '75.5', T: 1672515784136, m: true, M: true },
-  { e: 'trade', E: 1672515785136, s: 'BNBUSDT', t: 12348, p: '0.001', q: '200', T: 1672515785136, m: false, M: true },
-  { e: 'trade', E: 1672515786136, s: 'BNBUSDT', t: 12349, p: '0.00102', q: '120.3', T: 1672515786136, m: true, M: true },
-  { e: 'trade', E: 1672515787136, s: 'BNBUSDT', t: 12350, p: '0.0012', q: '80', T: 1672515787136, m: false, M: true },
-  { e: 'trade', E: 1672515788136, s: 'BNBUSDT', t: 12351, p: '0.00099', q: '150.8', T: 1672515788136, m: true, M: true },
-  { e: 'trade', E: 1672515789136, s: 'BNBUSDT', t: 12352, p: '0.001', q: '90', T: 1672515789136, m: false, M: true },
-  { e: 'trade', E: 1672515790136, s: 'BNBUSDT', t: 12353, p: '0.00108', q: '110', T: 1672515790136, m: true, M: true },
-  { e: 'trade', E: 1672515791136, s: 'BNBUSDT', t: 12354, p: '0.00101', q: '200.5', T: 1672515791136, m: false, M: true }
-])
+// 将 UI 周期转换为币安 K 线间隔字符串 (例如: {span: 1, type: 'day'} -> '1d')
+const binanceInterval = computed(() => {
+  const { span, type } = period.value
+  const typeMap: Record<string, string> = {
+    minute: 'm',
+    hour: 'h',
+    day: 'd',
+    week: 'w',
+    month: 'M'
+  }
+  const suffix = typeMap[type] || 'd'
+
+  // 币安特殊处理：月线是 1M，其它通常是 1m, 1h 等
+  return `${span}${suffix}`
+})
+
+// 使用 WebSocket 实时获取数据
+const { klineData, latestTrade, status } = useBinanceBusiness(symbol, binanceInterval)
+
+// 实时更新交易列表 (按时间倒序排列，限制显示数量)
+const trades = ref<BinanceTradeData[]>([])
+watch(latestTrade, (newTrade) => {
+  if (newTrade) {
+    trades.value = [newTrade, ...trades.value].slice(0, 50)
+  }
+})
 
 const toggleFullscreen = () => {
   if (isFullscreen.value) {
@@ -84,6 +98,7 @@ const handlePeriodChange = (newPeriod: { span: number, type: PeriodType, label: 
             <DemoKlineChart
               :symbol="symbol"
               :period="period"
+              :latest-data="klineData"
               class="border-t border-slate-100 dark:border-slate-900 mt-3"
             />
           </div>
@@ -100,10 +115,10 @@ const handlePeriodChange = (newPeriod: { span: number, type: PeriodType, label: 
                 </div>
                 <div class="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest">
                   <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                    <span :class="['absolute inline-flex h-full w-full rounded-full opacity-75', status === 'OPEN' ? 'animate-ping bg-emerald-400' : 'bg-red-400']" />
+                    <span :class="['relative inline-flex rounded-full h-2 w-2', status === 'OPEN' ? 'bg-emerald-500' : 'bg-red-500']" />
                   </span>
-                  实时连接中
+                  {{ status === 'OPEN' ? '实时连接中' : '连接已断开' }}
                 </div>
               </div>
               <DemoKlineTradesList

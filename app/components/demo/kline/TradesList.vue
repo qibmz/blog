@@ -36,6 +36,8 @@ const { list, containerProps, wrapperProps } = useVirtualList(
     overscan: 5
   }
 )
+const containerRef = containerProps.ref
+const lastHeadTradeId = ref<number | null>(null)
 
 const formatPrice = (price: string) => {
   return parseFloat(price).toFixed(8)
@@ -71,6 +73,42 @@ const formatTime = (timestamp: number) => {
     return date.toLocaleDateString('zh-CN')
   }
 }
+
+watch(
+  () => props.trades,
+  (nextTrades) => {
+    if (!nextTrades.length) {
+      lastHeadTradeId.value = null
+      return
+    }
+
+    const container = containerRef.value
+    const nextHeadId = nextTrades[0]?.t ?? null
+
+    if (!container || nextHeadId === null) {
+      lastHeadTradeId.value = nextHeadId
+      return
+    }
+
+    if (lastHeadTradeId.value === null) {
+      lastHeadTradeId.value = nextHeadId
+      return
+    }
+
+    if (nextHeadId !== lastHeadTradeId.value) {
+      const isAtTop = container.scrollTop <= 4
+      if (!isAtTop) {
+        container.scrollTop += itemHeight.value
+      } else {
+        container.scrollTop = 0
+      }
+      containerProps.onScroll()
+    }
+
+    lastHeadTradeId.value = nextHeadId
+  },
+  { deep: true }
+)
 </script>
 
 <template>
@@ -100,7 +138,7 @@ const formatTime = (timestamp: number) => {
     <div v-bind="wrapperProps">
       <template v-if="list.length === 0">
         <div
-          class="flex h-full min-h-[400px] flex-col items-center justify-center p-12"
+          class="flex h-full min-h-100 flex-col items-center justify-center p-12"
         >
           <div class="rounded-full bg-slate-50 p-6 dark:bg-slate-900">
             <UIcon

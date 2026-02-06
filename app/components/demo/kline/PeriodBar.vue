@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-type PeriodType = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
+type PeriodType = 'minute' | 'hour' | 'day' | 'week' | 'month'
 
 interface Period {
   span: number
@@ -15,7 +15,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   symbol: 'BNB/USDT',
-  contractAddress: '0x2260fac5e5542a773aa44fbcff0b76cda6eb69cf',
+  contractAddress: '0xea4e119339027bd04fd252c24edb1922da2a6272',
   isFullscreen: false
 })
 
@@ -74,7 +74,11 @@ const isPositive = computed(() => {
 })
 
 const periods: Period[] = [
-  { span: 1, type: 'second', label: '1s' },
+  { span: 1, type: 'minute', label: '1m' },
+  { span: 3, type: 'minute', label: '3m' },
+  { span: 5, type: 'minute', label: '5m' },
+  { span: 15, type: 'minute', label: '15m' },
+  { span: 30, type: 'minute', label: '30m' },
   { span: 1, type: 'hour', label: '1h' },
   { span: 2, type: 'hour', label: '2h' },
   { span: 4, type: 'hour', label: '4h' },
@@ -87,7 +91,7 @@ const periods: Period[] = [
   { span: 1, type: 'month', label: '1M' }
 ]
 
-const selectedIndex = ref(7) // 默认选中 1d
+const selectedIndex = ref(6)
 
 const handlePeriodClick = (index: number) => {
   selectedIndex.value = index
@@ -152,8 +156,8 @@ const shortAddress = computed(() => {
                 最新价格
               </div>
               <div class="text-lg font-bold text-slate-900 dark:text-slate-100 font-mono flex items-baseline gap-1">
-                <template v-if="!tickerLoading">
-                  <span class="text-sm opacity-50">$</span>{{ formatPrice(tickerData?.lastPrice || '0') }}
+                <template v-if="!tickerLoading && tickerData">
+                  <span class="text-sm opacity-50">$</span>{{ formatPrice(tickerData.lastPrice) }}
                 </template>
                 <div
                   v-else
@@ -168,7 +172,7 @@ const shortAddress = computed(() => {
                 24H 涨跌
               </div>
               <div :class="['text-lg font-bold font-mono', isPositive ? 'text-emerald-500' : 'text-red-500']">
-                <span v-if="!tickerLoading">{{ isPositive ? '+' : '' }}{{ priceChangePercent }}%</span>
+                <span v-if="!tickerLoading && tickerData">{{ isPositive ? '+' : '' }}{{ priceChangePercent }}%</span>
                 <div
                   v-else
                   class="h-6 w-16 bg-slate-200 dark:bg-slate-700 animate-pulse rounded ml-auto sm:ml-0"
@@ -183,12 +187,12 @@ const shortAddress = computed(() => {
               </div>
               <div class="text-sm font-bold font-mono">
                 <div
-                  v-if="!tickerLoading"
+                  v-if="!tickerLoading && tickerData"
                   class="flex flex-col sm:flex-row sm:items-center gap-x-1"
                 >
-                  <span class="text-emerald-500">${{ formatPrice(tickerData?.highPrice || '0') }}</span>
+                  <span class="text-emerald-500">${{ formatPrice(tickerData.highPrice) }}</span>
                   <span class="hidden sm:inline opacity-20">/</span>
-                  <span class="text-red-500">${{ formatPrice(tickerData?.lowPrice || '0') }}</span>
+                  <span class="text-red-500">${{ formatPrice(tickerData.lowPrice) }}</span>
                 </div>
                 <div
                   v-else
@@ -203,7 +207,7 @@ const shortAddress = computed(() => {
                 24H 成交量
               </div>
               <div class="text-lg font-bold text-slate-900 dark:text-slate-100 font-mono uppercase">
-                <span v-if="!tickerLoading">{{ formatVolume(tickerData?.volume || '0') }}</span>
+                <span v-if="!tickerLoading && tickerData">{{ formatVolume(tickerData.volume) }}</span>
                 <div
                   v-else
                   class="h-6 w-16 bg-slate-200 dark:bg-slate-700 animate-pulse rounded ml-auto sm:ml-0"
