@@ -17,13 +17,11 @@ jobs:
       # Pick your own package manager and build script
       - run: npm install
       - run: npx nuxt build --preset github_pages
-        env:
-          NUXT_APP_BASE_URL: /blog/ 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./.output/public
-  # Deployment job  
+  # Deployment job
   deploy:
     # Add a dependency to the build job
     needs: build
@@ -41,4 +39,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
- 
