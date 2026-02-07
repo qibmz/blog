@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
+    "generate": "nuxt generate",
     "dev": "nuxt dev --host --dotenv .env.development.local",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
