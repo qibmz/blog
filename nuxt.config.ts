@@ -12,6 +12,7 @@ export default defineNuxtConfig({
     enabled: true
   },
   app: {
+    baseURL: process.env.NUXT_APP_BASE_URL || '/',
     pageTransition: {
       name: 'fade',
       mode: 'out-in' // default
@@ -40,6 +41,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-07-11',
 
   nitro: {
+    baseURL: process.env.NUXT_APP_BASE_URL || '/',
     prerender: {
       routes: [
         '/'
