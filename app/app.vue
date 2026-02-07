@@ -20,8 +20,6 @@ useHead({
 
 useSeoMeta({
   titleTemplate: '%s - qibmz blog',
-  ogImage: `${runtimeConfig.public.origin}/image/blog.png`,
-  twitterImage: `${runtimeConfig.public.origin}/image/blog.png`,
   twitterCard: 'summary_large_image'
 })
 
