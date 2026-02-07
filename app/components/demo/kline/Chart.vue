@@ -143,6 +143,7 @@ watch(
   (newPeriod) => {
     if (chartInstance) {
       chartInstance.setPeriod({ span: newPeriod.span, type: newPeriod.type })
+      initChart()
     }
   },
   { deep: true }
