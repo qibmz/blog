@@ -74,11 +74,6 @@ const isPositive = computed(() => {
 })
 
 const periods: Period[] = [
-  { span: 1, type: 'minute', label: '1m' },
-  { span: 3, type: 'minute', label: '3m' },
-  { span: 5, type: 'minute', label: '5m' },
-  { span: 15, type: 'minute', label: '15m' },
-  { span: 30, type: 'minute', label: '30m' },
   { span: 1, type: 'hour', label: '1h' },
   { span: 2, type: 'hour', label: '2h' },
   { span: 4, type: 'hour', label: '4h' },
@@ -90,7 +85,6 @@ const periods: Period[] = [
   { span: 1, type: 'week', label: '1w' },
   { span: 1, type: 'month', label: '1M' }
 ]
-
 const selectedIndex = ref(6)
 
 const handlePeriodClick = (index: number) => {

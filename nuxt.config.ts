@@ -49,6 +49,11 @@ export default defineNuxtConfig({
       crawlLinks: true
     }
   },
+  vite: {
+    esbuild: {
+      drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
+    }
+  },
 
   eslint: {
     config: {

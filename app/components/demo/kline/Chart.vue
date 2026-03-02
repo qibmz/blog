@@ -82,7 +82,6 @@ const initChart = () => {
           fetch(`${binanceApiUrl}/api/v3/klines?symbol=${formattedSymbol}&interval=${intervalStr}&limit=500`)
             .then(res => res.json())
             .then((data: BinanceKlineApiItem[]) => {
-              console.log(data)
               const dataList: ChartKlineData[] = data.map(item => ({
                 timestamp: item[0],
                 open: parseFloat(item[1]),
@@ -140,10 +139,10 @@ watch(width, () => {
 
 watch(
   () => props.period,
-  (newPeriod) => {
+  (newVal) => {
     if (chartInstance) {
-      chartInstance.setPeriod({ span: newPeriod.span, type: newPeriod.type })
-      initChart()
+      chartInstance.setPeriod({ span: newVal.span, type: newVal.type })
+      // initChart()
     }
   },
   { deep: true }
