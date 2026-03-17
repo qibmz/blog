@@ -14,7 +14,7 @@ versions:
     description: '负责区块链 DApp 前端开发，使用 Web3 技术栈实现去中心化应用的用户界面和交互功能。'
     image: 'https://picsum.photos/id/15/512/288'
     badge: {
-      label: '2025.06-now',
+      label: '2025.06-2026.02',
       variant: 'subtle'
     }
     authors: [
