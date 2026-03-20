@@ -9,7 +9,7 @@ hero:
     - label: 关于我
       icon: i-lucide-smile # 更换为笑脸图标
       trailing: true
-      to: /aboutUs
+      to: /about-us
       size: xl
     - label: 查看博客
       icon: i-lucide-file-text # 更换为文档图标

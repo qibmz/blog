@@ -41,7 +41,7 @@ const links = [{
 }, {
   label: '关于我',
   icon: 'i-lucide-user',
-  to: '/aboutUs'
+  to: '/about-us'
 }
 ]
 

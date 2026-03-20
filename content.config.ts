@@ -99,7 +99,7 @@ export const collections = {
     })
   }),
   aboutUs: defineCollection({
-    source: '2.aboutUs.yml',
+    source: '2.about-us.yml',
     type: 'page',
     schema: z.object({
       contact: z.object({

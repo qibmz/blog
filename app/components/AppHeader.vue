@@ -17,7 +17,7 @@ const items = computed(() => [{
   active: route.path.startsWith('/playground')
 }, {
   label: '关于我',
-  to: '/aboutUs'
+  to: '/about-us'
 }
 ])
 </script>

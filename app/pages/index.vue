@@ -63,7 +63,7 @@ const highlights = [
       <template #links>
         <div class="flex flex-wrap items-center justify-center gap-4 mt-6">
           <FancyButton
-            @click="$router.push('/aboutUs')"
+            @click="$router.push('/about-us')"
           >
             关于我
           </FancyButton>

@@ -15,7 +15,7 @@
 - Content directories are the single source of truth for pages: see `content/`.
   - `1.docs/**` -> docs pages
   - `3.blog/**` -> blog posts
-  - `0.index.yml`, `2.aboutUs.yml` -> index / about pages
+  - `0.index.yml`, `2.about-us.yml` -> index / about pages
 - Pages query content via helpers like `queryCollection('docs')`, `queryCollection('posts')` in page components (example: `app/pages/docs/[...slug].vue`).
 - UI uses `U*` components (from `@nuxt/ui`) across pages, e.g., `UPage`, `UPageHeader`, `UPageBody`, `UContentSurround`, `UContentToc`.
 - OG images: pages call `defineOgImageComponent('Saas')` and the component is `app/components/OgImage/OgImageSaas.vue`.
