@@ -19,7 +19,13 @@ const isBlinking = ref(true)
 const { start } = useTimeoutFn(tick, 500, { immediate: false })
 
 function tick() {
-  const current = props.texts[currentIndex.value]
+  const current = props.texts[currentIndex.value] ?? ''
+
+  if (!current) {
+    displayText.value = ''
+    isBlinking.value = true
+    return
+  }
 
   if (!isDeleting.value) {
     displayText.value = current.slice(0, displayText.value.length + 1)

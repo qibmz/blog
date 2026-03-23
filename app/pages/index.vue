@@ -26,12 +26,20 @@ const stats = [
 // 最新动态
 const { data: posts } = await useAsyncData('posts', () => queryCollection('posts').all())
 
-const categoryConfig: Record<string, { color: string, label: string }> = {
+type CategoryMeta = { color: string, label: string }
+
+const defaultCategoryMeta: CategoryMeta = { color: 'bg-gray-500/10 text-gray-600 dark:text-gray-400', label: '文章' }
+
+const categoryConfig: Record<string, CategoryMeta> = {
   blog: { color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400', label: '博客' },
   web3: { color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400', label: 'Web3' },
   frontend: { color: 'bg-green-500/10 text-green-600 dark:text-green-400', label: '前端' },
-  default: { color: 'bg-gray-500/10 text-gray-600 dark:text-gray-400', label: '文章' }
+  default: defaultCategoryMeta
 }
+
+const getCategoryMeta = (category: string): CategoryMeta => categoryConfig[category] ?? defaultCategoryMeta
+
+const getHighlightGradient = (index: number) => highlights[index % highlights.length]?.gradient ?? 'from-primary-500 to-sky-500'
 
 const recentUpdates = computed(() =>
   (posts.value || [])
@@ -39,10 +47,10 @@ const recentUpdates = computed(() =>
     .slice(0, 3)
     .map(post => ({
       title: post.title,
-      description: post.description || post.excerpt || '',
+      description: post.description || '',
       date: new Date(post.date).toISOString().split('T')[0],
-      category: post.category || 'blog',
-      tags: post.tags || [],
+      category: post.badge.label || 'blog',
+      tags: [] as string[],
       to: `${post.path}`
     }))
 )
@@ -54,8 +62,6 @@ const highlights = [
   { title: '性能优化', description: '前端性能调优与最佳实践，Lighthouse 满分', icon: 'i-lucide-zap', gradient: 'from-yellow-500 to-orange-500' },
   { title: '现代化工具', description: 'Vue 3 / Nuxt 4 生态，完整工程化体系', icon: 'i-lucide-wrench', gradient: 'from-blue-500 to-indigo-500' }
 ]
-
-
 </script>
 
 <template>
@@ -87,7 +93,7 @@ const highlights = [
         <!-- 头像卡片 -->
         <div class="flex flex-col items-center gap-6 mt-4">
           <div class="relative group">
-            <div class="absolute -inset-1 rounded-full bg-gradient-to-r from-primary-500 via-purple-500 to-pink-500 opacity-60 blur-md group-hover:opacity-90 transition-opacity duration-500" />
+            <div class="absolute -inset-1 rounded-full bg-linear-to-r from-primary-500 via-purple-500 to-pink-500 opacity-60 blur-md group-hover:opacity-90 transition-opacity duration-500" />
             <NuxtImg
               src="/image/avatar.avif"
               alt="头像"
@@ -182,11 +188,11 @@ const highlights = [
             class="highlight-card group relative overflow-hidden bg-white dark:bg-gray-900 rounded-2xl p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5 ring-1 ring-gray-200 dark:ring-gray-800"
           >
             <div
-              :class="`absolute inset-0 bg-gradient-to-br ${highlight.gradient} opacity-0 group-hover:opacity-8 dark:group-hover:opacity-15 transition-opacity duration-300`"
+              :class="`absolute inset-0 bg-linear-to-br ${highlight.gradient} opacity-0 group-hover:opacity-8 dark:group-hover:opacity-15 transition-opacity duration-300`"
             />
             <div class="relative flex flex-col items-center text-center gap-4">
               <div
-                :class="`w-14 h-14 rounded-xl bg-gradient-to-br ${highlight.gradient} p-0.5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg`"
+                :class="`w-14 h-14 rounded-xl bg-linear-to-br ${highlight.gradient} p-0.5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg`"
               >
                 <div class="w-full h-full bg-white dark:bg-gray-900 rounded-xl flex items-center justify-center">
                   <UIcon
@@ -258,15 +264,15 @@ const highlights = [
             class="post-card group block bg-white dark:bg-gray-900 rounded-2xl overflow-hidden ring-1 ring-gray-200 dark:ring-gray-800 transition-all duration-300 hover:shadow-xl hover:-translate-y-1.5"
           >
             <!-- 顶部色条 -->
-            <div :class="`h-1 w-full bg-gradient-to-r ${highlights[i % highlights.length].gradient}`" />
+            <div :class="`h-1 w-full bg-linear-to-r ${getHighlightGradient(i)}`" />
 
             <div class="p-6 flex flex-col gap-3 h-full">
               <!-- 标签 -->
               <div class="flex items-center gap-2">
                 <span
-                  :class="`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(categoryConfig[update.category] || categoryConfig.default).color}`"
+                  :class="`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryMeta(update.category).color}`"
                 >
-                  {{ (categoryConfig[update.category] || categoryConfig.default).label }}
+                  {{ getCategoryMeta(update.category).label }}
                 </span>
                 <span
                   v-for="tag in update.tags.slice(0, 1)"

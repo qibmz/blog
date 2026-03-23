@@ -10,7 +10,12 @@ const triggered = ref(false)
 
 const parsed = computed(() => {
   const match = props.value.match(/^(\d+)(.*)$/)
-  if (match) return { num: parseInt(match[1]), suffix: match[2] }
+  if (match?.[1]) {
+    return {
+      num: Number.parseInt(match[1], 10),
+      suffix: match[2] ?? ''
+    }
+  }
   return { num: null, suffix: props.value }
 })
 
