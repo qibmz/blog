@@ -15,16 +15,17 @@ const currentIndex = ref(0)
 const isDeleting = ref(false)
 const isBlinking = ref(true)
 
-let timer: ReturnType<typeof setTimeout>
+// 用 useTimeoutFn 替代手写 setTimeout
+const { start } = useTimeoutFn(tick, 500, { immediate: false })
 
-const tick = () => {
+function tick() {
   const current = props.texts[currentIndex.value]
 
   if (!isDeleting.value) {
     displayText.value = current.slice(0, displayText.value.length + 1)
     if (displayText.value === current) {
       isBlinking.value = true
-      timer = setTimeout(() => {
+      useTimeoutFn(() => {
         isDeleting.value = true
         isBlinking.value = false
         tick()
@@ -40,15 +41,11 @@ const tick = () => {
   }
 
   const speed = isDeleting.value ? props.deletingSpeed : props.typingSpeed
-  timer = setTimeout(tick, speed)
+  useTimeoutFn(tick, speed)
 }
 
 onMounted(() => {
-  timer = setTimeout(tick, 500)
-})
-
-onUnmounted(() => {
-  clearTimeout(timer)
+  start()
 })
 </script>
 

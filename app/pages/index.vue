@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-
 const { data: page } = await useAsyncData('index', () => queryCollection('index').first())
 
 const title = page.value?.seo?.title || page.value?.title
@@ -57,22 +55,7 @@ const highlights = [
   { title: '现代化工具', description: 'Vue 3 / Nuxt 4 生态，完整工程化体系', icon: 'i-lucide-wrench', gradient: 'from-blue-500 to-indigo-500' }
 ]
 
-// 页面进入动画控制
-const sectionVisible = ref<Record<string, boolean>>({})
 
-const observeSection = (el: Element | null, key: string) => {
-  if (!el) return
-  const observer = new IntersectionObserver(
-    (entries) => {
-      if (entries[0].isIntersecting) {
-        sectionVisible.value[key] = true
-        observer.disconnect()
-      }
-    },
-    { threshold: 0.1 }
-  )
-  observer.observe(el)
-}
 </script>
 
 <template>
