@@ -13,7 +13,7 @@ useSeoMeta({
 })
 
 // 打字机标签
-const typingTexts = ['前端开发者', 'Web3 Builder', 'UniApp 跨平台', '开源爱好者']
+const typingTexts = ['前端开发者', 'Web3 Builder', 'UniApp 跨平台']
 
 // 统计数据
 const stats = [
