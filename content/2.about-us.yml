@@ -10,6 +10,23 @@ contact:
   email: 1583326640@qq.com
 
 versions:
+  - title: '杭州铂森企业管理有限公司深圳分公司'
+    description: '负责自研项目的 iOS 端开发，主要采用 Vibe Coding 方式进行开发，探索 AI 辅助编程在移动端产品中的实践与落地。'
+    image: 'https://picsum.photos/id/20/512/288'
+    badge: {
+      label: '2026.03-至今',
+      variant: 'solid'
+    }
+    authors: [
+      {
+        name: 'iOS 开发',
+        avatar: {
+          src: '/image/avatar.avif',
+          alt: 'iOS 开发'
+        },
+      }
+    ]
+
   - title: '深圳酷龙软件技术有限公司'
     description: '负责区块链 DApp 前端开发，使用 Web3 技术栈实现去中心化应用的用户界面和交互功能。'
     image: 'https://picsum.photos/id/15/512/288'
