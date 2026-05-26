@@ -27,6 +27,7 @@
     "klinecharts": "10.0.0-beta1",
     "nuxt": "^4.2.2",
     "nuxt-og-image": "^5.1.13",
+    "nuxt-site-config": "^4.0.8",
     "zod": "^4.2.1"
   },
   "devDependencies": {
