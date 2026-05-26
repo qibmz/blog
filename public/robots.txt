@@ -1,0 +1,11 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://qibmz-blog.vercel.app/sitemap.xml
+
+# 禁止爬取的路径
+Disallow: /api/
+Disallow: /_nuxt/
+Disallow: /playground/

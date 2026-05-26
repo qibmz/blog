@@ -17,9 +17,15 @@ useHead({
 })
 
 useSeoMeta({
-  titleTemplate: '%s - qibmz blog',
-  description: 'qibmz 的个人博客，分享前端开发、区块链技术和个人成长的经验与见解。',
-  twitterCard: 'summary_large_image'
+  titleTemplate: '%s | qibmz 博客',
+  description: 'qibmz 的个人技术博客，专注于前端开发、Web3 区块链应用、UniApp 跨平台开发、Vue/Nuxt 全栈技术分享。',
+  ogSiteName: 'qibmz 博客',
+  ogType: 'website',
+  ogLocale: 'zh_CN',
+  twitterCard: 'summary_large_image',
+  twitterSite: '@qibmz',
+  author: 'qibmz',
+  robots: 'index, follow'
 })
 
 const { data: docsNavigation } = await useAsyncData('docsNavigation', () => queryCollectionNavigation('docs'), {

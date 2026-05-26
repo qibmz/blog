@@ -1,4 +1,7 @@
-title: 博客
-description: 摸鱼顺便记录下工作遇到的bug！
+title: 技术博客
+description: 前端开发、UniApp、Web3、Vue/Nuxt 等技术文章和开发经验分享
 navigation.icon: i-lucide-smile
+seo:
+  title: 技术博客 | qibmz - 前端开发与Web3技术文章
+  description: qibmz 的技术博客，分享前端开发、UniApp跨平台、Web3区块链、Vue/Nuxt等技术文章，记录实战中的问题与解决方案。
 
