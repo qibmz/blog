@@ -7,7 +7,6 @@ export default defineNuxtConfig({
     '@nuxt/ui',
     '@nuxt/content',
     '@vueuse/nuxt',
-    'nuxt-og-image',
     '@nuxtjs/sitemap'
   ],
   devtools: {
@@ -20,15 +19,6 @@ export default defineNuxtConfig({
     name: 'qibmz 博客',
     description: 'qibmz 的个人技术博客，专注于前端开发、Web3 区块链应用、UniApp 跨平台开发、Vue/Nuxt 全栈技术分享。',
     defaultLocale: 'zh-CN'
-  },
-
-  ogImage: {
-    enabled: true,
-    defaults: {
-      component: 'OgImageSaas',
-      width: 1200,
-      height: 630
-    }
   },
 
   // Sitemap 配置
