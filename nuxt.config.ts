@@ -6,13 +6,55 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@nuxt/ui',
     '@nuxt/content',
-    '@vueuse/nuxt'
+    '@vueuse/nuxt',
+    'nuxt-og-image',
+    '@nuxtjs/sitemap'
   ],
   devtools: {
     enabled: true
   },
+
+  // SEO 配置
+  site: {
+    url: 'https://qibmz-blog.vercel.app',
+    name: 'qibmz 博客',
+    description: 'qibmz 的个人技术博客，专注于前端开发、Web3 区块链应用、UniApp 跨平台开发、Vue/Nuxt 全栈技术分享。',
+    defaultLocale: 'zh-CN'
+  },
+
+  ogImage: {
+    enabled: true,
+    defaults: {
+      component: 'OgImageSaas',
+      width: 1200,
+      height: 630
+    }
+  },
+
+  // Sitemap 配置
+  sitemap: {
+    xsl: false,
+    exclude: [
+      '/playground/**',
+      '/api/**'
+    ]
+  },
+
   app: {
     baseURL: process.env.NUXT_APP_BASE_URL || '/',
+    head: {
+      htmlAttrs: {
+        lang: 'zh-CN'
+      },
+      meta: [
+        { name: 'author', content: 'qibmz' },
+        { name: 'keywords', content: '前端开发,Web3,UniApp,Vue,Nuxt,跨平台开发,区块链,技术博客' },
+        { property: 'og:locale', content: 'zh_CN' }
+      ],
+      link: [
+        { rel: 'canonical', href: 'https://qibmz-blog.vercel.app' }
+      ]
+    },
     pageTransition: {
       name: 'fade',
       mode: 'out-in' // default
