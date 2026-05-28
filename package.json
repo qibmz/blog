@@ -9,7 +9,11 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint . --fix",
-    "typecheck": "nuxt typecheck"
+    "typecheck": "nuxt typecheck",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs,ts,vue}": "eslint --fix"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.81",
@@ -32,6 +36,8 @@
     "@iconify-json/logos": "^1.2.10",
     "@nuxt/eslint": "^1.12.1",
     "eslint": "^9.39.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.5",
     "typescript": "^5.9.3",
     "vue-tsc": "^3.1.8"
   },
