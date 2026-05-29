@@ -27,14 +27,6 @@ export default defineNuxtConfig({
       link: [
         { rel: 'canonical', href: 'https://qibmz-blog.vercel.app' }
       ]
-    },
-    pageTransition: {
-      name: 'fade',
-      mode: 'out-in' // default
-    },
-    layoutTransition: {
-      name: 'slide',
-      mode: 'out-in' // default
     }
   },
   css: ['~/assets/css/main.css'],
@@ -60,6 +52,10 @@ export default defineNuxtConfig({
 
   routeRules: {
     '/docs': { redirect: '/docs/getting-started', prerender: false }
+  },
+
+  experimental: {
+    viewTransition: true
   },
   compatibilityDate: '2024-07-11',
 
