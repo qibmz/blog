@@ -17,7 +17,9 @@ const ast = computedAsync(
            prose-pre:bg-elevated prose-pre:border prose-pre:border-default prose-pre:rounded-lg
            prose-code:text-primary prose-code:before:content-none prose-code:after:content-none
            prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-           prose-p:leading-relaxed prose-p:my-2 first:prose-p:mt-0 last:prose-p:mb-0"
+           prose-p:leading-relaxed prose-p:my-2
+           [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
+           [&>*>:first-child]:mt-0 [&>*>:last-child]:mb-0"
   >
     <MDCRenderer
       v-if="ast"

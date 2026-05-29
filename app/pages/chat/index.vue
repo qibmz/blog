@@ -92,6 +92,7 @@ function onQuickChat(label: string) {
                 />
               </div>
               <UChatPromptSubmit
+                :status="'ready'"
                 color="neutral"
                 size="sm"
               />

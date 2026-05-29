@@ -37,20 +37,27 @@ const messages = ref<Message[]>([
   }
 ])
 
+const status = ref<'submitted' | 'streaming' | 'ready' | 'error'>('ready')
+
 const { copy } = useClipboard()
-const copiedId = ref<string | null>(null)
 
 function getTextContent(parts: MessagePart[]) {
   return parts.filter(p => p.type === 'text').map(p => p.text).join('')
 }
 
-function copyMessage(id: string, parts: MessagePart[]) {
-  copy(getTextContent(parts))
-  copiedId.value = id
-  setTimeout(() => {
-    copiedId.value = null
-  }, 2000)
-}
+const assistantConfig = computed(() => ({
+  icon: 'i-lucide-bot',
+  actions: [
+    {
+      label: '复制',
+      icon: 'i-lucide-copy',
+      onClick: (_e: MouseEvent, message: Message) => copy(getTextContent(message.parts))
+    },
+    { label: '赞', icon: 'i-lucide-thumbs-up' },
+    { label: '踩', icon: 'i-lucide-thumbs-down' },
+    { label: '重新生成', icon: 'i-lucide-refresh-cw' }
+  ]
+}))
 
 function onSubmit() {
   if (!input.value.trim()) return
@@ -85,7 +92,8 @@ function onSubmit() {
         <UContainer class="flex-1 flex flex-col gap-4 sm:gap-6">
           <UChatMessages
             :messages="messages"
-            :assistant="{ icon: 'i-lucide-bot' }"
+            :assistant="assistantConfig"
+            :status="status"
             should-auto-scroll
             class="pt-(--ui-header-height) pb-4 sm:pb-6"
           >
@@ -100,41 +108,8 @@ function onSubmit() {
               >{{ getTextContent((message as Message).parts) }}</span>
             </template>
 
-            <template #actions="{ message }">
-              <div
-                v-if="(message as Message).role === 'assistant'"
-                class="flex items-center gap-0.5 mt-1"
-              >
-                <UButton
-                  :icon="copiedId === message.id ? 'i-lucide-check' : 'i-lucide-copy'"
-                  :color="copiedId === message.id ? 'success' : 'neutral'"
-                  variant="ghost"
-                  size="xs"
-                  aria-label="复制"
-                  @click="copyMessage(message.id, (message as Message).parts)"
-                />
-                <UButton
-                  icon="i-lucide-thumbs-up"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  aria-label="赞"
-                />
-                <UButton
-                  icon="i-lucide-thumbs-down"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  aria-label="踩"
-                />
-                <UButton
-                  icon="i-lucide-refresh-cw"
-                  color="neutral"
-                  variant="ghost"
-                  size="xs"
-                  aria-label="重新生成"
-                />
-              </div>
+            <template #indicator>
+              <UChatShimmer text="思考中..." />
             </template>
           </UChatMessages>
 
@@ -165,6 +140,7 @@ function onSubmit() {
                 />
               </div>
               <UChatPromptSubmit
+                :status="status"
                 color="neutral"
                 size="sm"
               />
