@@ -47,7 +47,7 @@ const chatItems = computed(() => {
     { label: group.label, type: 'label' as const },
     ...group.items.map(item => ({
       id: item.id,
-      label: item.title ?? '新对话',
+      label: item.title || '加载中...',
       to: `/chat/${item.id}`,
       slot: 'chat' as const,
       icon: undefined
