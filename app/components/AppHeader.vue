@@ -12,9 +12,22 @@ const items = computed(() => [{
   label: '博客',
   to: '/blog'
 }, {
+  label: 'AI Chat',
+  to: '/chat',
+  active: route.path.startsWith('/chat')
+}, {
   label: '试炼场',
   to: '/playground',
-  active: route.path.startsWith('/playground')
+  active: route.path.startsWith('/playground'),
+  children: [{
+    label: '数字滚动动画',
+    to: '/playground/number-scroll',
+    icon: 'i-lucide-bar-chart-3'
+  }, {
+    label: 'K线图表',
+    to: '/playground/kline-chart-binance',
+    icon: 'i-lucide-trending-up'
+  }]
 }, {
   label: '关于我',
   to: '/about-us'
