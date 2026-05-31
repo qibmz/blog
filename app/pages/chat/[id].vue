@@ -17,8 +17,6 @@ const chatTitle = ref(chatData.value.title ?? '新对话')
 useSeoMeta({ title: computed(() => `${chatTitle.value} — AI Chat`) })
 
 const selectedModel = ref(chatData.value.model ?? modelsData.value?.default ?? '')
-const modelOptions = computed(() => modelsData.value?.models ?? [])
-const selectedModelIcon = computed(() => modelOptions.value.find(m => m.value === selectedModel.value)?.icon)
 
 const input = ref('')
 const chat = new Chat({
@@ -132,24 +130,13 @@ onMounted(() => {
             @submit="onSubmit"
           >
             <template #footer>
-              <div class="flex items-center gap-1">
-                <UButton
-                  icon="i-lucide-paperclip"
-                  color="neutral"
-                  variant="ghost"
-                  size="sm"
-                  aria-label="上传附件"
-                />
-                <USelectMenu
-                  v-model="selectedModel"
-                  :items="modelOptions"
-                  value-key="value"
-                  :leading-icon="selectedModelIcon"
-                  size="sm"
-                  variant="ghost"
-                  class="min-w-48"
-                />
-              </div>
+              <UButton
+                icon="i-lucide-paperclip"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                aria-label="上传附件"
+              />
               <UChatPromptSubmit
                 :status="chat.status"
                 color="neutral"

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const route = useRoute()
 
+const chatSearchOpen = ref(false)
+
 function loginWithGithub() {
   window.location.href = '/auth/github'
 }
@@ -65,7 +67,8 @@ const topItems = [
   {
     label: '搜索对话',
     icon: 'i-lucide-search',
-    kbds: ['meta', 'K']
+    kbds: ['meta', 'K'],
+    onClick: () => { chatSearchOpen.value = true }
   }
 ]
 
@@ -218,5 +221,7 @@ async function logout() {
     <div class="flex-1 flex m-4 lg:ml-0 rounded-lg ring ring-default bg-default/75 shadow min-w-0 overflow-hidden">
       <slot />
     </div>
+
+    <ChatSearch v-model="chatSearchOpen" />
   </UDashboardGroup>
 </template>
