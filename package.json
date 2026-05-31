@@ -5,7 +5,7 @@
   "scripts": {
     "build": "nuxt build",
     "generate": "nuxt generate",
-    "dev": "nuxt dev --host ",
+    "dev": "nuxt dev --host",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint . --fix",
