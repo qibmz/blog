@@ -4,5 +4,6 @@
         "klinecharts",
         "lucide",
         "Nuxt"
-    ]
+    ],
+    "js/ts.tsdk.path": "node_modules\\typescript\\lib"
 }

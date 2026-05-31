@@ -1,30 +1,59 @@
 <script setup lang="ts">
 const route = useRoute()
 
-const mockGroups = [
-  {
-    label: '今天',
-    items: [
-      { id: 'c1', title: '为什么选择 Nuxt UI？', to: '/chat/c1' },
-      { id: 'c2', title: '帮我写一个 Vue composable', to: '/chat/c2' }
-    ]
-  },
-  {
-    label: '昨天',
-    items: [
-      { id: 'c3', title: 'TypeScript 泛型入门教程', to: '/chat/c3' },
-      { id: 'c4', title: 'Tailwind CSS 响应式布局技巧', to: '/chat/c4' }
-    ]
-  },
-  {
-    label: '前 7 天',
-    items: [
-      { id: 'c5', title: '前端性能优化方法汇总', to: '/chat/c5' },
-      { id: 'c6', title: 'Vite 构建配置与优化', to: '/chat/c6' },
-      { id: 'c7', title: 'UniApp 跨端开发注意事项', to: '/chat/c7' }
-    ]
+function loginWithGithub() {
+  window.location.href = '/auth/github'
+}
+const { loggedIn, user, clear } = useUserSession()
+// 实时获取聊天列表（路由或登录状态变化时刷新，未登录时跳过）
+const { data: chatsData } = await useFetch('/api/chats', {
+  watch: [loggedIn, () => route.path],
+  default: () => ({ chats: [], remainingToday: 0 }),
+  ignoreResponseError: true
+})
+
+type Chat = NonNullable<typeof chatsData.value>['chats'][number]
+
+interface ChatGroup {
+  label: string
+  items: Chat[]
+}
+
+function groupByDate(chats: Chat[]): ChatGroup[] {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const yesterday = new Date(today)
+  yesterday.setDate(today.getDate() - 1)
+  const lastWeek = new Date(today)
+  lastWeek.setDate(today.getDate() - 7)
+
+  const groups: ChatGroup[] = []
+  const buckets = [
+    { label: '今天', filter: (d: Date) => d >= today },
+    { label: '昨天', filter: (d: Date) => d >= yesterday && d < today },
+    { label: '前 7 天', filter: (d: Date) => d >= lastWeek && d < yesterday },
+    { label: '更早', filter: (d: Date) => d < lastWeek }
+  ]
+  for (const { label, filter } of buckets) {
+    const items = chats.filter(c => filter(new Date(c.createdAt)))
+    if (items.length) groups.push({ label, items })
   }
-]
+  return groups
+}
+
+const chatItems = computed(() => {
+  const chats = (chatsData.value?.chats ?? []) as Chat[]
+  return groupByDate(chats).flatMap(group => [
+    { label: group.label, type: 'label' as const },
+    ...group.items.map(item => ({
+      id: item.id,
+      label: item.title ?? '新对话',
+      to: `/chat/${item.id}`,
+      slot: 'chat' as const,
+      icon: undefined
+    }))
+  ])
+})
 
 const topItems = [
   {
@@ -40,19 +69,10 @@ const topItems = [
   }
 ]
 
-const chatItems = computed(() =>
-  mockGroups.flatMap(group => [
-    { label: group.label, type: 'label' as const },
-    ...group.items.map(item => ({
-      id: item.id,
-      label: item.title,
-      to: item.to,
-      slot: 'chat' as const,
-      icon: undefined,
-      class: item.to === route.path ? '' : ''
-    }))
-  ])
-)
+async function logout() {
+  await clear()
+  await navigateTo('/chat')
+}
 </script>
 
 <template>
@@ -132,13 +152,58 @@ const chatItems = computed(() =>
       </template>
 
       <template #footer="{ collapsed }">
-        <UButton
-          icon="i-simple-icons-github"
-          :label="collapsed ? '' : '使用 GitHub 登录'"
-          color="neutral"
-          variant="ghost"
-          class="w-full"
-        />
+        <template v-if="loggedIn">
+          <div
+            v-if="!collapsed"
+            class="flex items-center gap-2 px-1 py-1"
+          >
+            <UAvatar
+              :src="user!.avatar"
+              :alt="user!.name"
+              size="xs"
+            />
+            <span class="text-sm text-highlighted truncate flex-1">{{ user!.name }}</span>
+            <UTooltip text="退出登录">
+              <UButton
+                icon="i-lucide-log-out"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                aria-label="退出登录"
+                @click="logout"
+              />
+            </UTooltip>
+          </div>
+          <UButton
+            v-else
+            :src="user!.avatar"
+            icon="i-lucide-log-out"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            class="w-full"
+            aria-label="退出登录"
+            @click="logout"
+          />
+          <div
+            v-if="!collapsed"
+            class="px-1 pb-1"
+          >
+            <p class="text-xs text-muted">
+              今日剩余提问：<span :class="(chatsData?.remainingToday ?? 0) === 0 ? 'text-error' : 'text-primary'">{{ chatsData?.remainingToday ?? 0 }} / 5</span>
+            </p>
+          </div>
+        </template>
+        <template v-else>
+          <UButton
+            icon="i-simple-icons-github"
+            :label="collapsed ? '' : '使用 GitHub 登录'"
+            color="neutral"
+            variant="ghost"
+            class="w-full"
+            @click="loginWithGithub()"
+          />
+        </template>
       </template>
     </UDashboardSidebar>
 

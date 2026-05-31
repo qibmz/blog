@@ -21,20 +21,40 @@ const quickSuggestions = [
   { label: '帮我查询今天的天气', icon: 'i-lucide-sun' }
 ]
 
-const selectedModel = ref('claude-haiku-4-5')
-const modelOptions = [
-  { label: 'Claude Haiku 4.5', value: 'claude-haiku-4-5' },
-  { label: 'GPT-5 Nano', value: 'gpt-5-nano' },
-  { label: 'Gemini 3 Flash', value: 'gemini-3-flash' }
-]
+const { loggedIn } = useUserSession()
+
+function loginWithGithub() {
+  window.location.href = '/auth/github'
+}
+
+const { data: modelsData } = await useFetch('/api/models')
+const selectedModel = ref(modelsData.value?.default ?? '')
+const modelOptions = computed(() => modelsData.value?.models ?? [])
+const selectedModelIcon = computed(() => modelOptions.value.find(m => m.value === selectedModel.value)?.icon)
+
+async function createChat(text: string) {
+  if (!loggedIn.value) {
+    loginWithGithub()
+    return
+  }
+  const trimmed = text.trim()
+  if (!trimmed) return
+  const chat = await $fetch<{ id: string }>('/api/chats', {
+    method: 'POST',
+    body: {
+      message: { id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text: trimmed }] },
+      model: selectedModel.value
+    }
+  })
+  await navigateTo(`/chat/${chat.id}`)
+}
 
 function onSubmit() {
-  // TODO: 创建对话并跳转
+  createChat(input.value)
 }
 
 function onQuickChat(label: string) {
-  input.value = label
-  // TODO: 直接发送
+  createChat(label)
 }
 </script>
 
@@ -86,9 +106,10 @@ function onQuickChat(label: string) {
                   v-model="selectedModel"
                   :items="modelOptions"
                   value-key="value"
+                  :leading-icon="selectedModelIcon"
                   size="sm"
                   variant="ghost"
-                  class="min-w-36"
+                  class="min-w-48"
                 />
               </div>
               <UChatPromptSubmit
@@ -110,6 +131,25 @@ function onQuickChat(label: string) {
               variant="outline"
               class="rounded-full"
               @click="onQuickChat(item.label)"
+            />
+          </div>
+
+          <div
+            v-if="!loggedIn"
+            class="flex items-center gap-2 text-sm text-muted"
+          >
+            <UIcon
+              name="i-simple-icons-github"
+              class="shrink-0"
+            />
+            <span>登录后即可开始对话 —</span>
+            <UButton
+              label="使用 GitHub 登录"
+              variant="link"
+              color="primary"
+              size="sm"
+              class="p-0"
+              @click="loginWithGithub()"
             />
           </div>
         </UContainer>

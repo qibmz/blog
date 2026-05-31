@@ -7,7 +7,8 @@ export default defineNuxtConfig({
     '@nuxt/ui',
     '@nuxt/content',
     '@vueuse/nuxt',
-    '@nuxtjs/sitemap'
+    '@nuxtjs/sitemap',
+    'nuxt-auth-utils'
   ],
   devtools: {
     enabled: true
