@@ -187,11 +187,19 @@ async function logout() {
           />
           <div
             v-if="!collapsed"
-            class="px-1 pb-1"
+            class="px-1 pb-1 space-y-1"
           >
-            <p class="text-xs text-muted">
-              今日剩余提问：<span :class="(chatsData?.remainingToday ?? 0) === 0 ? 'text-error' : 'text-primary'">{{ chatsData?.remainingToday ?? 0 }} / 5</span>
-            </p>
+            <div class="flex items-center justify-between text-xs text-muted">
+              <span>今日提问</span>
+              <span :class="(chatsData?.remainingToday ?? 0) === 0 ? 'text-error font-semibold' : 'text-primary'">{{ chatsData?.remainingToday ?? 0 }} / 5</span>
+            </div>
+            <UProgress
+              :value="chatsData?.remainingToday ?? 0"
+              :max="5"
+              size="xs"
+              :color="(chatsData?.remainingToday ?? 0) === 0 ? 'error' : 'primary'"
+              animated
+            />
           </div>
         </template>
         <template v-else>
