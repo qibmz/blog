@@ -53,18 +53,21 @@ const groups = computed<CommandPaletteGroup[]>(() => groupByDate((chatsData.valu
 
 <template>
   <UModal v-model:open="model">
-    <UCommandPalette
-      :groups="groups"
-      placeholder="搜索对话..."
-      :autofocus="true"
-      :close="{ icon: 'i-lucide-x' }"
-      :back="false"
-      class="w-full max-w-xl"
-    >
-      <template #empty="{ searchTerm }">
-        <span v-if="!chatsData?.chats?.length">暂无对话记录</span>
-        <span v-else>未找到匹配 "{{ searchTerm }}" 的对话</span>
-      </template>
-    </UCommandPalette>
+    <template #content>
+      <UCommandPalette
+        :groups="groups"
+        placeholder="搜索对话..."
+        :autofocus="true"
+        :close="{ icon: 'i-lucide-x' }"
+        :back="false"
+        class="w-full max-w-xl"
+        @update:open="model = $event"
+      >
+        <template #empty="{ searchTerm }">
+          <span v-if="!chatsData?.chats?.length">暂无对话记录</span>
+          <span v-else>未找到匹配 "{{ searchTerm }}" 的对话</span>
+        </template>
+      </UCommandPalette>
+    </template>
   </UModal>
 </template>
