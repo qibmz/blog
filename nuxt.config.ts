@@ -62,6 +62,9 @@ export default defineNuxtConfig({
 
   nitro: {
     baseURL: process.env.NUXT_APP_BASE_URL || '/',
+    imports: {
+      dirs: ['server/db']
+    },
     prerender: {
       routes: [
         '/'

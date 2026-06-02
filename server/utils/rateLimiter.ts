@@ -1,6 +1,5 @@
 import { raiseRateLimit } from './errors'
 import { and, eq, gte, sql } from 'drizzle-orm'
-import { db, schema } from '../db'
 
 export const DAILY_LIMIT = 5
 

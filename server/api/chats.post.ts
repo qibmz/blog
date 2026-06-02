@@ -1,5 +1,4 @@
 import { defineEventHandler, readValidatedBody } from 'h3'
-import { db, schema } from '../db'
 import { DEFAULT_MODEL } from '../utils/models'
 import { checkDailyLimit } from '../utils/rateLimiter'
 import { z } from 'zod'

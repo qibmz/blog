@@ -1,6 +1,5 @@
 import { defineEventHandler } from 'h3'
 import { eq, desc } from 'drizzle-orm'
-import { db, schema } from '../db'
 import { getTodayCount, DAILY_LIMIT } from '../utils/rateLimiter'
 
 export default defineEventHandler(async (event) => {

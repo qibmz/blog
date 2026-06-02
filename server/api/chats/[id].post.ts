@@ -1,6 +1,5 @@
 import { defineEventHandler, getValidatedRouterParams, readValidatedBody } from 'h3'
 import { and, eq } from 'drizzle-orm'
-import { db, schema } from '../../db'
 import { getModel, DEFAULT_MODEL } from '../../utils/models'
 import { checkDailyLimit } from '../../utils/rateLimiter'
 import { z } from 'zod'

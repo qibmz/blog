@@ -1,6 +1,5 @@
 import { defineEventHandler, getValidatedRouterParams } from 'h3'
 import { and, asc, eq } from 'drizzle-orm'
-import { db, schema } from '../../db'
 import { z } from 'zod'
 
 export default defineEventHandler(async (event) => {
