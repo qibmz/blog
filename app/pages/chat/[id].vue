@@ -102,7 +102,7 @@ onMounted(() => {
             :messages="chat.messages"
             :assistant="assistantConfig"
             :status="chat.status"
-            should-auto-scroll
+            :should-auto-scroll="chat.status === 'streaming' || chat.status === 'submitted'"
             class="pt-(--ui-header-height) pb-4 sm:pb-6"
           >
             <template #content="{ message }">
