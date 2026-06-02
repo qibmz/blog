@@ -90,7 +90,7 @@ const MODELS: ModelEntry[] = [
   // { value: 'gpt-4o', label: 'GPT-4o', icon: 'i-simple-icons-openai', getInstance: () => openai('gpt-4o') },
 ]
 
-export const DEFAULT_MODEL = MODELS[0].value
+export const DEFAULT_MODEL = MODELS[0]!.value
 
 /** 供前端下拉框使用的静态选项列表（动态列表见 /api/models） */
 export const MODEL_OPTIONS: ModelOption[] = MODELS.map(({ value, label, icon }) => ({
@@ -101,6 +101,6 @@ export const MODEL_OPTIONS: ModelOption[] = MODELS.map(({ value, label, icon }) 
 
 /** 根据 value 获取 AI SDK 模型实例，找不到时回退到第一个 */
 export function getModel(value: string): LanguageModel {
-  const entry = MODELS.find(m => m.value === value) ?? MODELS[0]
+  const entry = MODELS.find(m => m.value === value) ?? MODELS[0]!
   return entry.getInstance()
 }

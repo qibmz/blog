@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   }).returning()
 
   await db.insert(schema.messages).values({
-    chatId: chat.id,
+    chatId: chat!.id,
     role: 'user',
     parts: message.parts as Record<string, unknown>[]
   })

@@ -43,7 +43,7 @@ async function fetchAvailableModels(): Promise<ModelOption[]> {
 
   PROVIDERS.forEach(({ prefixes }, i) => {
     const providerModels = MODEL_OPTIONS.filter(m => prefixes.some(p => m.value.startsWith(p)))
-    const result = results[i]
+    const result = results[i]!
 
     if (result.status === 'fulfilled') {
       const matched = providerModels.filter(m => result.value.has(m.value))
