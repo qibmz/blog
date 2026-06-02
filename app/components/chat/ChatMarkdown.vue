@@ -26,9 +26,10 @@ const ast = computedAsync(
       :body="ast.body"
       :data="(ast.data as Record<string, unknown>) ?? {}"
     />
-    <span
+    <UChatShimmer
       v-else
-      class="text-muted text-xs"
-    >...</span>
+      text="..."
+      class="text-xs"
+    />
   </div>
 </template>
