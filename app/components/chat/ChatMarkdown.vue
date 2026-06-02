@@ -5,8 +5,11 @@ const props = defineProps<{
   content: string
 }>()
 
+// 对内容做防抖，避免流式输出时每个 token 都触发昂贵的 parseMarkdown（重建 unified processor + Shiki 高亮）
+const debouncedContent = refDebounced(computed(() => props.content), 100)
+
 const ast = computedAsync(
-  () => parseMarkdown(props.content),
+  () => parseMarkdown(debouncedContent.value),
   null
 )
 </script>
@@ -19,7 +22,8 @@ const ast = computedAsync(
            prose-a:text-primary prose-a:no-underline hover:prose-a:underline
            prose-p:leading-relaxed prose-p:my-2
            [&>*:first-child]:mt-0 [&>*:last-child]:mb-0
-           [&>*>:first-child]:mt-0 [&>*>:last-child]:mb-0"
+           [&>*>:first-child]:mt-0 [&>*>:last-child]:mb-0
+           [&_pre_code_.line]:block"
   >
     <MDCRenderer
       v-if="ast"
