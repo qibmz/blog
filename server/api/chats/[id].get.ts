@@ -1,4 +1,4 @@
-import { defineEventHandler, getValidatedRouterParams, createError } from 'h3'
+import { defineEventHandler, getValidatedRouterParams } from 'h3'
 import { and, asc, eq } from 'drizzle-orm'
 import { db, schema } from '../../db'
 import { z } from 'zod'
@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!chat) {
-    throw createError({ statusCode: 404, statusMessage: 'Chat not found' })
+    throw raiseNotFound('Chat not found')
   }
 
   return chat

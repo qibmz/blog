@@ -1,4 +1,4 @@
-import { createError } from 'h3'
+import { raiseRateLimit } from './errors'
 import { and, eq, gte, sql } from 'drizzle-orm'
 import { db, schema } from '../db'
 
@@ -26,6 +26,6 @@ export async function getTodayCount(userId: string): Promise<number> {
 export async function checkDailyLimit(userId: string): Promise<void> {
   const count = await getTodayCount(userId)
   if (count >= DAILY_LIMIT) {
-    throw createError({ statusCode: 429, statusMessage: `每日提问次数已达上限（${DAILY_LIMIT} 次）` })
+    throw raiseRateLimit(`每日提问次数已达上限（${DAILY_LIMIT} 次）`)
   }
 }

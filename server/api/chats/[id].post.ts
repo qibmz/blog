@@ -1,4 +1,4 @@
-import { defineEventHandler, getValidatedRouterParams, readValidatedBody, createError } from 'h3'
+import { defineEventHandler, getValidatedRouterParams, readValidatedBody } from 'h3'
 import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../db'
 import { getModel, DEFAULT_MODEL } from '../../utils/models'
@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!chat) {
-    throw createError({ statusCode: 404, statusMessage: 'Chat not found' })
+    throw raiseNotFound('Chat not found')
   }
 
   const model = getModel(modelValue)
