@@ -5,11 +5,19 @@ const props = defineProps<{
   content: string
 }>()
 
+// AI 回复中列表项内的 code fence 会带 4 空格缩进（如 "    ```vue"），
+// CommonMark 解析器将 4+ 空格视为缩进代码块而非 fenced code block，
+// 导致 fence 标记被当成代码内容，高亮失效，代码块显示"断开"。
+// 此处去掉 fence 标记前的空白，让其能被正确识别为 fenced code block。
+function dedentFences(md: string): string {
+  return md.replace(/^[ \t]+(```|~~~)/gm, '$1')
+}
+
 // 对内容做防抖，避免流式输出时每个 token 都触发昂贵的 parseMarkdown（重建 unified processor + Shiki 高亮）
 const debouncedContent = refDebounced(computed(() => props.content), 100)
 
 const ast = computedAsync(
-  () => parseMarkdown(debouncedContent.value),
+  () => parseMarkdown(dedentFences(debouncedContent.value)),
   null
 )
 </script>
