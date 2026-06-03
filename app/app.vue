@@ -28,15 +28,27 @@ useSeoMeta({
   robots: 'index, follow'
 })
 
-const { data: docsNavigation } = await useAsyncData('docsNavigation', () => queryCollectionNavigation('docs'), {
-  transform: data => data.find(item => item.path === '/docs')?.children || []
+const { data: docsNavigation } = await useAsyncData('docsNavigation', () => queryCollectionNavigation('docs').catch((err) => {
+  console.error('Failed to fetch docs navigation:', err)
+  return []
+}), {
+  transform: data => (Array.isArray(data) ? data.find(item => item.path === '/docs')?.children : undefined) || []
 })
 
-const { data: docsFiles } = useLazyAsyncData('docsSearch', () => queryCollectionSearchSections('docs'), {
+const { data: docsFiles } = useLazyAsyncData('docsSearch', () => queryCollectionSearchSections('docs').catch((err) => {
+  console.error('Failed to fetch docs search sections:', err)
+  return []
+}), {
   server: false
 })
-const { data: blogNavigation } = await useAsyncData('blogNavigation', () => queryCollectionNavigation('posts'))
-const { data: blogFiles } = useLazyAsyncData('blogSearch', () => queryCollectionSearchSections('posts'), {
+const { data: blogNavigation } = await useAsyncData('blogNavigation', () => queryCollectionNavigation('posts').catch((err) => {
+  console.error('Failed to fetch blog navigation:', err)
+  return []
+}))
+const { data: blogFiles } = useLazyAsyncData('blogSearch', () => queryCollectionSearchSections('posts').catch((err) => {
+  console.error('Failed to fetch blog search sections:', err)
+  return []
+}), {
   server: false
 })
 const links = [{

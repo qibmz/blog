@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { SpeedInsights } from '@vercel/speed-insights/vue'
 
-const { data: docsNavigation } = await useAsyncData('docsNavigation', () => queryCollectionNavigation('docs'), {
-  transform: data => data.find(item => item.path === '/docs')?.children || []
+const { data: docsNavigation } = await useAsyncData('docsNavigation', () => queryCollectionNavigation('docs').catch((err) => {
+  console.error('Failed to fetch docs navigation:', err)
+  return []
+}), {
+  transform: data => (Array.isArray(data) ? data.find(item => item.path === '/docs')?.children : undefined) || []
 })
 </script>
 
