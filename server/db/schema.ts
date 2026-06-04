@@ -7,7 +7,9 @@ export const chats = pgTable('chats', {
   title: text('title'),
   model: text('model'),
   createdAt: timestamp('created_at').notNull().defaultNow()
-})
+}, table => [
+  index('chats_user_id_idx').on(table.userId)
+])
 
 export const messages = pgTable('messages', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
