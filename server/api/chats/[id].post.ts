@@ -2,15 +2,16 @@ import { defineEventHandler, getValidatedRouterParams, readValidatedBody } from 
 import { and, eq } from 'drizzle-orm'
 import { getModel, DEFAULT_MODEL } from '../../utils/models'
 import { checkDailyLimit } from '../../utils/rateLimiter'
+import { UIMessageSchema } from '../../utils/zod-schemas'
 import { z } from 'zod'
 import {
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
   generateText,
-  streamText
+  streamText,
+  type UIMessage
 } from 'ai'
-import type { UIMessage } from 'ai'
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
 
   const { model: modelValue = DEFAULT_MODEL, messages } = await readValidatedBody(event, z.object({
     model: z.string().optional(),
-    messages: z.array(z.custom<UIMessage>())
+    messages: z.array(UIMessageSchema)
   }).parse)
 
   const chat = await db.query.chats.findFirst({
@@ -35,7 +36,7 @@ export default defineEventHandler(async (event) => {
   const model = getModel(modelValue)
 
   // 首次对话自动生成标题（不阻塞数据流，通过 waitUntil 确保在 serverless 环境完整执行）
-  if (!chat.title) {
+  if (!chat.title && messages.length > 0) {
     const titlePromise = generateText({
       model,
       system: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。',
@@ -44,8 +45,10 @@ export default defineEventHandler(async (event) => {
       await db.update(schema.chats)
         .set({ title, model: modelValue })
         .where(eq(schema.chats.id, id))
+      return title
     }).catch((err) => {
       console.error('Failed to generate chat title:', err)
+      return null
     })
     event.waitUntil?.(titlePromise)
   }
@@ -53,11 +56,12 @@ export default defineEventHandler(async (event) => {
   // 后续对话才检查限制（首次消息已在 chats.post.ts 中计数）并保存用户消息
   const lastMessage = messages[messages.length - 1]
   if (lastMessage?.role === 'user' && messages.length > 1) {
+    // Note: check-then-insert 非事务性，并发请求可能绕过限制
     await checkDailyLimit(user.id)
     await db.insert(schema.messages).values({
       chatId: id,
       role: 'user',
-      parts: lastMessage.parts as Record<string, unknown>[]
+      parts: Array.isArray(lastMessage.parts) ? lastMessage.parts : []
     })
   }
 
@@ -66,16 +70,8 @@ export default defineEventHandler(async (event) => {
       const result = streamText({
         model,
         system: '你是一个友好、简洁的 AI 助手。',
-        messages: await convertToModelMessages(messages)
+        messages: await convertToModelMessages(messages as UIMessage[])
       })
-
-      if (!chat.title) {
-        writer.write({
-          type: 'data-chat-title',
-          data: { message: 'Title generated' },
-          transient: true
-        })
-      }
 
       writer.merge(result.toUIMessageStream())
     },
@@ -84,7 +80,7 @@ export default defineEventHandler(async (event) => {
         finishedMessages.map(msg => ({
           chatId: chat.id,
           role: msg.role as 'user' | 'assistant',
-          parts: msg.parts as Record<string, unknown>[]
+          parts: Array.isArray(msg.parts) ? msg.parts : []
         }))
       )
     }

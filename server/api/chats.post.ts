@@ -1,17 +1,18 @@
 import { defineEventHandler, readValidatedBody } from 'h3'
 import { DEFAULT_MODEL } from '../utils/models'
 import { checkDailyLimit } from '../utils/rateLimiter'
+import { UIMessageSchema } from '../utils/zod-schemas'
 import { z } from 'zod'
-import type { UIMessage } from 'ai'
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
 
   const { message, model } = await readValidatedBody(event, z.object({
-    message: z.custom<UIMessage>(),
+    message: UIMessageSchema,
     model: z.string().optional()
   }).parse)
 
+  // Note: check-then-insert 非事务性，并发请求可能绕过限制
   await checkDailyLimit(user.id)
 
   const [chat] = await db.insert(schema.chats).values({
@@ -22,7 +23,7 @@ export default defineEventHandler(async (event) => {
   await db.insert(schema.messages).values({
     chatId: chat!.id,
     role: 'user',
-    parts: message.parts as Record<string, unknown>[]
+    parts: Array.isArray(message.parts) ? message.parts : []
   })
 
   return chat
