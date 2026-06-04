@@ -25,14 +25,7 @@ const chat = new Chat({
   transport: new DefaultChatTransport({
     api: `/api/chats/${id}`,
     body: () => ({ model: selectedModel.value })
-  }),
-  onFinish: () => {
-    if (chatTitle.value === '新对话') {
-      $fetch<{ title: string | null }>(`/api/chats/${id}`).then((updated) => {
-        if (updated?.title) chatTitle.value = updated.title
-      })
-    }
-  }
+  })
 })
 
 const { copy } = useClipboard()

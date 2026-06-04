@@ -3,10 +3,8 @@ const route = useRoute()
 
 const chatSearchOpen = ref(false)
 
-function loginWithGithub() {
-  window.location.href = '/auth/github'
-}
 const { loggedIn, user, clear } = useUserSession()
+
 // 实时获取聊天列表（路由或登录状态变化时刷新，未登录时跳过）
 const { data: chatsData } = await useFetch('/api/chats', {
   watch: [loggedIn, () => route.path],
@@ -16,36 +14,9 @@ const { data: chatsData } = await useFetch('/api/chats', {
 
 type Chat = NonNullable<typeof chatsData.value>['chats'][number]
 
-interface ChatGroup {
-  label: string
-  items: Chat[]
-}
-
-function groupByDate(chats: Chat[]): ChatGroup[] {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const yesterday = new Date(today)
-  yesterday.setDate(today.getDate() - 1)
-  const lastWeek = new Date(today)
-  lastWeek.setDate(today.getDate() - 7)
-
-  const groups: ChatGroup[] = []
-  const buckets = [
-    { label: '今天', filter: (d: Date) => d >= today },
-    { label: '昨天', filter: (d: Date) => d >= yesterday && d < today },
-    { label: '前 7 天', filter: (d: Date) => d >= lastWeek && d < yesterday },
-    { label: '更早', filter: (d: Date) => d < lastWeek }
-  ]
-  for (const { label, filter } of buckets) {
-    const items = chats.filter(c => filter(new Date(c.createdAt)))
-    if (items.length) groups.push({ label, items })
-  }
-  return groups
-}
-
 const chatItems = computed(() => {
   const chats = (chatsData.value?.chats ?? []) as Chat[]
-  return groupByDate(chats).flatMap(group => [
+  return groupChatsByDate(chats).flatMap(group => [
     { label: group.label, type: 'label' as const },
     ...group.items.map(item => ({
       id: item.id,

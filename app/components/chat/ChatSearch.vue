@@ -11,44 +11,25 @@ interface ChatItem {
   userId: string | null
 }
 
-const { data: chatsData } = await useFetch<{ chats: ChatItem[], remainingToday: number }>('/api/chats', {
+const { data: chatsData } = await useFetch('/api/chats', {
   default: () => ({ chats: [], remainingToday: 0 }),
   ignoreResponseError: true
 })
 
-function groupByDate(chats: ChatItem[]): CommandPaletteGroup[] {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const yesterday = new Date(today)
-  yesterday.setDate(today.getDate() - 1)
-  const lastWeek = new Date(today)
-  lastWeek.setDate(today.getDate() - 7)
-
-  const buckets = [
-    { label: '今天', filter: (d: Date) => d >= today },
-    { label: '昨天', filter: (d: Date) => d >= yesterday && d < today },
-    { label: '前 7 天', filter: (d: Date) => d >= lastWeek && d < yesterday },
-    { label: '更早', filter: (d: Date) => d < lastWeek }
-  ]
-
-  return buckets
-    .filter(({ filter }) => chats.some(c => filter(new Date(c.createdAt))))
-    .map(({ label, filter }) => ({
-      id: label,
-      label,
-      items: chats
-        .filter(c => filter(new Date(c.createdAt)))
-        .map(c => ({
-          id: c.id,
-          label: c.title || '加载中...',
-          to: `/chat/${c.id}`,
-          icon: 'i-lucide-message-square',
-          onSelect() { model.value = false }
-        } satisfies CommandPaletteItem))
-    }))
-}
-
-const groups = computed<CommandPaletteGroup[]>(() => groupByDate((chatsData.value?.chats ?? []) as ChatItem[]))
+const groups = computed<CommandPaletteGroup[]>(() => {
+  const chats = (chatsData.value?.chats ?? []) as ChatItem[]
+  return groupChatsByDate(chats).map(group => ({
+    id: group.label,
+    label: group.label,
+    items: group.items.map(c => ({
+      id: c.id,
+      label: c.title || '加载中...',
+      to: `/chat/${c.id}`,
+      icon: 'i-lucide-message-square',
+      onSelect() { model.value = false }
+    } satisfies CommandPaletteItem))
+  }))
+})
 </script>
 
 <template>

@@ -6,11 +6,7 @@ useSeoMeta({ title: 'AI Chat' })
 const input = ref('')
 
 const hour = new Date().getHours()
-const greeting = computed(() => {
-  if (hour < 12) return '早上好'
-  if (hour < 18) return '下午好'
-  return '晚上好'
-})
+const greeting = hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好'
 
 const quickSuggestions = [
   { label: '为什么选择 Nuxt UI？', icon: 'i-logos-nuxt-icon' },
@@ -22,10 +18,6 @@ const quickSuggestions = [
 ]
 
 const { loggedIn } = useUserSession()
-
-function loginWithGithub() {
-  window.location.href = '/auth/github'
-}
 
 const { data: modelsData } = await useFetch('/api/models')
 const selectedModel = ref(modelsData.value?.default ?? '')
