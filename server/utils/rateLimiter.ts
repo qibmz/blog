@@ -21,7 +21,12 @@ export async function getTodayCount(userId: string): Promise<number> {
   return result?.total ?? 0
 }
 
-/** 超出限制则抛 429 */
+/**
+ * 超出限制则抛 429。
+ * 注意：check-then-insert 非事务性，高并发下可能超出限制。
+ * 彻底修复需要将 count + insert 包裹在 Drizzle 事务中，并解决 NeonHttpDatabase
+ * tx 类型不兼容的问题。
+ */
 export async function checkDailyLimit(userId: string): Promise<void> {
   const count = await getTodayCount(userId)
   if (count >= DAILY_LIMIT) {
