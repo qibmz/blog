@@ -4,9 +4,9 @@
 reviews:
   # Exclude auto-generated agent skill files from review
   path_filters:
-    - "!**/.agents/**"
-    - "!**/pnpm-lock.yaml"
-    - "!**/package-lock.json"
+    - "!.agents/**"
+    - "!pnpm-lock.yaml"
+    - "!package-lock.json"
 
   # Focus review on core code changes
   path_instructions:
