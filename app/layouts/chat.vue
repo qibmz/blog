@@ -6,11 +6,15 @@ const chatSearchOpen = ref(false)
 const { loggedIn, user, clear } = useUserSession()
 
 // 实时获取聊天列表（路由或登录状态变化时刷新，未登录时跳过）
-const { data: chatsData } = await useFetch('/api/chats', {
+const { data: chatsData, refresh: refreshSidebar } = await useFetch('/api/chats', {
+  key: 'sidebar-chats',
   watch: [loggedIn, () => route.path],
   default: () => ({ chats: [], remainingToday: 0 }),
   ignoreResponseError: true
 })
+
+// 提供给子页面调用，在发送消息后刷新侧边栏数据（聊天列表 + 今日剩余次数）
+provide('refreshSidebar', refreshSidebar)
 
 type Chat = NonNullable<typeof chatsData.value>['chats'][number]
 

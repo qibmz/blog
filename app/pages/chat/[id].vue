@@ -28,6 +28,16 @@ const chat = new Chat({
   })
 })
 
+// 注入侧边栏刷新函数，消息发送完成后刷新聊天列表和剩余次数
+const refreshSidebar = inject<() => Promise<void>>('refreshSidebar', () => Promise.resolve())
+
+// 监听消息状态：当一次消息往返完成后（submitted/streaming → ready），刷新侧边栏
+watch(() => chat.status, (newStatus, oldStatus) => {
+  if (newStatus === 'ready' && oldStatus && oldStatus !== 'ready') {
+    refreshSidebar()
+  }
+})
+
 const { copy } = useClipboard()
 
 function getTextContent(parts: UIMessage['parts']) {
