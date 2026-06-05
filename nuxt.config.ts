@@ -52,7 +52,7 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    '/chat/**': { ssr: false },
+    // '/chat/**': { ssr: false },
     '/docs': { redirect: '/docs/getting-started', prerender: false }
   },
 
