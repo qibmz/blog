@@ -1,0 +1,29 @@
+# CodeRabbit AI Review Configuration
+# https://docs.coderabbit.ai/guides/configure-code-review
+
+reviews:
+  # Exclude auto-generated agent skill files from review
+  path_filters:
+    - "!.agents/**"
+    - "!.agent/**"
+    - "!pnpm-lock.yaml"
+    - "!package-lock.json"
+
+  # Focus review on core code changes
+  path_instructions:
+    - path: "server/**/*"
+      instructions: "Review for security, error handling, and database query safety. This is a Nuxt 4 Nitro server with Drizzle ORM + Neon PostgreSQL."
+    - path: "app/**/*"
+      instructions: "Review for Vue 3 composition API best practices, Nuxt 4 patterns, and UI component quality."
+    - path: "content/**/*"
+      instructions: "Review content schema changes for breaking changes to content collections."
+
+  # Use CHILL profile for faster reviews
+  profile: CHILL
+
+  # Auto-review settings
+  auto_review:
+    enabled: true
+    ignore_title_keywords:
+      - "WIP"
+      - "DRAFT"

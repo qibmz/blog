@@ -3,6 +3,11 @@
 
 @source "../../../content/**/*";
 
+/* View Transitions: 孤儿快照（目标页无对应元素）立即淡出，避免残影 */
+::view-transition-old(chat-prompt) {
+  animation-duration: 0.05s;
+}
+
 /* 全屏时移除浏览器默认的黑色背景层 */
 :not(:root):fullscreen::backdrop {
   background-color:var(--ui-bg)

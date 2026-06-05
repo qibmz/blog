@@ -1,6 +1,15 @@
 import type { ParsedContent } from '@nuxt/content'
 import type { Avatar, Badge, Link } from '#ui/types'
 
+declare module '#auth-utils' {
+  interface User {
+    id: string
+    name: string
+    login: string
+    avatar: string
+  }
+}
+
 export interface BlogPost extends ParsedContent {
   title: string
   description: string

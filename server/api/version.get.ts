@@ -4,5 +4,5 @@ export default defineEventHandler(async () => {
   const { databaseUrl } = useRuntimeConfig()
   const sql = neon(databaseUrl)
   const [response] = await sql`SELECT version()`
-  return { version: response.version }
+  return { version: response!.version }
 })

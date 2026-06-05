@@ -55,6 +55,55 @@ pnpm build
 pnpm preview
 ```
 
+## 🔑 环境变量
+
+在项目根目录创建 `.env` 文件，内容如下：
+
+```env
+# ── 站点配置 ──────────────────────────────────────────────────────────
+# vercel 线上域名
+NUXT_PUBLIC_ORIGIN=
+# 应用基础路径 (可选，默认 /)
+# NUXT_APP_BASE_URL=
+
+# ── 数据库 (Neon PostgreSQL / Vercel 自动生成) ────────────────────────
+DATABASE_URL=
+# 以下由 Vercel CLI 连接 Neon 后自动生成，手动部署时只需配 DATABASE_URL
+# DATABASE_URL_UNPOOLED=
+# NEON_AUTH_BASE_URL=
+# NEON_PROJECT_ID=
+# PGDATABASE=
+# PGHOST=
+# PGHOST_UNPOOLED=
+# PGPASSWORD=
+# PGUSER=
+# POSTGRES_DATABASE=
+# POSTGRES_HOST=
+# POSTGRES_PASSWORD=
+# POSTGRES_PRISMA_URL=
+# POSTGRES_URL=
+# POSTGRES_URL_NON_POOLING=
+# POSTGRES_URL_NO_SSL=
+# POSTGRES_USER=
+# VITE_NEON_AUTH_URL=
+
+# ── Session ───────────────────────────────────────────────────────────
+# Session 加密密钥 (至少 32 位随机字符串)
+NUXT_SESSION_PASSWORD=
+
+# ── GitHub OAuth ──────────────────────────────────────────────────────
+NUXT_OAUTH_GITHUB_CLIENT_ID=
+NUXT_OAUTH_GITHUB_CLIENT_SECRET=
+
+# ── 币安行情 (可选) ───────────────────────────────────────────────────
+# NUXT_PUBLIC_BINANCE_WS=
+# NUXT_PUBLIC_BINANCE_API=
+
+# ── AI 模型 API Keys ─────────────────────────────────────────────────
+DEEPSEEK_API_KEY=
+MIMO_API_KEY=
+```
+
 ## 📋 可用脚本
 
 | 命令 | 说明 |

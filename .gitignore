@@ -20,9 +20,9 @@ logs
 
 # Local env files 
 .env.*
-!.env.example
 
 # VSC
 .history
 .vercel
 .env*.local
+.env*

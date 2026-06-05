@@ -28,16 +28,21 @@ useSeoMeta({
   robots: 'index, follow'
 })
 
-const { data: docsNavigation } = await useAsyncData('docsNavigation', () => queryCollectionNavigation('docs'), {
-  transform: data => data.find(item => item.path === '/docs')?.children || []
+// 注意：使用独立 key 避免与 docs.vue 布局冲突，后者需要在服务端获取导航数据
+// 数据在 <ClientOnly> 内使用，服务端获取后会序列化到 payload，客户端 hydrate 直接可用
+const { data: docsNavigation } = await useAsyncData('app-docsNavigation', () => queryCollectionNavigation('docs'), {
+  default: () => [],
+  transform: data => (Array.isArray(data) ? data.find(item => item.path === '/docs')?.children : undefined) || []
 })
 
 const { data: docsFiles } = useLazyAsyncData('docsSearch', () => queryCollectionSearchSections('docs'), {
-  server: false
+  default: () => []
 })
-const { data: blogNavigation } = await useAsyncData('blogNavigation', () => queryCollectionNavigation('posts'))
+const { data: blogNavigation } = await useAsyncData('app-blogNavigation', () => queryCollectionNavigation('posts'), {
+  default: () => []
+})
 const { data: blogFiles } = useLazyAsyncData('blogSearch', () => queryCollectionSearchSections('posts'), {
-  server: false
+  default: () => []
 })
 const links = [{
   label: '常用网站/工具',

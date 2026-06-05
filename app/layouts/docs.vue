@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import type { ContentNavigationItem } from '@nuxt/content'
 import { SpeedInsights } from '@vercel/speed-insights/vue'
 
 const { data: docsNavigation } = await useAsyncData('docsNavigation', () => queryCollectionNavigation('docs'), {
-  transform: data => data.find(item => item.path === '/docs')?.children || []
+  default: () => [] as ContentNavigationItem[],
+  transform: data => (Array.isArray(data) ? data.find(item => item.path === '/docs')?.children : undefined) || []
 })
 </script>
 
