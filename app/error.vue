@@ -19,25 +19,20 @@ useSeoMeta({
   description: 'We are sorry but this page could not be found.'
 })
 
-// server: false — 与 app.vue 同理，避免服务端 queryCollectionNavigation 已知 bug
 // 使用独立 key 避免与 docs.vue 布局冲突
 const { data: docsNavigation } = await useAsyncData('app-docsNavigation', () => queryCollectionNavigation('docs'), {
   default: () => [],
-  server: false,
   transform: data => (Array.isArray(data) ? data.find(item => item.path === '/docs')?.children : undefined) || []
 })
 
 const { data: docsFiles } = useLazyAsyncData('docsSearch', () => queryCollectionSearchSections('docs'), {
-  default: () => [],
-  server: false
+  default: () => []
 })
 const { data: blogNavigation } = await useAsyncData('app-blogNavigation', () => queryCollectionNavigation('posts'), {
-  default: () => [],
-  server: false
+  default: () => []
 })
 const { data: blogFiles } = useLazyAsyncData('blogSearch', () => queryCollectionSearchSections('posts'), {
-  default: () => [],
-  server: false
+  default: () => []
 })
 const links = [{
   label: '常用网站/工具',

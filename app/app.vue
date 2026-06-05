@@ -28,26 +28,21 @@ useSeoMeta({
   robots: 'index, follow'
 })
 
-// server: false — queryCollectionNavigation 在服务端有已知 bug（集合名被替换为 'content'），
-// 且这些数据仅用于 <ClientOnly> 内的搜索组件，无需在服务端获取
 // 注意：使用独立 key 避免与 docs.vue 布局冲突，后者需要在服务端获取导航数据
+// 数据在 <ClientOnly> 内使用，服务端获取后会序列化到 payload，客户端 hydrate 直接可用
 const { data: docsNavigation } = await useAsyncData('app-docsNavigation', () => queryCollectionNavigation('docs'), {
   default: () => [],
-  server: false,
   transform: data => (Array.isArray(data) ? data.find(item => item.path === '/docs')?.children : undefined) || []
 })
 
 const { data: docsFiles } = useLazyAsyncData('docsSearch', () => queryCollectionSearchSections('docs'), {
-  default: () => [],
-  server: false
+  default: () => []
 })
 const { data: blogNavigation } = await useAsyncData('app-blogNavigation', () => queryCollectionNavigation('posts'), {
-  default: () => [],
-  server: false
+  default: () => []
 })
 const { data: blogFiles } = useLazyAsyncData('blogSearch', () => queryCollectionSearchSections('posts'), {
-  default: () => [],
-  server: false
+  default: () => []
 })
 const links = [{
   label: '常用网站/工具',
