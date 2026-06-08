@@ -36,6 +36,7 @@
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
     "klinecharts": "10.0.0-beta1",
+    "motion-v": "^2.2.1",
     "nuxt": "^4.4.6",
     "nuxt-auth-utils": "^0.5.29",
     "zod": "^4.2.1"
