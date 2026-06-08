@@ -121,6 +121,10 @@ export const collections = {
         date: z.string().optional(),
         to: z.string().optional(),
         target: z.string().optional(),
+        badge: z.object({
+          label: z.string().optional(),
+          variant: z.string().optional()
+        }).optional(),
         ui: z.object({
           container: z.string().optional()
         }).optional()
