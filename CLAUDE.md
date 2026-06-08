@@ -8,8 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Install: `pnpm install` (postinstall runs `nuxt prepare`)
 - Dev: `pnpm dev` (`nuxt dev --host`)
 - Build: `pnpm build` / Preview: `pnpm preview`
-- Lint: `pnpm lint` (eslint --fix) / Type check: `pnpm typecheck`
+- Lint: `pnpm lint` (eslint --fix) / Type check: `pnpm typecheck` / Test: `pnpm test`
 - DB migrations: `npx drizzle-kit generate` then `npx drizzle-kit push`
+- **提交前检查**：`pnpm typecheck && pnpm lint && pnpm test` 全部通过再提交
 
 ## Architecture
 
