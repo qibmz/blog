@@ -34,6 +34,11 @@ const chatItems = computed(() => {
 
 const topItems = [
   {
+    label: '回到首页',
+    to: '/',
+    icon: 'i-lucide-home'
+  },
+  {
     label: '新对话',
     to: '/chat',
     icon: 'i-lucide-circle-plus',

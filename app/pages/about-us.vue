@@ -109,7 +109,7 @@ const contactEmail = computed(() => page.value?.contact?.email ?? '')
               <Motion
                 :initial="{ scale: 0 }"
                 :while-in-view="{ scale: 1 }"
-                :transition="{ type: 'spring', stiffness: 300, damping: 18, delay: i * 0.15 + 0.1 }"
+                :transition="{ type: 'spring', stiffness: 300, damping: 35, delay: i * 0.15 + 0.1 }"
                 :viewport="{ once: true }"
                 :class="[
                   'absolute left-2.5 sm:left-4.5 top-1 w-3 h-3 rounded-full ring-4 ring-white dark:ring-gray-900 z-10',
@@ -123,7 +123,7 @@ const contactEmail = computed(() => page.value?.contact?.email ?? '')
               <Motion
                 :initial="{ opacity: 0, x: 20 }"
                 :while-in-view="{ opacity: 1, x: 0 }"
-                :transition="{ type: 'spring', stiffness: 280, damping: 22, delay: i * 0.15 + 0.15 }"
+                :transition="{ type: 'spring', stiffness: 280, damping: 34, delay: i * 0.15 + 0.15 }"
                 :viewport="{ once: true, margin: '-60px' }"
                 class="bg-white dark:bg-gray-900 rounded-2xl p-5 ring-1 ring-gray-200 dark:ring-gray-800"
               >
