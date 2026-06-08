@@ -20,22 +20,42 @@ useSeoMeta({ title: computed(() => `${chatTitle.value} — AI Chat`) })
 const selectedModel = ref(chatData.value.model ?? modelsData.value?.default ?? '')
 
 const input = ref('')
+const toast = useToast()
+
+const refreshSidebar = inject<() => Promise<void>>('refreshSidebar', () => Promise.resolve())
+
+// 解析服务端返回的 JSON 错误消息
+function parseErrorMessage(err: Error): string {
+  try {
+    const parsed = JSON.parse(err.message)
+    return parsed.statusMessage ?? parsed.message ?? err.message
+  } catch {
+    return err.message
+  }
+}
+
 const chat = new Chat({
   id,
   messages: chatData.value.messages as unknown as UIMessage[],
   transport: new DefaultChatTransport({
     api: `/api/chats/${id}`,
     body: () => ({ model: selectedModel.value })
-  })
-})
-
-// 注入侧边栏刷新函数，消息发送完成后刷新聊天列表和剩余次数
-const refreshSidebar = inject<() => Promise<void>>('refreshSidebar', () => Promise.resolve())
-
-// 监听消息状态：当一次消息往返完成后（submitted/streaming → ready），刷新侧边栏
-watch(() => chat.status, (newStatus, oldStatus) => {
-  if (newStatus === 'ready' && oldStatus && oldStatus !== 'ready') {
-    refreshSidebar()
+  }),
+  onError: (err) => {
+    const msg = parseErrorMessage(err)
+    toast.add({
+      title: '发送失败',
+      description: msg,
+      color: 'error',
+      icon: 'i-lucide-alert-circle',
+      duration: 6000
+    })
+  },
+  onFinish: ({ isError }) => {
+    if (!isError) {
+      // 延迟 500ms 刷新，确保服务端 onFinish 已完成 DB 写入
+      setTimeout(() => refreshSidebar(), 500)
+    }
   }
 })
 
