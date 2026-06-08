@@ -299,7 +299,7 @@ const highlights = [
             >
               <!-- 左侧分类竖线 -->
               <div
-                :class="`shrink-0 w-[3px] rounded-full transition-all duration-300 bg-gray-300 dark:bg-gray-600 group-hover:w-[5px] ${getCategoryColor(update.category)}`"
+                :class="`shrink-0 w-0.75 rounded-full transition-all duration-300 bg-gray-300 dark:bg-gray-600 group-hover:w-1.25 ${getCategoryColor(update.category)}`"
               />
 
               <div class="flex flex-col gap-2 min-w-0">
