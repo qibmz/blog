@@ -3,6 +3,8 @@ import { parseMarkdown } from '@nuxtjs/mdc/runtime'
 
 const props = defineProps<{
   content: string
+  /** 是否正在流式传输中。为 true 时直接渲染纯文本，避免 markdown 解析造成卡顿 */
+  isStreaming?: boolean
 }>()
 
 // AI 回复中列表项内的 code fence 会带 4 空格缩进（如 "    ```vue"），
@@ -14,10 +16,11 @@ function dedentFences(md: string): string {
 }
 
 // 对内容做防抖，避免流式输出时每个 token 都触发昂贵的 parseMarkdown（重建 unified processor + Shiki 高亮）
+// 仅在非流式状态下启用防抖 + markdown 解析
 const debouncedContent = refDebounced(computed(() => props.content), 100)
 
 const ast = computedAsync(
-  () => parseMarkdown(dedentFences(debouncedContent.value)),
+  () => props.isStreaming ? null : parseMarkdown(dedentFences(debouncedContent.value)),
   null
 )
 </script>
@@ -33,15 +36,20 @@ const ast = computedAsync(
            [&>*>:first-child]:mt-0 [&>*>:last-child]:mb-0
            [&_pre_code_.line]:block"
   >
-    <MDCRenderer
-      v-if="ast"
-      :body="ast.body"
-      :data="(ast.data as Record<string, unknown>) ?? {}"
-    />
-    <UChatShimmer
-      v-else
-      text="..."
-      class="text-xs"
-    />
+    <template v-if="props.isStreaming">
+      <span class="whitespace-pre-wrap text-sm leading-relaxed">{{ props.content }}</span>
+    </template>
+    <template v-else>
+      <MDCRenderer
+        v-if="ast"
+        :body="ast.body"
+        :data="(ast.data as Record<string, unknown>) ?? {}"
+      />
+      <UChatShimmer
+        v-else
+        text="..."
+        class="text-xs"
+      />
+    </template>
   </div>
 </template>

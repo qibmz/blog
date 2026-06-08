@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Chat } from '@ai-sdk/vue'
-import { DefaultChatTransport } from 'ai'
+import { DefaultChatTransport, isReasoningUIPart, isTextUIPart } from 'ai'
+import { isPartStreaming } from '@nuxt/ui/utils/ai'
 import type { UIMessage } from 'ai'
 
 definePageMeta({ layout: 'chat' })
@@ -109,14 +110,26 @@ onMounted(() => {
             class="pt-(--ui-header-height) pb-4 sm:pb-6"
           >
             <template #content="{ message }">
-              <ChatMarkdown
-                v-if="(message as UIMessage).role === 'assistant'"
-                :content="getTextContent((message as UIMessage).parts)"
-              />
-              <span
-                v-else
-                class="whitespace-pre-wrap"
-              >{{ getTextContent((message as UIMessage).parts) }}</span>
+              <template
+                v-for="(part, index) in (message as UIMessage).parts"
+                :key="`${(message as UIMessage).id}-${part.type}-${index}`"
+              >
+                <UChatReasoning
+                  v-if="isReasoningUIPart(part)"
+                  :text="part.text"
+                  :streaming="isPartStreaming(part)"
+                  chevron="leading"
+                />
+                <ChatMarkdown
+                  v-else-if="isTextUIPart(part) && (message as UIMessage).role === 'assistant'"
+                  :content="part.text"
+                  :is-streaming="chat.status === 'streaming' && (message as UIMessage).id === chat.messages.at(-1)?.id"
+                />
+                <span
+                  v-else-if="isTextUIPart(part)"
+                  class="whitespace-pre-wrap"
+                >{{ part.text }}</span>
+              </template>
             </template>
 
             <template #indicator>
