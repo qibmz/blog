@@ -16,7 +16,6 @@ export default defineNuxtPlugin((nuxtApp) => {
   globalThis.$fetch = globalThis.$fetch.create({
     async onResponseError({ response }) {
       const message = normalizeError(response._data)
-
       // 401 → 直接跳转登录，不弹 toast
       if (response.status === 401) {
         window.location.href = '/auth/github'
