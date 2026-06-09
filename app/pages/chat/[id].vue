@@ -99,89 +99,91 @@ onMounted(() => {
 </script>
 
 <template>
-  <UDashboardPanel
-    id="chat"
-    class="relative min-h-0"
-    :ui="{ body: 'p-0 sm:p-0 overscroll-none' }"
-  >
-    <template #header>
-      <UDashboardNavbar :title="chatTitle">
-        <template #right>
-          <UColorModeButton />
-          <UButton
-            to="/chat"
-            icon="i-lucide-circle-plus"
-            color="neutral"
-            variant="ghost"
-            aria-label="新对话"
-          />
-        </template>
-      </UDashboardNavbar>
-    </template>
+  <div class="flex flex-1 flex-col min-h-0">
+    <UDashboardPanel
+      id="chat"
+      class="relative min-h-0 flex-1"
+      :ui="{ body: 'p-0 sm:p-0 overscroll-none' }"
+    >
+      <template #header>
+        <UDashboardNavbar :title="chatTitle">
+          <template #right>
+            <UColorModeButton />
+            <UButton
+              to="/chat"
+              icon="i-lucide-circle-plus"
+              color="neutral"
+              variant="ghost"
+              aria-label="新对话"
+            />
+          </template>
+        </UDashboardNavbar>
+      </template>
 
-    <template #body>
-      <div class="flex flex-1">
-        <UContainer class="flex-1 flex flex-col gap-4 sm:gap-6">
-          <UChatMessages
-            :messages="chat.messages"
-            :assistant="assistantConfig"
-            :status="chat.status"
-            :should-auto-scroll="chat.status === 'streaming' || chat.status === 'submitted'"
-            class="pt-(--ui-header-height) pb-4 sm:pb-6"
-          >
-            <template #content="{ message }">
-              <template
-                v-for="(part, index) in (message as UIMessage).parts"
-                :key="`${(message as UIMessage).id}-${part.type}-${index}`"
-              >
-                <UChatReasoning
-                  v-if="isReasoningUIPart(part)"
-                  :text="part.text"
-                  :streaming="isPartStreaming(part)"
-                  chevron="leading"
-                />
-                <ChatMarkdown
-                  v-else-if="isTextUIPart(part) && (message as UIMessage).role === 'assistant'"
-                  :content="part.text"
-                  :is-streaming="chat.status === 'streaming' && (message as UIMessage).id === chat.messages.at(-1)?.id"
-                />
-                <span
-                  v-else-if="isTextUIPart(part)"
-                  class="whitespace-pre-wrap"
-                >{{ part.text }}</span>
+      <template #body>
+        <div class="flex flex-1">
+          <UContainer class="flex-1 flex flex-col gap-4 sm:gap-6">
+            <UChatMessages
+              :messages="chat.messages"
+              :assistant="assistantConfig"
+              :status="chat.status"
+              :should-auto-scroll="chat.status === 'streaming' || chat.status === 'submitted'"
+              class="pt-(--ui-header-height) pb-4 sm:pb-6"
+            >
+              <template #content="{ message }">
+                <template
+                  v-for="(part, index) in (message as UIMessage).parts"
+                  :key="`${(message as UIMessage).id}-${part.type}-${index}`"
+                >
+                  <UChatReasoning
+                    v-if="isReasoningUIPart(part)"
+                    :text="part.text"
+                    :streaming="isPartStreaming(part)"
+                    chevron="leading"
+                  />
+                  <ChatMarkdown
+                    v-else-if="isTextUIPart(part) && (message as UIMessage).role === 'assistant'"
+                    :content="part.text"
+                    :is-streaming="chat.status === 'streaming' && (message as UIMessage).id === chat.messages.at(-1)?.id"
+                  />
+                  <span
+                    v-else-if="isTextUIPart(part)"
+                    class="whitespace-pre-wrap"
+                  >{{ part.text }}</span>
+                </template>
               </template>
-            </template>
 
-            <template #indicator>
-              <UChatShimmer text="思考中..." />
-            </template>
-          </UChatMessages>
+              <template #indicator>
+                <UChatShimmer text="思考中..." />
+              </template>
+            </UChatMessages>
 
-          <UChatPrompt
-            v-model="input"
-            placeholder="继续提问..."
-            variant="subtle"
-            class="sticky bottom-0 [view-transition-name:chat-prompt] rounded-b-none z-10"
-            :ui="{ base: 'px-1.5' }"
-            @submit="onSubmit"
-          >
-            <template #footer>
-              <UButton
-                icon="i-lucide-paperclip"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                aria-label="上传附件"
-              />
-              <UChatPromptSubmit
-                :status="chat.status"
-                color="neutral"
-                size="sm"
-              />
-            </template>
-          </UChatPrompt>
-        </UContainer>
-      </div>
-    </template>
-  </UDashboardPanel>
+            <UChatPrompt
+              v-model="input"
+              placeholder="继续提问..."
+              variant="subtle"
+              class="sticky bottom-0 [view-transition-name:chat-prompt] rounded-b-none z-10"
+              :ui="{ base: 'px-1.5' }"
+              @submit="onSubmit"
+            >
+              <template #footer>
+                <UButton
+                  icon="i-lucide-paperclip"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  aria-label="上传附件"
+                />
+                <UChatPromptSubmit
+                  :status="chat.status"
+                  color="neutral"
+                  size="sm"
+                />
+              </template>
+            </UChatPrompt>
+          </UContainer>
+        </div>
+      </template>
+    </UDashboardPanel>
+  </div>
 </template>
