@@ -10,7 +10,8 @@ export default defineNuxtConfig({
     '@vueuse/nuxt',
     '@nuxtjs/sitemap',
     'nuxt-auth-utils',
-    'motion-v/nuxt'
+    'motion-v/nuxt',
+    '@vercel/analytics/nuxt'
   ],
   devtools: {
     enabled: true

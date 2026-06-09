@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Analytics } from '@vercel/analytics/nuxt'
-
 const colorMode = useColorMode()
 
 const color = computed(() => colorMode.value === 'dark' ? '#020618' : 'white')
@@ -88,7 +86,6 @@ const searchNavigation = computed(() => [
         :links="links"
         :fuse="{ resultLimit: 42 }"
       />
-      <Analytics />
     </ClientOnly>
   </UApp>
 </template>
