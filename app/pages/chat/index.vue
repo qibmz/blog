@@ -20,9 +20,7 @@ const quickSuggestions = [
 
 const { loggedIn } = useUserSession()
 
-const { data: modelsData } = await useFetch('/api/models')
-const selectedModel = ref(modelsData.value?.default ?? '')
-const modelOptions = computed(() => modelsData.value?.models ?? [])
+const { model: selectedModel, models: modelOptions } = useModels()
 const selectedModelIcon = computed(() => modelOptions.value.find(m => m.value === selectedModel.value)?.icon)
 async function createChat(text: string) {
   if (!loggedIn.value) {

@@ -31,8 +31,8 @@ export default defineNuxtConfig({
         { rel: 'canonical', href: 'https://qibmz-blog.vercel.app' }
       ]
     },
-    pageTransition: { name: 'fade', mode: 'out-in' },
-    layoutTransition: { name: 'slide', mode: 'out-in' }
+    pageTransition: { name: 'fade' },
+    layoutTransition: { name: 'slide' }
   },
   css: ['~/assets/css/main.css'],
 
@@ -42,6 +42,14 @@ export default defineNuxtConfig({
     name: 'qibmz 博客',
     description: 'qibmz 的个人技术博客，专注于前端开发、Web3 区块链应用、UniApp 跨平台开发、Vue/Nuxt 全栈技术分享。',
     defaultLocale: 'zh-CN'
+  },
+
+  // MDC 高亮：显式启用 API 路由，避免客户端请求 /api/_mdc/highlight 404
+  // @nuxt/content 默认设置 noApiRoute: true 会禁用此路由
+  mdc: {
+    highlight: {
+      noApiRoute: false
+    }
   },
   ui: {
     fonts: false

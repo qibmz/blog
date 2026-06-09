@@ -12,16 +12,19 @@ const id = route.params.id as string
 const { data: chatData } = await useFetch(`/api/chats/${id}`)
 if (!chatData.value) throw createError({ statusCode: 404 })
 
-const { data: modelsData } = await useFetch('/api/models')
+const { model: selectedModel, models: modelOptions } = useModels()
+// 仅在没有 cookie 偏好时回退到聊天记录中的模型
+if (!selectedModel.value) {
+  selectedModel.value = chatData.value.model ?? modelOptions.value[0]?.value ?? ''
+}
 
 const chatTitle = ref(chatData.value.title ?? '新对话')
 useSeoMeta({ title: computed(() => `${chatTitle.value} — AI Chat`) })
 
-const selectedModel = ref(chatData.value.model ?? modelsData.value?.default ?? '')
-
 const input = ref('')
 
-const refreshSidebar = inject<() => Promise<void>>('refreshSidebar', () => Promise.resolve())
+// refreshNuxtData('sidebar-chats') 直接刷新布局中的侧边栏数据
+// 服务端 onFinish 在流结束前已完成 DB 写入，客户端 onFinish 触发时数据已就绪
 
 const chat = new Chat({
   id,
@@ -42,8 +45,8 @@ const chat = new Chat({
   },
   onFinish: ({ isError }) => {
     if (!isError) {
-      // 延迟 500ms 刷新，确保服务端 onFinish 已完成 DB 写入
-      setTimeout(() => refreshSidebar(), 500)
+      // 服务端 onFinish 在流结束前已完成 DB 写入，无需延迟等待
+      refreshNuxtData('sidebar-chats')
     }
   }
 })
@@ -176,6 +179,8 @@ onMounted(() => {
                   :status="chat.status"
                   color="neutral"
                   size="sm"
+                  @stop="chat.stop()"
+                  @reload="chat.regenerate()"
                 />
               </template>
             </UChatPrompt>

@@ -9,7 +9,6 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   generateText,
-  smoothStream,
   streamText,
   type UIMessage
 } from 'ai'
@@ -72,7 +71,11 @@ export default defineEventHandler(async (event) => {
         model,
         system: '你是一个友好、简洁的 AI 助手。',
         messages: await convertToModelMessages(messages as UIMessage[]),
-        experimental_transform: smoothStream()
+        providerOptions: {
+          deepseek: {
+            thinking: { type: 'enabled' as const }
+          }
+        }
       })
 
       writer.merge(result.toUIMessageStream())
