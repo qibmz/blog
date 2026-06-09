@@ -20,19 +20,8 @@ useSeoMeta({ title: computed(() => `${chatTitle.value} — AI Chat`) })
 const selectedModel = ref(chatData.value.model ?? modelsData.value?.default ?? '')
 
 const input = ref('')
-const toast = useToast()
 
 const refreshSidebar = inject<() => Promise<void>>('refreshSidebar', () => Promise.resolve())
-
-// 解析服务端返回的 JSON 错误消息
-function parseErrorMessage(err: Error): string {
-  try {
-    const parsed = JSON.parse(err.message)
-    return parsed.statusMessage ?? parsed.message ?? err.message
-  } catch {
-    return err.message
-  }
-}
 
 const chat = new Chat({
   id,
@@ -42,8 +31,8 @@ const chat = new Chat({
     body: () => ({ model: selectedModel.value })
   }),
   onError: (err) => {
-    const msg = parseErrorMessage(err)
-    toast.add({
+    const msg = normalizeError(err)
+    useToast().add({
       title: '发送失败',
       description: msg,
       color: 'error',

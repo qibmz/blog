@@ -4,7 +4,7 @@ definePageMeta({ layout: 'chat' })
 useSeoMeta({ title: 'AI Chat' })
 
 const input = ref('')
-const toast = useToast()
+const { isLoading, execute } = useApi()
 
 const hour = new Date().getHours()
 const greeting = hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好'
@@ -24,23 +24,6 @@ const { data: modelsData } = await useFetch('/api/models')
 const selectedModel = ref(modelsData.value?.default ?? '')
 const modelOptions = computed(() => modelsData.value?.models ?? [])
 const selectedModelIcon = computed(() => modelOptions.value.find(m => m.value === selectedModel.value)?.icon)
-
-// 解析服务端返回的 JSON 错误消息
-function parseErrorMessage(err: unknown): string {
-  if (err && typeof err === 'object' && 'data' in err) {
-    const data = (err as { data?: unknown }).data
-    if (data && typeof data === 'object' && 'statusMessage' in data) {
-      return (data as { statusMessage: string }).statusMessage
-    }
-  }
-  if (err instanceof Error) {
-    return err.message
-  }
-  return '请求失败，请稍后重试'
-}
-
-const isCreating = ref(false)
-
 async function createChat(text: string) {
   if (!loggedIn.value) {
     loginWithGithub()
@@ -49,26 +32,17 @@ async function createChat(text: string) {
   const trimmed = text.trim()
   if (!trimmed) return
 
-  isCreating.value = true
   try {
-    const chat = await $fetch<{ id: string }>('/api/chats', {
+    const chat = await execute(() => $fetch<{ id: string }>('/api/chats', {
       method: 'POST',
       body: {
         message: { id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text: trimmed }] },
         model: selectedModel.value
       }
-    })
+    }))
     await navigateTo(`/chat/${chat.id}`)
-  } catch (err: unknown) {
-    toast.add({
-      title: '创建对话失败',
-      description: parseErrorMessage(err),
-      color: 'error',
-      icon: 'i-lucide-alert-circle',
-      duration: 6000
-    })
-  } finally {
-    isCreating.value = false
+  } catch {
+    // toast 已由 app/plugins/api.ts 全局拦截器统一弹出
   }
 }
 
@@ -114,6 +88,7 @@ function onQuickChat(label: string) {
               v-model="input"
               placeholder="有什么可以帮你的？"
               :rows="3"
+              :disabled="isLoading"
               class="[view-transition-name:chat-prompt]"
               @submit="onSubmit"
             >
@@ -137,7 +112,7 @@ function onQuickChat(label: string) {
                   />
                 </div>
                 <UChatPromptSubmit
-                  :status="'ready'"
+                  :status="isLoading ? 'submitted' : 'ready'"
                   color="neutral"
                   size="sm"
                 />

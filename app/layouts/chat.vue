@@ -5,8 +5,8 @@ const chatSearchOpen = ref(false)
 
 const { loggedIn, user, clear } = useUserSession()
 
-// 实时获取聊天列表（路由或登录状态变化时刷新，未登录时跳过）
-const { data: chatsData, refresh: refreshSidebar } = await useFetch('/api/chats', {
+// 使用 useLazyFetch 避免 SSR 阶段未登录时触发 401 阻塞渲染
+const { data: chatsData, refresh: refreshSidebar } = useLazyFetch('/api/chats', {
   key: 'sidebar-chats',
   watch: [loggedIn, () => route.path],
   default: () => ({ chats: [], remainingToday: 0 }),
