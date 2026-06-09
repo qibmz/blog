@@ -289,7 +289,7 @@ const highlights = [
             :key="update.title"
             :initial="{ opacity: 0, y: 24 }"
             :while-in-view="{ opacity: 1, y: 0 }"
-            :transition="{ type: 'spring', stiffness: 280, damping: 34, delay: i * 0.1 }"
+            :transition="{ type: 'tween', duration: 0.4, ease: 'easeOut', delay: i * 0.1 }"
             :viewport="{ once: true, margin: '-80px' }"
             :while-hover="{ y: -3 }"
           >
