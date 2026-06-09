@@ -129,16 +129,25 @@ onMounted(() => {
                     :text="part.text"
                     :streaming="isPartStreaming(part)"
                     chevron="leading"
-                  />
-                  <ChatMarkdown
-                    v-else-if="isTextUIPart(part) && (message as UIMessage).role === 'assistant'"
-                    :content="part.text"
-                    :is-streaming="chat.status === 'streaming' && (message as UIMessage).id === chat.messages.at(-1)?.id"
-                  />
-                  <span
-                    v-else-if="isTextUIPart(part)"
-                    class="whitespace-pre-wrap"
-                  >{{ part.text }}</span>
+                  >
+                    <ChatComark
+                      :markdown="part.text"
+                      :streaming="isPartStreaming(part)"
+                    />
+                  </UChatReasoning>
+                  <template v-else-if="isTextUIPart(part)">
+                    <ChatComark
+                      v-if="(message as UIMessage).role === 'assistant'"
+                      :markdown="part.text"
+                      :streaming="isPartStreaming(part)"
+                    />
+                    <p
+                      v-else-if="(message as UIMessage).role === 'user'"
+                      class="whitespace-pre-wrap"
+                    >
+                      {{ part.text }}
+                    </p>
+                  </template>
                 </template>
               </template>
 

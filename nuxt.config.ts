@@ -5,6 +5,7 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/image',
     '@nuxt/ui',
+    '@comark/nuxt',
     '@nuxt/content',
     '@vueuse/nuxt',
     '@nuxtjs/sitemap',
