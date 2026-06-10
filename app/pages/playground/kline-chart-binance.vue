@@ -35,7 +35,7 @@ const binanceInterval = computed(() => {
 })
 
 // 使用 WebSocket 实时获取数据
-const { klineData, latestTrade, status } = useBinanceBusiness(symbol, binanceInterval)
+const { klineData, latestTrade, connected } = useBinanceBusiness(symbol, binanceInterval)
 
 // 实时更新交易列表 (按时间倒序排列，限制显示数量)
 const trades = ref<BinanceTradeData[]>([])
@@ -115,10 +115,10 @@ const handlePeriodChange = (newPeriod: { span: number, type: PeriodType, label: 
                 </div>
                 <div class="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest">
                   <span class="relative flex h-2 w-2">
-                    <span :class="['absolute inline-flex h-full w-full rounded-full opacity-75', status === 'OPEN' ? 'animate-ping bg-emerald-400' : 'bg-red-400']" />
-                    <span :class="['relative inline-flex rounded-full h-2 w-2', status === 'OPEN' ? 'bg-emerald-500' : 'bg-red-500']" />
+                    <span :class="['absolute inline-flex h-full w-full rounded-full opacity-75', connected ? 'animate-ping bg-emerald-400' : 'bg-red-400']" />
+                    <span :class="['relative inline-flex rounded-full h-2 w-2', connected ? 'bg-emerald-500' : 'bg-red-500']" />
                   </span>
-                  {{ status === 'OPEN' ? '实时连接中' : '连接已断开' }}
+                  {{ connected ? '实时连接中' : '连接已断开' }}
                 </div>
               </div>
               <DemoKlineTradesList
