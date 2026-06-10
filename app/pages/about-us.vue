@@ -11,8 +11,6 @@ useSeoMeta({
   description,
   ogDescription: description
 })
-
-const contactEmail = computed(() => page.value?.contact?.email ?? '')
 </script>
 
 <template>
@@ -56,25 +54,6 @@ const contactEmail = computed(() => page.value?.contact?.email ?? '')
         <p class="text-base text-gray-500 dark:text-gray-400 max-w-md leading-relaxed">
           {{ description }}
         </p>
-      </Motion>
-
-      <!-- 联系方式 pill -->
-      <Motion
-        v-if="contactEmail"
-        :initial="{ opacity: 0, y: 10 }"
-        :animate="{ opacity: 1, y: 0 }"
-        :transition="{ duration: 0.4, delay: 0.3 }"
-      >
-        <a
-          :href="`mailto:${contactEmail}`"
-          class="inline-flex items-center gap-2 mt-5 px-4 py-2 rounded-full bg-gray-100 dark:bg-gray-800 text-sm text-gray-600 dark:text-gray-400 hover:bg-primary-500/10 hover:text-primary-500 transition-colors duration-300"
-        >
-          <UIcon
-            name="i-lucide-mail"
-            class="w-4 h-4"
-          />
-          {{ contactEmail }}
-        </a>
       </Motion>
     </div>
 
@@ -171,51 +150,6 @@ const contactEmail = computed(() => page.value?.contact?.email ?? '')
         </div>
       </Motion>
     </UContainer>
-
-    <!-- ========== 联系方式 ========== -->
-    <div
-      v-if="contactEmail"
-      class="bg-gray-50/80 dark:bg-gray-950/60 border-t border-gray-200 dark:border-gray-800"
-    >
-      <UContainer>
-        <Motion
-          :initial="{ opacity: 0, y: 20 }"
-          :while-in-view="{ opacity: 1, y: 0 }"
-          :transition="{ duration: 0.5 }"
-          :viewport="{ once: true, margin: '-60px' }"
-          class="py-14"
-        >
-          <div class="text-center mb-8">
-            <span class="inline-block text-xs font-semibold uppercase tracking-widest text-primary-500 mb-2">联系</span>
-            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">
-              联系方式
-            </h2>
-          </div>
-
-          <Motion
-            :initial="{ opacity: 0, y: 15 }"
-            :while-in-view="{ opacity: 1, y: 0 }"
-            :transition="{ duration: 0.4, delay: 0.1 }"
-            :viewport="{ once: true }"
-            :while-hover="{ y: -2 }"
-            class="max-w-sm mx-auto bg-white dark:bg-gray-900 rounded-2xl p-6 ring-1 ring-gray-200 dark:ring-gray-800 text-center hover:ring-primary-300 dark:hover:ring-primary-700 transition-all duration-300"
-          >
-            <div class="flex items-center justify-center gap-3">
-              <UIcon
-                name="i-lucide-mail"
-                class="w-5 h-5 text-primary-500"
-              />
-              <a
-                :href="`mailto:${contactEmail}`"
-                class="text-primary-500 hover:text-primary-600 font-medium hover:underline"
-              >
-                {{ contactEmail }}
-              </a>
-            </div>
-          </Motion>
-        </Motion>
-      </UContainer>
-    </div>
 
     <!-- ========== Slogan ========== -->
     <UContainer>

@@ -6,12 +6,9 @@ seo:
 navigation:
   icon: i-lucide-user
 
-contact:
-  email: 1583326640@qq.com
-
 versions:
   - title: '杭州铂森企业管理有限公司深圳分公司'
-    description: '负责自研项目的 iOS 端开发，主要采用 Vibe Coding 方式进行开发，探索 AI 辅助编程在移动端产品中的实践与落地。'
+    description: '独立完成自研项目的 UniApp 跨端开发，覆盖 iOS 及微信小程序平台，主要采用 Vibe Coding 方式进行开发，探索 AI 辅助编程在移动端产品中的实践与落地。'
     image: 'https://picsum.photos/id/20/512/288'
     badge: {
       label: '2026.03-至今',
@@ -19,10 +16,10 @@ versions:
     }
     authors: [
       {
-        name: 'iOS 开发',
+        name: 'UniApp 开发',
         avatar: {
           src: '/image/avatar.avif',
-          alt: 'iOS 开发'
+          alt: 'UniApp 开发'
         },
       }
     ]
