@@ -19,7 +19,7 @@ reviews:
       instructions: "Review content schema changes for breaking changes to content collections."
 
   # Use CHILL profile for faster reviews
-  profile: CHILL
+  profile: chill
 
   # Auto-review settings
   auto_review:
