@@ -21,7 +21,6 @@ const quickSuggestions = [
 const { loggedIn } = useUserSession()
 
 const { model: selectedModel, models: modelOptions } = useModels()
-const selectedModelIcon = computed(() => modelOptions.value.find(m => m.value === selectedModel.value)?.icon)
 async function createChat(text: string) {
   if (!loggedIn.value) {
     loginWithGithub()
@@ -103,11 +102,17 @@ function onQuickChat(label: string) {
                     v-model="selectedModel"
                     :items="modelOptions"
                     value-key="value"
-                    :leading-icon="selectedModelIcon"
                     size="sm"
                     variant="ghost"
                     class="min-w-48"
-                  />
+                  >
+                    <template #leading="{ modelValue }">
+                      <UIcon
+                        v-if="modelValue"
+                        :name="modelOptions.find(m => m.value === modelValue)?.icon"
+                      />
+                    </template>
+                  </USelectMenu>
                 </div>
                 <UChatPromptSubmit
                   :status="isLoading ? 'submitted' : 'ready'"

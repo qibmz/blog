@@ -10,15 +10,23 @@ export function useModels() {
 
   const model = useCookie<string>('ai-model')
 
-  // 当模型数据到达且用户未选择过模型时，设置默认值
-  // 使用 watch 而非 useCookie 的 default，避免异步数据竞态
+  const models = computed(() => modelsData.value?.models ?? [])
+
+  // 校验 cookie 中的模型是否仍存在于当前可用列表中
+  // 防止刷新后 cookie 值与空列表竞态导致 SelectMenu 显示异常
+  const isValidModel = computed(() =>
+    models.value.some(m => m.value === model.value)
+  )
+
+  // 当模型数据到达时：
+  // 1. 用户未选择过模型 → 设置默认值
+  // 2. cookie 中的模型已失效 → 回退到默认值
   watch(modelsData, (data) => {
-    if (data?.default && !model.value) {
+    if (!data?.default) return
+    if (!model.value || !isValidModel.value) {
       model.value = data.default
     }
   }, { immediate: true })
-
-  const models = computed(() => modelsData.value?.models ?? [])
 
   return {
     models,
