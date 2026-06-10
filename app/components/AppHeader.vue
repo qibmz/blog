@@ -16,7 +16,7 @@ const items = computed(() => [{
   to: '/chat',
   active: route.path.startsWith('/chat')
 }, {
-  label: '试炼场',
+  label: 'Demos',
   to: '/playground',
   active: route.path.startsWith('/playground'),
   children: [{
@@ -44,6 +44,7 @@ const items = computed(() => [{
       >
         <NuxtImg
           src="/image/logo.png"
+          alt="qibmz logo"
           width="40"
           height="40"
           class="rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"

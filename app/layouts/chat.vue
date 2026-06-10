@@ -5,12 +5,16 @@ const chatSearchOpen = ref(false)
 
 const { loggedIn, user, clear } = useUserSession()
 
-// 实时获取聊天列表（路由或登录状态变化时刷新，未登录时跳过）
-const { data: chatsData } = await useFetch('/api/chats', {
+// 使用 useLazyFetch 避免 SSR 阶段未登录时触发 401 阻塞渲染
+const { data: chatsData, refresh: refreshSidebar } = useLazyFetch('/api/chats', {
+  key: 'sidebar-chats',
   watch: [loggedIn, () => route.path],
   default: () => ({ chats: [], remainingToday: 0 }),
   ignoreResponseError: true
 })
+
+// 提供给子页面调用，在发送消息后刷新侧边栏数据（聊天列表 + 今日剩余次数）
+provide('refreshSidebar', refreshSidebar)
 
 type Chat = NonNullable<typeof chatsData.value>['chats'][number]
 
@@ -29,6 +33,11 @@ const chatItems = computed(() => {
 })
 
 const topItems = [
+  {
+    label: '回到首页',
+    to: '/',
+    icon: 'i-lucide-home'
+  },
   {
     label: '新对话',
     to: '/chat',
@@ -190,6 +199,7 @@ async function logout() {
     </UDashboardSidebar>
 
     <div class="flex-1 flex m-4 lg:ml-0 rounded-lg ring ring-default bg-default/75 shadow min-w-0 overflow-hidden">
+      <NuxtLoadingIndicator />
       <slot />
     </div>
 

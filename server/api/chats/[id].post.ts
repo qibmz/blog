@@ -70,7 +70,12 @@ export default defineEventHandler(async (event) => {
       const result = streamText({
         model,
         system: '你是一个友好、简洁的 AI 助手。',
-        messages: await convertToModelMessages(messages as UIMessage[])
+        messages: await convertToModelMessages(messages as UIMessage[]),
+        providerOptions: {
+          deepseek: {
+            thinking: { type: 'enabled' as const }
+          }
+        }
       })
 
       writer.merge(result.toUIMessageStream())

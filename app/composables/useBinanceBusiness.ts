@@ -79,7 +79,10 @@ export function useBinanceBusiness(symbol: MaybeRefOrGetter<string>, interval: M
   const latestTrade = ref<BinanceTradeData | null>(null)
 
   const { status, open, close, send } = useWebSocket(url, {
-    autoReconnect: true,
+    autoReconnect: {
+      retries: -1,
+      delay: 1500
+    },
     onMessage: (_, event) => {
       const raw = event.data
       if (typeof raw === 'string') {
@@ -128,8 +131,30 @@ export function useBinanceBusiness(symbol: MaybeRefOrGetter<string>, interval: M
     }
   })
 
+  // 延迟断开指示器：短暂断连（< 5 秒）不改变 UI 状态，
+  // 避免 autoReconnect 期间 "连接中 → 断开 → 连接中" 的闪烁
+  const DISCONNECT_THRESHOLD = 5000
+  let disconnectTimer: ReturnType<typeof setTimeout> | null = null
+  const connected = ref(true)
+
+  watch(status, (newStatus) => {
+    if (newStatus === 'OPEN') {
+      if (disconnectTimer) {
+        clearTimeout(disconnectTimer)
+        disconnectTimer = null
+      }
+      connected.value = true
+    } else if (!disconnectTimer) {
+      disconnectTimer = setTimeout(() => {
+        connected.value = false
+        disconnectTimer = null
+      }, DISCONNECT_THRESHOLD)
+    }
+  })
+
   return {
     status,
+    connected,
     klineData,
     latestTrade,
     close,
