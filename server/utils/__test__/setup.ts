@@ -76,6 +76,10 @@ export function mockRequireUserSession(_event: unknown) {
   return Promise.resolve({ user: mockUser })
 }
 
+export function mockGetUserSession(_event: unknown) {
+  return Promise.resolve({ user: mockUser })
+}
+
 // ─── Drizzle operators (simplified, return the arguments for assertion) ─────
 export const mockEq = vi.fn((a: unknown, b: unknown) => ({ _type: 'eq', a, b }))
 export const mockAnd = vi.fn((...args: unknown[]) => ({ _type: 'and', args }))
@@ -138,6 +142,7 @@ vi.stubGlobal('sql', mockSql)
 
 // nuxt-auth-utils auto-import
 vi.stubGlobal('requireUserSession', mockRequireUserSession)
+vi.stubGlobal('getUserSession', mockGetUserSession)
 
 // server/utils/ auto-imports
 vi.stubGlobal('raiseNotFound', mockRaiseNotFound)
@@ -157,5 +162,6 @@ vi.mock('h3', async () => {
 
 // nuxt-auth-utils — for explicit imports
 vi.mock('#auth-utils', () => ({
-  requireUserSession: mockRequireUserSession
+  requireUserSession: mockRequireUserSession,
+  getUserSession: mockGetUserSession
 }))
