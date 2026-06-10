@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mockDbFindFirst, mockUser } from '../../utils/__test__/setup'
+import { mockDbFindFirst, mockUser, mockEq, mockSchema } from '../../utils/__test__/setup'
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -36,5 +36,21 @@ describe('GET /api/chats/:id', () => {
     await expect(handler(event)).rejects.toMatchObject({
       statusCode: 404
     })
+  })
+
+  it('should filter chat by current user to prevent cross-user access', async () => {
+    // Chat exists but belongs to a different user — the WHERE clause
+    // ANDs userId with the current user, so findFirst returns null
+    mockDbFindFirst.mockResolvedValue(null)
+
+    const { default: handler } = await import('../chats/[id].get')
+
+    const event = { context: {}, path: '/api/chats/chat-1' } as any
+    await expect(handler(event)).rejects.toMatchObject({
+      statusCode: 404
+    })
+
+    // Verify the query filters by the current user's ID
+    expect(mockEq).toHaveBeenCalledWith(mockSchema.chats.userId, mockUser.id)
   })
 })

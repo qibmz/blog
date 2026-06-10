@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mockDbFindFirst, mockUser } from '../../utils/__test__/setup'
+import { mockDbFindFirst, mockUser, mockReadValidatedBody } from '../../utils/__test__/setup'
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 const mockCheckDailyLimit = vi.fn()
@@ -88,7 +88,7 @@ describe('POST /api/chats/:id', () => {
     })
   })
 
-  it('should check rate limit for follow-up messages', async () => {
+  it('should skip rate limit check for first message in chat', async () => {
     mockDbFindFirst.mockResolvedValue({
       id: 'chat-1',
       userId: mockUser.id,
@@ -109,8 +109,49 @@ describe('POST /api/chats/:id', () => {
     } as any
 
     await handler(event)
-    // Rate limit is checked only for follow-up messages (messages.length > 1)
-    // Our mock request body has 1 message, so checkDailyLimit shouldn't be called
-    // But the actual body parsing depends on getValidatedRouterParams/readValidatedBody mocks
+
+    // First message (messages.length === 1) is counted in chats.post.ts,
+    // so checkDailyLimit should NOT be called for the first message in a chat
+    expect(mockCheckDailyLimit).not.toHaveBeenCalled()
+  })
+
+  it('should check rate limit for follow-up messages', async () => {
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: 'Existing Chat',
+      model: 'deepseek-v4-pro'
+    })
+
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+
+    // Override readValidatedBody to return 2 messages (simulating follow-up)
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
+        const body = {
+          model: 'deepseek-v4-pro',
+          messages: [
+            { id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] },
+            { id: 'msg-2', role: 'user', parts: [{ type: 'text', text: 'Follow up' }] }
+          ]
+        }
+        return typeof validateFn === 'function' ? validateFn(body) : body
+      }
+    )
+
+    const { default: handler } = await import('../chats/[id].post')
+
+    const event = {
+      context: {},
+      path: '/api/chats/chat-1',
+      waitUntil: vi.fn()
+    } as any
+
+    await handler(event)
+
+    // Follow-up messages (messages.length > 1) should trigger rate limit check
+    expect(mockCheckDailyLimit).toHaveBeenCalledWith(mockUser.id)
   })
 })

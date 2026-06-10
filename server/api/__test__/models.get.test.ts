@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-
-// Mock $fetch for external API calls
-vi.mock('ofetch', () => ({
-  $fetch: vi.fn()
-}))
+import { mock$Fetch } from '../../utils/__test__/setup'
 
 // Mock models module to avoid provider initialization
 vi.mock('../../utils/models', () => ({
@@ -18,15 +14,12 @@ vi.mock('../../utils/models', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
-  // Reset module cache to clear cached models
-  vi.resetModules()
 })
 
 describe('GET /api/models', () => {
   it('should return models list with default', async () => {
-    // Mock $fetch to return empty (API calls fail, fallback to static)
-    const { $fetch } = await import('ofetch')
-    vi.mocked($fetch).mockRejectedValue(new Error('API unavailable'))
+    vi.resetModules()
+    mock$Fetch.mockRejectedValue(new Error('API unavailable'))
 
     const { default: handler } = await import('../models.get')
 
@@ -41,8 +34,8 @@ describe('GET /api/models', () => {
   })
 
   it('should include required fields for each model', async () => {
-    const { $fetch } = await import('ofetch')
-    vi.mocked($fetch).mockRejectedValue(new Error('API unavailable'))
+    vi.resetModules()
+    mock$Fetch.mockRejectedValue(new Error('API unavailable'))
 
     const { default: handler } = await import('../models.get')
 
@@ -57,18 +50,19 @@ describe('GET /api/models', () => {
   })
 
   it('should return cached result on second call', async () => {
-    const { $fetch } = await import('ofetch')
-    vi.mocked($fetch).mockRejectedValue(new Error('API unavailable'))
+    vi.resetModules()
+    mock$Fetch.mockRejectedValue(new Error('API unavailable'))
 
     const { default: handler } = await import('../models.get')
 
     const event = { context: {}, path: '/api/models' } as any
+    // First call: fetches models from providers, falls back to static
     const result1 = await handler(event)
-    // Second call should use cache, not call $fetch again
+    // Second call: uses module-level cache, avoids re-fetching
     const result2 = await handler(event)
 
     expect(result1).toEqual(result2)
-    // $fetch should have been called only once (first call)
-    // Second call uses module-level cache
+    // $fetch called once per provider (2 providers) — not called again for second request
+    expect(mock$Fetch).toHaveBeenCalledTimes(2)
   })
 })

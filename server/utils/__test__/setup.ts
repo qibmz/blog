@@ -124,9 +124,13 @@ export const mockRaiseRateLimit = vi.fn((message: string) => {
   return err
 })
 
+// ─── Nitro auto-import: $fetch (ofetch) ──────────────────────────────────────
+export const mock$Fetch = vi.fn()
+
 // ─── Apply ALL globals ──────────────────────────────────────────────────────
 vi.stubGlobal('db', mockDb)
 vi.stubGlobal('schema', mockSchema)
+vi.stubGlobal('$fetch', mock$Fetch)
 
 // h3 auto-imports
 vi.stubGlobal('defineEventHandler', mockDefineEventHandler)
@@ -157,6 +161,19 @@ vi.mock('h3', async () => {
     defineEventHandler: mockDefineEventHandler,
     getValidatedRouterParams: mockGetValidatedRouterParams,
     readValidatedBody: mockReadValidatedBody
+  }
+})
+
+// drizzle-orm — for explicit imports
+vi.mock('drizzle-orm', async () => {
+  const actual = await vi.importActual('drizzle-orm')
+  return {
+    ...actual as object,
+    eq: mockEq,
+    and: mockAnd,
+    desc: mockDesc,
+    gte: mockGte,
+    sql: mockSql
   }
 })
 
