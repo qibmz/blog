@@ -16,7 +16,7 @@ const items = computed(() => [{
   to: '/chat',
   active: route.path.startsWith('/chat')
 }, {
-  label: '试炼场',
+  label: 'Demos',
   to: '/playground',
   active: route.path.startsWith('/playground'),
   children: [{

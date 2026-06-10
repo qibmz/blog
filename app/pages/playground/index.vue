@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const title = '🎮 试炼场'
+const title = 'Demos'
 const description = '各种 Vue 组件和技术的交互式演示'
 
 useSeoMeta({
@@ -30,7 +30,7 @@ const playgrounds = [
 <template>
   <UContainer>
     <UPageHeader
-      title="🎮 试炼场"
+      title="Demos"
       description="各种 Vue 组件和技术的交互式演示"
       class="py-12.5"
     />
