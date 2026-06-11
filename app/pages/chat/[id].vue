@@ -50,7 +50,7 @@ const chat = new Chat({
   }
 })
 
-const { copy } = useClipboard()
+const { copy, copied } = useClipboard()
 const toast = useToast()
 
 // 每条消息的反馈状态（赞/踩互斥）
@@ -70,12 +70,12 @@ const assistantConfig = {
     {
       label: '复制',
       icon: 'i-lucide-copy',
-      onClick: (_e: MouseEvent, message: UIMessage) => {
-        copy(getTextContent(message.parts))
+      onClick: async (_e: MouseEvent, message: UIMessage) => {
+        await copy(getTextContent(message.parts))
         toast.add({
-          title: '已复制到剪贴板',
-          icon: 'i-lucide-check',
-          color: 'success',
+          title: copied.value ? '已复制到剪贴板' : '复制失败，请重试',
+          icon: copied.value ? 'i-lucide-check' : 'i-lucide-x',
+          color: copied.value ? 'success' : 'error',
           duration: 2000
         })
       }
