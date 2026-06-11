@@ -11,7 +11,6 @@ const id = route.params.id as string
 
 const { data: chatData } = await useFetch(`/api/chats/${id}`)
 if (!chatData.value) throw createError({ statusCode: 404 })
-
 const { model: selectedModel, models: modelOptions } = useModels()
 // 仅在没有 cookie 偏好时回退到聊天记录中的模型
 if (!selectedModel.value) {
@@ -51,7 +50,11 @@ const chat = new Chat({
   }
 })
 
-const { copy } = useClipboard()
+const { copy, copied } = useClipboard()
+const toast = useToast()
+
+// 每条消息的反馈状态（赞/踩互斥）
+const feedbackState = ref<Record<string, { liked?: boolean, disliked?: boolean }>>({})
 
 function getTextContent(parts: UIMessage['parts']) {
   return parts?.filter(p => p.type === 'text').map(p => (p as { type: 'text', text: string }).text).join('') ?? ''
@@ -67,10 +70,42 @@ const assistantConfig = {
     {
       label: '复制',
       icon: 'i-lucide-copy',
-      onClick: (_e: MouseEvent, message: UIMessage) => copy(getTextContent(message.parts))
+      onClick: async (_e: MouseEvent, message: UIMessage) => {
+        await copy(getTextContent(message.parts))
+        toast.add({
+          title: copied.value ? '已复制到剪贴板' : '复制失败，请重试',
+          icon: copied.value ? 'i-lucide-check' : 'i-lucide-x',
+          color: copied.value ? 'success' : 'error',
+          duration: 2000
+        })
+      }
     },
-    { label: '赞', icon: 'i-lucide-thumbs-up' },
-    { label: '踩', icon: 'i-lucide-thumbs-down' }
+    {
+      label: '赞',
+      icon: 'i-lucide-thumbs-up',
+      onClick: (_e: MouseEvent, message: UIMessage) => {
+        const fb = (feedbackState.value[message.id] ??= {})
+        fb.liked = !fb.liked
+        if (fb.liked) fb.disliked = false
+        toast.add({
+          title: fb.liked ? '已点赞' : '已取消点赞',
+          duration: 1500
+        })
+      }
+    },
+    {
+      label: '踩',
+      icon: 'i-lucide-thumbs-down',
+      onClick: (_e: MouseEvent, message: UIMessage) => {
+        const fb = (feedbackState.value[message.id] ??= {})
+        fb.disliked = !fb.disliked
+        if (fb.disliked) fb.liked = false
+        toast.add({
+          title: fb.disliked ? '已点踩' : '已取消点踩',
+          duration: 1500
+        })
+      }
+    }
   ]
 }
 
@@ -119,6 +154,8 @@ onMounted(() => {
               :messages="chat.messages"
               :assistant="assistantConfig"
               :status="chat.status"
+              :spacing-offset="160"
+              auto-scroll-icon="i-lucide-chevron-down"
               :should-auto-scroll="chat.status === 'streaming' || chat.status === 'submitted'"
               class="pt-(--ui-header-height) pb-4 sm:pb-6"
             >
