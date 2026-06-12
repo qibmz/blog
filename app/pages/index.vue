@@ -291,7 +291,6 @@ const highlights = [
             :while-in-view="{ opacity: 1, y: 0 }"
             :transition="{ type: 'tween', duration: 0.4, ease: 'easeOut', delay: i * 0.1 }"
             :viewport="{ once: true, margin: '-80px' }"
-            :while-hover="{ y: -3 }"
           >
             <NuxtLink
               :to="update.to"
