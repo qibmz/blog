@@ -165,7 +165,7 @@ async function logout() {
           <!-- 展开 -->
           <div
             v-else
-            class="px-1 pb-1 space-y-2"
+            class="w-full pb-1 space-y-2"
           >
             <!-- 用户行 -->
             <div class="flex items-center gap-2.5">
@@ -231,7 +231,7 @@ async function logout() {
           />
           <div
             v-else
-            class="px-1 pb-1"
+            class="w-full pb-1"
           >
             <button
               class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-muted hover:text-highlighted hover:bg-accented/60 transition-all duration-200 group"
