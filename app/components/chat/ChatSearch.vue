@@ -11,7 +11,7 @@ interface ChatItem {
   userId: string | null
 }
 
-const { data: chatsData } = await useFetch('/api/chats', {
+const { data: chatsData } = await useAPI('/api/chats', {
   default: () => ({ chats: [], remainingToday: 0 }),
   ignoreResponseError: true
 })

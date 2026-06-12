@@ -9,7 +9,7 @@ definePageMeta({ layout: 'chat' })
 const route = useRoute()
 const id = route.params.id as string
 
-const { data: chatData } = await useFetch(`/api/chats/${id}`)
+const { data: chatData } = await useAPI(`/api/chats/${id}`)
 if (!chatData.value) throw createError({ statusCode: 404 })
 const { model: selectedModel, models: modelOptions } = useModels()
 // 仅在没有 cookie 偏好时回退到聊天记录中的模型

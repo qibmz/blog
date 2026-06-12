@@ -4,7 +4,14 @@ definePageMeta({ layout: 'chat' })
 useSeoMeta({ title: 'AI Chat' })
 
 const input = ref('')
-const { isLoading, execute } = useApi()
+const chatBody = ref<Record<string, unknown> | null>(null)
+
+const { data, pending, error, execute } = useAPI<{ id: string }>('/api/chats', {
+  method: 'POST',
+  body: chatBody,
+  immediate: false,
+  watch: false
+})
 
 const hour = new Date().getHours()
 const greeting = hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好'
@@ -29,17 +36,14 @@ async function createChat(text: string) {
   const trimmed = text.trim()
   if (!trimmed) return
 
-  try {
-    const chat = await execute(() => $fetch<{ id: string }>('/api/chats', {
-      method: 'POST',
-      body: {
-        message: { id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text: trimmed }] },
-        model: selectedModel.value
-      }
-    }))
-    await navigateTo(`/chat/${chat.id}`)
-  } catch {
-    // toast 已由 app/plugins/api.ts 全局拦截器统一弹出
+  chatBody.value = {
+    message: { id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text: trimmed }] },
+    model: selectedModel.value
+  }
+  await execute()
+  if (error.value) return
+  if (data.value) {
+    await navigateTo(`/chat/${data.value.id}`)
   }
 }
 
@@ -85,7 +89,7 @@ function onQuickChat(label: string) {
               v-model="input"
               placeholder="有什么可以帮你的？"
               :rows="3"
-              :disabled="isLoading"
+              :disabled="pending"
               class="[view-transition-name:chat-prompt]"
               @submit="onSubmit"
             >
@@ -115,7 +119,7 @@ function onQuickChat(label: string) {
                   </USelectMenu>
                 </div>
                 <UChatPromptSubmit
-                  :status="isLoading ? 'submitted' : 'ready'"
+                  :status="pending ? 'submitted' : 'ready'"
                   color="neutral"
                   size="sm"
                 />
