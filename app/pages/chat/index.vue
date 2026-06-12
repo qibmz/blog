@@ -30,7 +30,7 @@ const { loggedIn } = useUserSession()
 const { model: selectedModel, models: modelOptions } = useModels()
 async function createChat(text: string) {
   if (!loggedIn.value) {
-    loginWithGithub()
+    await navigateTo('/login')
     return
   }
   const trimmed = text.trim()
@@ -144,18 +144,14 @@ function onQuickChat(label: string) {
               v-if="!loggedIn"
               class="flex items-center gap-2 text-sm text-muted"
             >
-              <UIcon
-                name="i-simple-icons-github"
-                class="shrink-0"
-              />
               <span>登录后即可开始对话 —</span>
               <UButton
-                label="使用 GitHub 登录"
+                label="立即登录"
                 variant="link"
                 color="primary"
                 size="sm"
                 class="p-0"
-                @click="loginWithGithub()"
+                @click="navigateTo('/login')"
               />
             </div>
           </UContainer>

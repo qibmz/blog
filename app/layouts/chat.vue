@@ -3,7 +3,12 @@ const route = useRoute()
 
 const chatSearchOpen = ref(false)
 
-const { loggedIn, user, clear } = useUserSession()
+const { loggedIn, user, clear, fetch: refreshSession } = useUserSession()
+
+onMounted(() => {
+  // OAuth 回调后确保 session 状态同步
+  refreshSession()
+})
 
 // 使用 useLazyFetch 避免 SSR 阶段未登录时触发 401 阻塞渲染
 const { data: chatsData, refresh: refreshSidebar } = useLazyFetch('/api/chats', {
@@ -187,12 +192,12 @@ async function logout() {
         </template>
         <template v-else>
           <UButton
-            icon="i-simple-icons-github"
-            :label="collapsed ? '' : '使用 GitHub 登录'"
+            icon="i-lucide-log-in"
+            :label="collapsed ? '' : '登录'"
             color="neutral"
             variant="ghost"
             class="w-full"
-            @click="loginWithGithub()"
+            @click="navigateTo('/login')"
           />
         </template>
       </template>
