@@ -6,7 +6,7 @@
  *
  * - 统一解析不同来源的错误消息格式
  * - 自动弹出 toast 通知
- * - 401 跳转 GitHub 登录
+ * - 401 跳转登录页
  * - 错误透传给调用方（useFetch 会设置 error ref）
  */
 
@@ -21,7 +21,7 @@ export default defineNuxtPlugin((nuxtApp) => {
       const message = normalizeError(response._data)
       // 401 → 直接跳转登录，不弹 toast
       if (response.status === 401) {
-        window.location.href = '/auth/github'
+        window.location.href = '/login'
         return
       }
 

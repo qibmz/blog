@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { OAuthProvider } from '#auth-utils'
+
 definePageMeta({ layout: false })
 
 useSeoMeta({ title: '登录 - AI Chat' })
@@ -12,8 +14,8 @@ watchEffect(() => {
   }
 })
 
-function loginWithGithub() {
-  window.location.href = '/auth/github'
+function login(provider: OAuthProvider) {
+  window.location.href = `/auth/${provider}`
 }
 </script>
 
@@ -74,7 +76,17 @@ function loginWithGithub() {
           size="lg"
           block
           class="transition-all duration-300 hover:-translate-y-0.5"
-          @click="loginWithGithub"
+          @click="login('github')"
+        />
+        <UButton
+          icon="i-simple-icons-google"
+          label="使用 Google 登录"
+          color="neutral"
+          variant="outline"
+          size="lg"
+          block
+          class="transition-all duration-300 hover:-translate-y-0.5"
+          @click="login('google')"
         />
       </Motion>
     </div>
