@@ -207,10 +207,10 @@ onMounted(() => {
             >
               <template #footer>
                 <UButton
-                  :label="'思考'"
-                  :icon="thinkingMode ? 'i-lucide-brain' : 'i-lucide-brain-off'"
-                  :variant="thinkingMode ? 'soft' : 'outline'"
-                  color="primary"
+                  label="深度思考"
+                  icon="i-lucide-brain"
+                  :variant="thinkingMode ? 'soft' : 'ghost'"
+                  :color="thinkingMode ? 'primary' : 'neutral'"
                   size="sm"
                   @click="thinkingMode = !thinkingMode"
                 />
