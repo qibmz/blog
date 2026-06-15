@@ -1,3 +1,5 @@
+import { sendOAuthErrorRedirect } from '../../utils/auth'
+
 export default defineOAuthGitHubEventHandler({
   async onSuccess(event, { user }) {
     await setUserSession(event, {

@@ -1,4 +1,4 @@
-import type { H3Event } from 'h3'
+import { sendRedirect, type H3Event } from 'h3'
 
 /**
  * OAuth 登录失败时统一重定向到 /login 并携带错误码，

@@ -1,3 +1,5 @@
+import { sendOAuthErrorRedirect } from '../../utils/auth'
+
 export default defineOAuthGoogleEventHandler({
   async onSuccess(event, { user }) {
     await setUserSession(event, {

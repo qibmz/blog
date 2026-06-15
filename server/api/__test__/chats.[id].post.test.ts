@@ -10,6 +10,11 @@ const mockConvertToModelMessages = vi.fn((msgs: unknown[]) => msgs)
 const mockSmoothStream = vi.fn(() => ({ _type: 'smoothStream' }))
 
 const mockToUIMessageStream = vi.fn(() => ({ _type: 'ui-message-stream' }))
+const mockCreateUIMessageStream = vi.fn((opts: any) => ({
+  _type: 'ui-message-stream',
+  _execute: opts.execute,
+  _onFinish: opts.onFinish
+}))
 
 vi.mock('../../utils/rateLimiter', () => ({
   getTodayCount: vi.fn(),
@@ -25,11 +30,7 @@ vi.mock('../../utils/models', () => ({
 
 vi.mock('ai', () => ({
   convertToModelMessages: (msgs: any) => mockConvertToModelMessages(msgs),
-  createUIMessageStream: vi.fn((opts: any) => ({
-    _type: 'ui-message-stream',
-    _execute: opts.execute,
-    _onFinish: opts.onFinish
-  })),
+  createUIMessageStream: mockCreateUIMessageStream,
   createUIMessageStreamResponse: vi.fn(({ stream }: any) =>
     new Response(JSON.stringify({ stream }), {
       headers: { 'content-type': 'application/json' }
@@ -113,6 +114,91 @@ describe('POST /api/chats/:id', () => {
     // First message (messages.length === 1) is counted in chats.post.ts,
     // so checkDailyLimit should NOT be called for the first message in a chat
     expect(mockCheckDailyLimit).not.toHaveBeenCalled()
+  })
+
+  it('should enable thinking by default when options not provided', async () => {
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: 'Existing Chat',
+      model: 'deepseek-v4-pro'
+    })
+
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+
+    const { default: handler } = await import('../chats/[id].post')
+
+    const event = {
+      context: {},
+      path: '/api/chats/chat-1',
+      waitUntil: vi.fn()
+    } as any
+
+    await handler(event)
+
+    // streamText is called inside createUIMessageStream's lazy execute callback
+    const executeFn = mockCreateUIMessageStream.mock.calls[0]?.[0]?.execute
+    expect(executeFn).toBeDefined()
+    await executeFn({ writer: { merge: vi.fn() } })
+
+    expect(mockStreamText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerOptions: {
+          deepseek: { thinking: { type: 'enabled' } }
+        }
+      })
+    )
+  })
+
+  it('should disable thinking when options.thinkingMode is false', async () => {
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: 'Existing Chat',
+      model: 'deepseek-v4-pro'
+    })
+
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
+        const body = {
+          model: 'deepseek-v4-pro',
+          messages: [
+            { id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] },
+            { id: 'msg-2', role: 'user', parts: [{ type: 'text', text: 'Follow up' }] }
+          ],
+          options: { thinkingMode: false }
+        }
+        return typeof validateFn === 'function' ? validateFn(body) : body
+      }
+    )
+
+    const { default: handler } = await import('../chats/[id].post')
+
+    const event = {
+      context: {},
+      path: '/api/chats/chat-1',
+      waitUntil: vi.fn()
+    } as any
+
+    await handler(event)
+
+    const executeFn = mockCreateUIMessageStream.mock.calls[0]?.[0]?.execute
+    expect(executeFn).toBeDefined()
+    await executeFn({ writer: { merge: vi.fn() } })
+
+    expect(mockStreamText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerOptions: {
+          deepseek: { thinking: { type: 'disabled' } }
+        }
+      })
+    )
   })
 
   it('should check rate limit for follow-up messages', async () => {

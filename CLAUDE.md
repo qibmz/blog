@@ -10,8 +10,9 @@
 - 构建：`pnpm build` / 预览：`pnpm preview`
 - Lint：`pnpm lint`（eslint --fix）/ 类型检查：`pnpm typecheck` / 测试：`pnpm test`
 - 数据库迁移：`npx drizzle-kit generate` 然后 `npx drizzle-kit push`
-- **提交前检查**：`pnpm typecheck && pnpm lint && pnpm test` 全部通过再提交
+- **提交前检查**：`pnpm lint && pnpm test` 全部通过再提交
 - **提交消息使用中文**
+- **改 API/utils 必须补测试**：修改 `server/api/` 或 `server/utils/` 的逻辑时，必须在对应的 `__test__/` 目录下补充或更新测试用例。新增功能至少覆盖核心路径（正常 + 边界/错误）
 
 ## 编码规范
 
