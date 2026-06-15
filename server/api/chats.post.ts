@@ -7,9 +7,10 @@ import { z } from 'zod'
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
 
-  const { message, model } = await readValidatedBody(event, z.object({
+  const { message, model, options: _options } = await readValidatedBody(event, z.object({
     message: UIMessageSchema,
-    model: z.string().optional()
+    model: z.string().optional(),
+    options: z.object({ thinkingMode: z.boolean().optional() }).optional()
   }).parse)
 
   // Note: check-then-insert 非事务性，并发请求可能绕过限制

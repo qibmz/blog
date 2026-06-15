@@ -28,6 +28,7 @@ const quickSuggestions = [
 const { loggedIn } = useUserSession()
 
 const { model: selectedModel, models: modelOptions } = useModels()
+const { thinkingMode } = useChatOptions()
 async function createChat(text: string) {
   if (!loggedIn.value) {
     await navigateTo('/login')
@@ -38,7 +39,8 @@ async function createChat(text: string) {
 
   chatBody.value = {
     message: { id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text: trimmed }] },
-    model: selectedModel.value
+    model: selectedModel.value,
+    options: { thinkingMode: thinkingMode.value }
   }
   await execute()
   if (error.value) return
@@ -96,11 +98,12 @@ function onQuickChat(label: string) {
               <template #footer>
                 <div class="flex items-center gap-1">
                   <UButton
-                    icon="i-lucide-paperclip"
-                    color="neutral"
-                    variant="ghost"
+                    :label="'思考'"
+                    :icon="thinkingMode ? 'i-lucide-brain' : 'i-lucide-brain-off'"
+                    :variant="thinkingMode ? 'soft' : 'outline'"
+                    color="primary"
                     size="sm"
-                    aria-label="上传附件"
+                    @click="thinkingMode = !thinkingMode"
                   />
                   <USelectMenu
                     v-model="selectedModel"
