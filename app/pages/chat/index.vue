@@ -4,7 +4,14 @@ definePageMeta({ layout: 'chat' })
 useSeoMeta({ title: 'AI Chat' })
 
 const input = ref('')
-const { isLoading, execute } = useApi()
+const chatBody = ref<Record<string, unknown> | null>(null)
+
+const { data, pending, error, execute } = useAPI<{ id: string }>('/api/chats', {
+  method: 'POST',
+  body: chatBody,
+  immediate: false,
+  watch: false
+})
 
 const hour = new Date().getHours()
 const greeting = hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好'
@@ -21,25 +28,24 @@ const quickSuggestions = [
 const { loggedIn } = useUserSession()
 
 const { model: selectedModel, models: modelOptions } = useModels()
+const { thinkingMode } = useChatOptions()
 async function createChat(text: string) {
   if (!loggedIn.value) {
-    loginWithGithub()
+    await navigateTo('/login')
     return
   }
   const trimmed = text.trim()
   if (!trimmed) return
 
-  try {
-    const chat = await execute(() => $fetch<{ id: string }>('/api/chats', {
-      method: 'POST',
-      body: {
-        message: { id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text: trimmed }] },
-        model: selectedModel.value
-      }
-    }))
-    await navigateTo(`/chat/${chat.id}`)
-  } catch {
-    // toast 已由 app/plugins/api.ts 全局拦截器统一弹出
+  chatBody.value = {
+    message: { id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text: trimmed }] },
+    model: selectedModel.value,
+    options: { thinkingMode: thinkingMode.value }
+  }
+  await execute()
+  if (error.value) return
+  if (data.value) {
+    await navigateTo(`/chat/${data.value.id}`)
   }
 }
 
@@ -85,18 +91,19 @@ function onQuickChat(label: string) {
               v-model="input"
               placeholder="有什么可以帮你的？"
               :rows="3"
-              :disabled="isLoading"
+              :disabled="pending"
               class="[view-transition-name:chat-prompt]"
               @submit="onSubmit"
             >
               <template #footer>
                 <div class="flex items-center gap-1">
                   <UButton
-                    icon="i-lucide-paperclip"
-                    color="neutral"
-                    variant="ghost"
+                    label="深度思考"
+                    icon="i-lucide-brain"
+                    :variant="thinkingMode ? 'soft' : 'ghost'"
+                    :color="thinkingMode ? 'primary' : 'neutral'"
                     size="sm"
-                    aria-label="上传附件"
+                    @click="thinkingMode = !thinkingMode"
                   />
                   <USelectMenu
                     v-model="selectedModel"
@@ -115,7 +122,7 @@ function onQuickChat(label: string) {
                   </USelectMenu>
                 </div>
                 <UChatPromptSubmit
-                  :status="isLoading ? 'submitted' : 'ready'"
+                  :status="pending ? 'submitted' : 'ready'"
                   color="neutral"
                   size="sm"
                 />
@@ -140,18 +147,14 @@ function onQuickChat(label: string) {
               v-if="!loggedIn"
               class="flex items-center gap-2 text-sm text-muted"
             >
-              <UIcon
-                name="i-simple-icons-github"
-                class="shrink-0"
-              />
               <span>登录后即可开始对话 —</span>
               <UButton
-                label="使用 GitHub 登录"
+                label="立即登录"
                 variant="link"
                 color="primary"
                 size="sm"
                 class="p-0"
-                @click="loginWithGithub()"
+                @click="navigateTo('/login')"
               />
             </div>
           </UContainer>

@@ -1,14 +1,30 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mock$Fetch } from '../../utils/__test__/setup'
 
-// Mock models module to avoid provider initialization
+const MOCK_PROVIDER = {
+  name: 'TestProvider',
+  prefixes: ['test-'],
+  icon: 'i-simple-icons-test',
+  modelsUrl: 'https://test.api/v1/models',
+  headers: () => ({ Authorization: 'Bearer test' }),
+  exclude: [],
+  getInstance: vi.fn()
+}
+
+// Mock models module to avoid real provider initialization
 vi.mock('../../utils/models', () => ({
-  MODEL_OPTIONS: [
+  PROVIDER_REGISTRY: [MOCK_PROVIDER],
+  FALLBACK_MODELS: [
     { value: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro', icon: 'i-simple-icons-deepseek' },
     { value: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash', icon: 'i-simple-icons-deepseek' },
     { value: 'mimo-v2.5-pro', label: 'MiMo V2.5 Pro', icon: 'i-simple-icons-xiaomi' }
   ],
   DEFAULT_MODEL: 'deepseek-v4-pro',
+  modelIdToLabel: vi.fn((_provider, id: string) => {
+    // Simple mock: strip prefix and capitalize
+    const rest = id.replace(/^(test-)/, '')
+    return rest.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
+  }),
   getModel: vi.fn()
 }))
 
@@ -56,13 +72,11 @@ describe('GET /api/models', () => {
     const { default: handler } = await import('../models.get')
 
     const event = { context: {}, path: '/api/models' } as any
-    // First call: fetches models from providers, falls back to static
     const result1 = await handler(event)
-    // Second call: uses module-level cache, avoids re-fetching
     const result2 = await handler(event)
 
     expect(result1).toEqual(result2)
-    // $fetch called once per provider (2 providers) — not called again for second request
-    expect(mock$Fetch).toHaveBeenCalledTimes(2)
+    // API failure → fallback; $fetch is called once per provider (1 provider)
+    expect(mock$Fetch).toHaveBeenCalledTimes(1)
   })
 })

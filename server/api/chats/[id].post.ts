@@ -20,9 +20,10 @@ export default defineEventHandler(async (event) => {
     id: z.string()
   }).parse)
 
-  const { model: modelValue = DEFAULT_MODEL, messages } = await readValidatedBody(event, z.object({
+  const { model: modelValue = DEFAULT_MODEL, messages, options } = await readValidatedBody(event, z.object({
     model: z.string().optional(),
-    messages: z.array(UIMessageSchema)
+    messages: z.array(UIMessageSchema),
+    options: z.object({ thinkingMode: z.boolean().optional() }).optional()
   }).parse)
 
   const chat = await db.query.chats.findFirst({
@@ -73,7 +74,7 @@ export default defineEventHandler(async (event) => {
         messages: await convertToModelMessages(messages as UIMessage[]),
         providerOptions: {
           deepseek: {
-            thinking: { type: 'enabled' as const }
+            thinking: { type: options?.thinkingMode !== false ? 'enabled' as const : 'disabled' as const }
           }
         }
       })

@@ -6,7 +6,7 @@
  */
 
 export function useModels() {
-  const { data: modelsData } = useFetch('/api/models')
+  const { data: modelsData } = useAPI('/api/models')
 
   const model = useCookie<string>('ai-model')
 

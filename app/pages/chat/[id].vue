@@ -9,9 +9,10 @@ definePageMeta({ layout: 'chat' })
 const route = useRoute()
 const id = route.params.id as string
 
-const { data: chatData } = await useFetch(`/api/chats/${id}`)
+const { data: chatData } = await useAPI(`/api/chats/${id}`)
 if (!chatData.value) throw createError({ statusCode: 404 })
 const { model: selectedModel, models: modelOptions } = useModels()
+const { thinkingMode } = useChatOptions()
 // 仅在没有 cookie 偏好时回退到聊天记录中的模型
 if (!selectedModel.value) {
   selectedModel.value = chatData.value.model ?? modelOptions.value[0]?.value ?? ''
@@ -30,7 +31,7 @@ const chat = new Chat({
   messages: chatData.value.messages as unknown as UIMessage[],
   transport: new DefaultChatTransport({
     api: `/api/chats/${id}`,
-    body: () => ({ model: selectedModel.value })
+    body: () => ({ model: selectedModel.value, options: { thinkingMode: thinkingMode.value } })
   }),
   onError: (err) => {
     const msg = normalizeError(err)
@@ -206,11 +207,12 @@ onMounted(() => {
             >
               <template #footer>
                 <UButton
-                  icon="i-lucide-paperclip"
-                  color="neutral"
-                  variant="ghost"
+                  label="深度思考"
+                  icon="i-lucide-brain"
+                  :variant="thinkingMode ? 'soft' : 'ghost'"
+                  :color="thinkingMode ? 'primary' : 'neutral'"
                   size="sm"
-                  aria-label="上传附件"
+                  @click="thinkingMode = !thinkingMode"
                 />
                 <UChatPromptSubmit
                   :status="chat.status"

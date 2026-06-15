@@ -124,6 +124,11 @@ export const mockRaiseRateLimit = vi.fn((message: string) => {
   return err
 })
 
+// ─── h3 sendRedirect ─────────────────────────────────────────────────────────
+export const mockSendRedirect = vi.fn((_event: unknown, location: string) => {
+  return new Response(null, { status: 302, headers: { Location: location } })
+})
+
 // ─── Nitro auto-import: $fetch (ofetch) ──────────────────────────────────────
 export const mock$Fetch = vi.fn()
 
@@ -160,7 +165,8 @@ vi.mock('h3', async () => {
     ...actual as object,
     defineEventHandler: mockDefineEventHandler,
     getValidatedRouterParams: mockGetValidatedRouterParams,
-    readValidatedBody: mockReadValidatedBody
+    readValidatedBody: mockReadValidatedBody,
+    sendRedirect: mockSendRedirect
   }
 })
 

@@ -3,7 +3,7 @@ const route = useRoute()
 
 const chatSearchOpen = ref(false)
 
-const { loggedIn, user, clear } = useUserSession()
+const { loggedIn, user, clear, fetch: refreshSession } = useUserSession()
 
 // 使用 useLazyFetch 避免 SSR 阶段未登录时触发 401 阻塞渲染
 const { data: chatsData, refresh: refreshSidebar } = useLazyFetch('/api/chats', {
@@ -11,6 +11,12 @@ const { data: chatsData, refresh: refreshSidebar } = useLazyFetch('/api/chats', 
   watch: [loggedIn, () => route.path],
   default: () => ({ chats: [], remainingToday: 0 }),
   ignoreResponseError: true
+})
+
+// 确保 session 同步后再拉取侧边栏数据，修复客户端首次导航到 /chat 时数据为空
+onMounted(async () => {
+  await refreshSession()
+  await refreshSidebar()
 })
 
 // 提供给子页面调用，在发送消息后刷新侧边栏数据（聊天列表 + 今日剩余次数）
@@ -135,65 +141,116 @@ async function logout() {
       </template>
 
       <template #footer="{ collapsed }">
+        <!-- 已登录 -->
         <template v-if="loggedIn">
+          <!-- 折叠 -->
           <div
-            v-if="!collapsed"
-            class="flex items-center gap-2 px-1 py-1"
+            v-if="collapsed"
+            class="flex flex-col items-center gap-2"
           >
             <UAvatar
               :src="user!.avatar"
               :alt="user!.name"
               size="xs"
             />
-            <span class="text-sm text-highlighted truncate flex-1">{{ user!.name }}</span>
-            <UTooltip text="退出登录">
-              <UButton
-                icon="i-lucide-log-out"
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                aria-label="退出登录"
-                @click="logout"
-              />
-            </UTooltip>
-          </div>
-          <UButton
-            v-else
-            :src="user!.avatar"
-            icon="i-lucide-log-out"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            class="w-full"
-            aria-label="退出登录"
-            @click="logout"
-          />
-          <div
-            v-if="!collapsed"
-            class="px-1 pb-1 space-y-1"
-          >
-            <div class="flex items-center justify-between text-xs text-muted">
-              <span>今日提问</span>
-              <span :class="(chatsData?.remainingToday ?? 0) === 0 ? 'text-error font-semibold' : 'text-primary'">{{ chatsData?.remainingToday ?? 0 }} / 5</span>
-            </div>
-            <UProgress
-              :value="chatsData?.remainingToday ?? 0"
-              :max="5"
+            <UButton
+              icon="i-lucide-log-out"
+              color="neutral"
+              variant="ghost"
               size="xs"
-              :color="(chatsData?.remainingToday ?? 0) === 0 ? 'error' : 'primary'"
-              animated
+              aria-label="退出登录"
+              @click="logout"
             />
           </div>
+
+          <!-- 展开 -->
+          <div
+            v-else
+            class="w-full pb-1 space-y-2"
+          >
+            <!-- 用户行 -->
+            <div class="flex items-center gap-2.5">
+              <div class="relative shrink-0">
+                <div class="absolute -inset-0.5 rounded-full bg-linear-to-r from-primary-500 via-purple-500 to-pink-500 opacity-40 blur-sm" />
+                <UAvatar
+                  :src="user!.avatar"
+                  :alt="user!.name"
+                  size="xs"
+                  class="relative ring-2 ring-white dark:ring-neutral-900"
+                />
+              </div>
+              <span class="text-sm font-medium text-highlighted truncate flex-1">{{ user!.name }}</span>
+              <UTooltip text="退出登录">
+                <UButton
+                  icon="i-lucide-log-out"
+                  color="neutral"
+                  variant="ghost"
+                  size="xs"
+                  class="rounded-lg hover:bg-error/10 hover:text-error transition-colors"
+                  aria-label="退出登录"
+                  @click="logout"
+                />
+              </UTooltip>
+            </div>
+
+            <!-- 配额：分段指示器 -->
+            <div class="space-y-2">
+              <div class="flex gap-1">
+                <div
+                  v-for="i in 5"
+                  :key="i"
+                  class="h-1 flex-1 rounded-full transition-all duration-500"
+                  :class="i <= (chatsData?.remainingToday ?? 0)
+                    ? 'bg-primary-500 shadow-sm shadow-primary-500/30'
+                    : 'bg-neutral-200 dark:bg-neutral-700'"
+                />
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] text-muted">剩余次数</span>
+                <span
+                  class="text-[11px] tabular-nums font-semibold"
+                  :class="(chatsData?.remainingToday ?? 0) === 0 ? 'text-error' : 'text-primary'"
+                >
+                  {{ chatsData?.remainingToday ?? 0 }} / 5
+                </span>
+              </div>
+            </div>
+          </div>
         </template>
+
+        <!-- 未登录 -->
         <template v-else>
           <UButton
-            icon="i-simple-icons-github"
-            :label="collapsed ? '' : '使用 GitHub 登录'"
+            v-if="collapsed"
+            icon="i-lucide-log-in"
             color="neutral"
             variant="ghost"
+            size="sm"
             class="w-full"
-            @click="loginWithGithub()"
+            aria-label="登录"
+            @click="navigateTo('/login')"
           />
+          <div
+            v-else
+            class="w-full pb-1"
+          >
+            <button
+              class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-muted hover:text-highlighted hover:bg-accented/60 transition-all duration-200 group"
+              @click="navigateTo('/login')"
+            >
+              <span class="flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors shrink-0">
+                <UIcon
+                  name="i-lucide-log-in"
+                  class="w-3.5 h-3.5"
+                />
+              </span>
+              <span class="text-left">登录 AI Chat</span>
+              <UIcon
+                name="i-lucide-arrow-right"
+                class="w-3.5 h-3.5 ml-auto opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 text-primary"
+              />
+            </button>
+          </div>
         </template>
       </template>
     </UDashboardSidebar>
