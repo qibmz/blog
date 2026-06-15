@@ -66,6 +66,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const thinkingType = options?.thinkingMode !== false ? 'enabled' as const : 'disabled' as const
+
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
       const result = streamText({
@@ -74,7 +76,10 @@ export default defineEventHandler(async (event) => {
         messages: await convertToModelMessages(messages as UIMessage[]),
         providerOptions: {
           deepseek: {
-            thinking: { type: options?.thinkingMode !== false ? 'enabled' as const : 'disabled' as const }
+            thinking: { type: thinkingType }
+          },
+          mimo: {
+            thinking: { type: thinkingType }
           }
         }
       })
