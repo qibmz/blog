@@ -11,6 +11,6 @@ export default defineOAuthGoogleEventHandler({
     return sendRedirect(event, '/chat')
   },
   async onError(event) {
-    return sendRedirect(event, '/chat')
+    return sendOAuthErrorRedirect(event, 'google')
   }
 })

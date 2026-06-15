@@ -3,7 +3,7 @@ interface TechItem {
   name: string
   icon: string
   url: string
-  category: string
+  category: CategoryKey
 }
 
 type CategoryKey = 'framework' | 'language' | 'styling' | 'ui-library' | 'cross-platform' | 'build-tools' | 'blockchain' | 'visualization'
@@ -113,7 +113,7 @@ const filteredStack = computed(() => {
           <UIcon
             :name="item.icon"
             class="w-4 h-4 shrink-0"
-            :class="item.icon.startsWith('i-lucide') ? categoryMeta[item.category as CategoryKey].color : ''"
+            :class="item.icon.startsWith('i-lucide') ? categoryMeta[item.category].color : ''"
           />
           <span class="text-xs text-highlighted/80 group-hover:text-highlighted truncate transition-colors duration-200">
             {{ item.name }}

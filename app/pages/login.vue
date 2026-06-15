@@ -6,11 +6,35 @@ definePageMeta({ layout: false })
 useSeoMeta({ title: '登录 - AI Chat' })
 
 const { loggedIn, ready } = useUserSession()
+const toast = useToast()
+const route = useRoute()
 
 // 等 session 就绪后再检查，避免未初始化时误判
 watchEffect(() => {
   if (ready.value && loggedIn.value) {
     navigateTo('/chat', { replace: true })
+  }
+})
+
+// OAuth 回调失败 — 显示错误提示
+onMounted(() => {
+  const error = route.query.error as string | undefined
+  if (error === 'github_auth_failed') {
+    toast.add({
+      title: '登录失败',
+      description: 'GitHub 授权失败，请重试',
+      color: 'error',
+      icon: 'i-lucide-alert-circle',
+      duration: 5000
+    })
+  } else if (error === 'google_auth_failed') {
+    toast.add({
+      title: '登录失败',
+      description: 'Google 授权失败，请重试',
+      color: 'error',
+      icon: 'i-lucide-alert-circle',
+      duration: 5000
+    })
   }
 })
 

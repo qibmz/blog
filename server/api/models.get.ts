@@ -21,7 +21,8 @@ async function fetchAvailableModels(): Promise<ModelOption[]> {
   const results = await Promise.allSettled(
     PROVIDER_REGISTRY.map(async (provider) => {
       const res = await $fetch<{ data: { id: string }[] }>(provider.modelsUrl, {
-        headers: provider.headers()
+        headers: provider.headers(),
+        timeout: 8000
       })
       return new Set(res.data.map(m => m.id))
     })
