@@ -5,17 +5,18 @@ const chatSearchOpen = ref(false)
 
 const { loggedIn, user, clear, fetch: refreshSession } = useUserSession()
 
-onMounted(() => {
-  // OAuth 回调后确保 session 状态同步
-  refreshSession()
-})
-
 // 使用 useLazyFetch 避免 SSR 阶段未登录时触发 401 阻塞渲染
 const { data: chatsData, refresh: refreshSidebar } = useLazyFetch('/api/chats', {
   key: 'sidebar-chats',
   watch: [loggedIn, () => route.path],
   default: () => ({ chats: [], remainingToday: 0 }),
   ignoreResponseError: true
+})
+
+// 确保 session 同步后再拉取侧边栏数据，修复客户端首次导航到 /chat 时数据为空
+onMounted(async () => {
+  await refreshSession()
+  await refreshSidebar()
 })
 
 // 提供给子页面调用，在发送消息后刷新侧边栏数据（聊天列表 + 今日剩余次数）
