@@ -13,6 +13,12 @@
 - **提交前检查**：`pnpm typecheck && pnpm lint && pnpm test` 全部通过再提交
 - **提交消息使用中文**
 
+## 编码规范
+
+- **避免重复函数**：遇到同一模式的 N 个变体时写成单个参数化函数，不要复制粘贴 N 份。例如 OAuth 登录写成 `login(provider: OAuthProvider)` 而非 `loginWithGithub()` / `loginWithGoogle()`。
+- **优先使用框架/库提供的类型**：如 `#auth-utils` 导出的 `OAuthProvider`，不要退化到手写 `string` 类型。
+- **考虑扩展性**：写一个功能时先问"再加一个会怎样"，避免硬编码单一值（如跳转地址写死 `/auth/github` 而非 `/login`）。
+
 ## 架构
 
 Nuxt 4 应用，内容驱动页面 + AI Chat 功能，部署在 Vercel，数据库用 Neon PostgreSQL。
