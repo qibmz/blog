@@ -95,7 +95,11 @@ NUXT_SESSION_PASSWORD=
 NUXT_OAUTH_GITHUB_CLIENT_ID=
 NUXT_OAUTH_GITHUB_CLIENT_SECRET=
 
-# ── 币安行情 (可选) ───────────────────────────────────────────────────
+# ── Google OAuth ──────────────────────────────────────────────────────
+NUXT_OAUTH_GOOGLE_CLIENT_ID=
+NUXT_OAUTH_GOOGLE_CLIENT_SECRET=
+
+# ── 币安行情 ───────────────────────────────────────────────────
 # NUXT_PUBLIC_BINANCE_WS=
 # NUXT_PUBLIC_BINANCE_API=
 
