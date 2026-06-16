@@ -61,9 +61,10 @@ function login(provider: OAuthProvider) {
       >
         <div class="absolute -inset-1 rounded-2xl bg-linear-to-r from-primary-500 via-purple-500 to-pink-500 opacity-60 blur-md" />
         <div class="relative flex items-center justify-center w-16 h-16 rounded-2xl bg-white dark:bg-neutral-900 ring-1 ring-inset ring-gray-950/6 dark:ring-white/6">
-          <UIcon
-            name="i-lucide-bot"
-            class="w-8 h-8 text-primary-500"
+          <NuxtImg
+            src="/image/logo.png"
+            alt="AI Chat"
+            class="w-8 h-8"
           />
         </div>
       </Motion>

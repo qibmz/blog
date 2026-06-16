@@ -62,8 +62,7 @@ function getTextContent(parts: UIMessage['parts']) {
 }
 
 const assistantConfig = {
-  icon: 'i-lucide-bot',
-  avatar: undefined,
+  avatar: { src: '/image/logo.png' },
   variant: undefined,
   side: undefined,
   ui: undefined,

@@ -191,16 +191,18 @@ async function logout() {
           to="/chat"
           class="flex items-center gap-2 font-bold text-base text-highlighted"
         >
-          <UIcon
-            name="i-lucide-bot"
-            class="w-6 h-6 text-primary shrink-0"
+          <NuxtImg
+            src="/image/logo.png"
+            alt="AI Chat"
+            class="w-6 h-6 shrink-0"
           />
           <span>AI Chat</span>
         </NuxtLink>
-        <UIcon
+        <NuxtImg
           v-else
-          name="i-lucide-bot"
-          class="w-6 h-6 text-primary mx-auto"
+          src="/image/logo.png"
+          alt="AI Chat"
+          class="w-6 h-6 mx-auto"
         />
         <UDashboardSidebarCollapse class="ms-auto" />
       </template>
