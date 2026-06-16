@@ -45,6 +45,7 @@ async function createChat(text: string) {
   await execute()
   if (error.value) return
   if (data.value) {
+    refreshNuxtData('sidebar-chats')
     await navigateTo(`/chat/${data.value.id}`)
   }
 }

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-const route = useRoute()
-
 const chatSearchOpen = ref(false)
 
 const { loggedIn, user, clear, fetch: refreshSession } = useUserSession()
@@ -8,7 +6,7 @@ const { loggedIn, user, clear, fetch: refreshSession } = useUserSession()
 // 使用 useLazyFetch 避免 SSR 阶段未登录时触发 401 阻塞渲染
 const { data: chatsData, refresh: refreshSidebar } = useLazyFetch('/api/chats', {
   key: 'sidebar-chats',
-  watch: [loggedIn, () => route.path],
+  watch: [loggedIn],
   default: () => ({ chats: [], remainingToday: 0 }),
   ignoreResponseError: true
 })
