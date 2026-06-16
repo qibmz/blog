@@ -10,6 +10,13 @@ declare module '#auth-utils' {
   }
 }
 
+declare module 'nuxt/app' {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface UseFetchOptions<ResT, DataT, PickKeys, DefaultT, R, M> {
+    skipAuthRedirect?: boolean
+  }
+}
+
 export interface BlogPost extends ParsedContent {
   title: string
   description: string

@@ -3,8 +3,10 @@ const chatSearchOpen = ref(false)
 
 const { loggedIn, user, clear, fetch: refreshSession } = useUserSession()
 
-// 使用 useLazyFetch 避免 SSR 阶段未登录时触发 401 阻塞渲染
-const { data: chatsData, pending: sidebarLoading, refresh: refreshSidebar } = useLazyFetch('/api/chats', {
+// 未登录优雅降级，不跳转 /login
+const { data: chatsData, pending: sidebarLoading, refresh: refreshSidebar } = useAPI('/api/chats', {
+  lazy: true,
+  skipAuthRedirect: true,
   key: 'sidebar-chats',
   watch: [loggedIn],
   default: () => ({ chats: [], remainingToday: 0 }),
