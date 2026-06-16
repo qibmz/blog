@@ -31,12 +31,9 @@ export default defineNuxtConfig({
       link: [
         { rel: 'canonical', href: 'https://qibmz-blog.vercel.app' }
       ]
-    },
-    pageTransition: { name: 'fade' },
-    layoutTransition: { name: 'slide' }
+    }
   },
   css: ['~/assets/css/main.css'],
-
   // SEO 配置
   site: {
     url: 'https://qibmz-blog.vercel.app',
@@ -67,6 +64,9 @@ export default defineNuxtConfig({
   routeRules: {
     // '/chat/**': { ssr: false },
     '/docs': { redirect: '/docs/getting-started', prerender: false }
+  },
+  experimental: {
+    viewTransition: true
   },
 
   compatibilityDate: '2024-07-11',
