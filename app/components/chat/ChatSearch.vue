@@ -7,6 +7,7 @@ const model = defineModel<boolean>({ required: true })
 const { data: chatsData } = useAPI('/api/chats', {
   key: 'sidebar-chats',
   lazy: true,
+  skipAuthRedirect: true,
   default: () => ({ chats: [], remainingToday: 0 }),
   ignoreResponseError: true
 })

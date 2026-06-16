@@ -17,8 +17,8 @@ const { data: chatsData, pending: sidebarLoading, refresh: refreshSidebar } = us
 
 // 仅首次加载显示骨架屏，避免 refreshNuxtData 后台刷新时闪烁
 const hasInitialSidebarData = ref(false)
-watch(chatsData, (data) => {
-  if (data) hasInitialSidebarData.value = true
+watch(sidebarLoading, (loading) => {
+  if (!loading) hasInitialSidebarData.value = true
 })
 const showSidebarSkeleton = computed(() => !hasInitialSidebarData.value && sidebarLoading.value)
 
