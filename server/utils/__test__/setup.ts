@@ -38,6 +38,12 @@ export const mockDbSelectResult = vi.fn()
 export const mockDbFindFirst = vi.fn()
 export const mockDbFindMany = vi.fn()
 export const mockDbInsertReturning = vi.fn()
+export const mockDbUpdate = vi.fn(() => ({
+  set: vi.fn(() => ({
+    where: vi.fn(() => Promise.resolve())
+  }))
+}))
+export const mockDbDelete = vi.fn()
 
 export const mockDb = {
   select: vi.fn(() => ({
@@ -58,10 +64,9 @@ export const mockDb = {
       returning: () => mockDbInsertReturning()
     }))
   })),
-  update: vi.fn(() => ({
-    set: vi.fn(() => ({
-      where: vi.fn(() => Promise.resolve())
-    }))
+  update: mockDbUpdate,
+  delete: vi.fn(() => ({
+    where: mockDbDelete
   }))
 }
 
