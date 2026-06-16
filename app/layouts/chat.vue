@@ -4,7 +4,7 @@ const chatSearchOpen = ref(false)
 const { loggedIn, user, clear, fetch: refreshSession } = useUserSession()
 
 // 使用 useLazyFetch 避免 SSR 阶段未登录时触发 401 阻塞渲染
-const { data: chatsData, refresh: refreshSidebar } = useLazyFetch('/api/chats', {
+const { data: chatsData, pending: sidebarLoading, refresh: refreshSidebar } = useLazyFetch('/api/chats', {
   key: 'sidebar-chats',
   watch: [loggedIn],
   default: () => ({ chats: [], remainingToday: 0 }),
@@ -114,8 +114,27 @@ async function logout() {
           </template>
         </UNavigationMenu>
 
+        <!-- 侧边栏加载骨架屏 -->
+        <div
+          v-if="!collapsed && sidebarLoading && loggedIn"
+          class="space-y-1 mt-2"
+        >
+          <USkeleton class="h-3 w-10 mb-1" />
+          <USkeleton
+            v-for="i in 3"
+            :key="i"
+            class="h-8 w-full"
+          />
+          <USkeleton class="h-3 w-12 mb-1 mt-3" />
+          <USkeleton
+            v-for="i in 2"
+            :key="i"
+            class="h-8 w-full"
+          />
+        </div>
+
         <UNavigationMenu
-          v-if="!collapsed"
+          v-else-if="!collapsed"
           :items="chatItems"
           orientation="vertical"
           :ui="{
@@ -193,25 +212,41 @@ async function logout() {
 
             <!-- 配额：分段指示器 -->
             <div class="space-y-2">
-              <div class="flex gap-1">
-                <div
-                  v-for="i in 5"
-                  :key="i"
-                  class="h-1 flex-1 rounded-full transition-all duration-500"
-                  :class="i <= (chatsData?.remainingToday ?? 0)
-                    ? 'bg-primary-500 shadow-sm shadow-primary-500/30'
-                    : 'bg-neutral-200 dark:bg-neutral-700'"
-                />
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-[11px] text-muted">剩余次数</span>
-                <span
-                  class="text-[11px] tabular-nums font-semibold"
-                  :class="(chatsData?.remainingToday ?? 0) === 0 ? 'text-error' : 'text-primary'"
-                >
-                  {{ chatsData?.remainingToday ?? 0 }} / 5
-                </span>
-              </div>
+              <!-- 加载骨架 -->
+              <template v-if="sidebarLoading">
+                <div class="flex gap-1">
+                  <USkeleton
+                    v-for="i in 5"
+                    :key="i"
+                    class="h-1 flex-1 rounded-full"
+                  />
+                </div>
+                <div class="flex items-center justify-between">
+                  <USkeleton class="h-3 w-12" />
+                  <USkeleton class="h-3 w-8" />
+                </div>
+              </template>
+              <template v-else>
+                <div class="flex gap-1">
+                  <div
+                    v-for="i in 5"
+                    :key="i"
+                    class="h-1 flex-1 rounded-full transition-all duration-500"
+                    :class="i <= (chatsData?.remainingToday ?? 0)
+                      ? 'bg-primary-500 shadow-sm shadow-primary-500/30'
+                      : 'bg-neutral-200 dark:bg-neutral-700'"
+                  />
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] text-muted">剩余次数</span>
+                  <span
+                    class="text-[11px] tabular-nums font-semibold"
+                    :class="(chatsData?.remainingToday ?? 0) === 0 ? 'text-error' : 'text-primary'"
+                  >
+                    {{ chatsData?.remainingToday ?? 0 }} / 5
+                  </span>
+                </div>
+              </template>
             </div>
           </div>
         </template>
