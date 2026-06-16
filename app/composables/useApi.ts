@@ -8,7 +8,7 @@ function getApi() {
   const nuxtApp = useNuxtApp()
 
   _api = $fetch.create({
-    onResponseError({ response, options }) {
+    async onResponseError({ response, options }) {
       const skipAuthRedirect = (options as unknown as Record<string, unknown>).skipAuthRedirect
 
       if (import.meta.server) {
@@ -24,7 +24,7 @@ function getApi() {
             statusCode: 401
           })
         }
-        window.location.href = '/login'
+        await nuxtApp.runWithContext(() => navigateTo('/login'))
         return
       }
 
