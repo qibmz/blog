@@ -1,5 +1,6 @@
-// Vercel Preview Branching: 仅在 preview 环境自动执行数据库迁移
+// Vercel Preview Branching: 仅在 preview 环境自动同步数据库 schema
 // production 跳过，手动执行以保证迁移安全
+// 预览环境使用 drizzle-kit push（天然幂等，预览库是临时的无需迁移审计）
 import { execSync } from 'node:child_process'
 
 if (process.env.VERCEL_ENV !== 'preview') {
@@ -8,32 +9,24 @@ if (process.env.VERCEL_ENV !== 'preview') {
 
 const dbUrl = process.env.DATABASE_URL
 if (!dbUrl) {
-  console.warn('[prebuild-migrate] ⚠️  DATABASE_URL 未设置，跳过数据库迁移')
+  console.warn('[prebuild-migrate] ⚠️  DATABASE_URL 未设置，跳过数据库同步')
   process.exit(0)
 }
 
-console.log('[prebuild-migrate] DATABASE_URL 已就绪，执行 drizzle-kit migrate...')
+console.log('[prebuild-migrate] DATABASE_URL 已就绪，执行 drizzle-kit push...')
 
 try {
-  execSync('npx drizzle-kit migrate', {
+  execSync('npx drizzle-kit push --force', {
     stdio: 'pipe',
     encoding: 'utf-8',
     timeout: 30_000
   })
-  console.log('[prebuild-migrate] ✅ 迁移执行成功')
+  console.log('[prebuild-migrate] ✅ Schema 同步成功')
 } catch (err) {
-  // 脱敏：避免 DATABASE_URL 中的密码出现在构建日志中
   const raw = err?.stderr || err?.stdout || err?.message || String(err)
   const sanitized = raw.replaceAll(dbUrl, '[REDACTED]')
 
-  console.error('[prebuild-migrate] ❌ 迁移执行失败:')
+  console.error('[prebuild-migrate] ❌ Schema 同步失败:')
   console.error(sanitized)
-
-  // 如果是"已存在"类错误（幂等保护未覆盖的情况），不阻塞构建
-  if (sanitized.includes('already exists') || sanitized.includes('duplicate')) {
-    console.warn('[prebuild-migrate] ⚠️  检测到对象已存在（可能来自 push 或 Neon 分支 fork），继续构建')
-  } else {
-    console.error('[prebuild-migrate] ❌ 未知错误，终止构建')
-    process.exit(1)
-  }
+  process.exit(1)
 }
