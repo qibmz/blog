@@ -1,7 +1,6 @@
 import { defineEventHandler, readValidatedBody } from 'h3'
 import { DEFAULT_MODEL } from '../utils/models'
 import { checkDailyLimit } from '../utils/rateLimiter'
-import { UIMessageSchema } from '../utils/zod-schemas'
 import { z } from 'zod'
 
 export default defineEventHandler(async (event) => {

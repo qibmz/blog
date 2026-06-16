@@ -2,7 +2,6 @@ import { defineEventHandler, getValidatedRouterParams, readValidatedBody } from 
 import { and, eq } from 'drizzle-orm'
 import { getModel, DEFAULT_MODEL } from '../../utils/models'
 import { checkDailyLimit } from '../../utils/rateLimiter'
-import { UIMessageSchema } from '../../utils/zod-schemas'
 import { z } from 'zod'
 import {
   convertToModelMessages,

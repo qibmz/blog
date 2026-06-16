@@ -2,12 +2,6 @@ import { defineEventHandler, getValidatedRouterParams, readValidatedBody } from 
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
-const PatchBodySchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('rename'), title: z.string().min(1).max(100) }),
-  z.object({ action: z.literal('pin'), pinned: z.boolean() }),
-  z.object({ action: z.literal('delete') })
-])
-
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
 
@@ -15,7 +9,7 @@ export default defineEventHandler(async (event) => {
     id: z.string()
   }).parse)
 
-  const body = await readValidatedBody(event, PatchBodySchema.parse)
+  const body = await readValidatedBody(event, PatchChatBodySchema.parse)
 
   // 验证所有权
   const chat = await db.query.chats.findFirst({

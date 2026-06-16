@@ -7,6 +7,9 @@
  */
 import { vi } from 'vitest'
 
+// ─── Shared types auto-imports (from shared/types/) ─────────────────────────
+import { UIMessageSchema, PatchChatBodySchema } from '#shared/types/chat'
+
 // ─── Mock schema ────────────────────────────────────────────────────────────
 export const mockSchema = {
   chats: {
@@ -113,6 +116,8 @@ export const mockReadValidatedBody = vi.fn(
     return typeof validateFn === 'function' ? validateFn(body) : body
   }
 )
+vi.stubGlobal('UIMessageSchema', UIMessageSchema)
+vi.stubGlobal('PatchChatBodySchema', PatchChatBodySchema)
 
 // ─── Server utils auto-imports (from server/utils/) ─────────────────────────
 // Errors

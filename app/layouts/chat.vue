@@ -42,7 +42,7 @@ const deleteTarget = ref<Chat | null>(null)
 // 遵循项目规范：命令式 API 调用使用 useAPI + immediate:false + execute()
 // 与 chat/index.vue 的 POST 模式保持一致
 const patchId = ref('')
-const patchBody = ref<Record<string, unknown>>({})
+const patchBody = ref<PatchChatBody>({} as PatchChatBody)
 const { execute: executePatch } = useAPI(
   () => `/api/chats/${patchId.value}`,
   {
@@ -53,7 +53,7 @@ const { execute: executePatch } = useAPI(
   }
 )
 
-async function patchChat(id: string, body: Record<string, unknown>) {
+async function patchChat(id: string, body: PatchChatBody) {
   patchId.value = id
   patchBody.value = body
   try {
