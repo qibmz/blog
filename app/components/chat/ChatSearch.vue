@@ -11,11 +11,8 @@ interface ChatItem {
   userId: string | null
 }
 
-const { data: chatsData } = await useAPI('/api/chats', {
-  default: () => ({ chats: [], remainingToday: 0 }),
-  ignoreResponseError: true
-})
-
+// 复用布局中 key='sidebar-chats' 的数据，无需重复请求
+const { data: chatsData } = useNuxtData<{ chats: ChatItem[], remainingToday: number }>('sidebar-chats')
 const groups = computed<CommandPaletteGroup[]>(() => {
   const chats = (chatsData.value?.chats ?? []) as ChatItem[]
   return groupChatsByDate(chats).map(group => ({
