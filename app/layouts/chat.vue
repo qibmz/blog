@@ -13,6 +13,13 @@ const { data: chatsData, pending: sidebarLoading, refresh: refreshSidebar } = us
   ignoreResponseError: true
 })
 
+// 仅首次加载显示骨架屏，避免 refreshNuxtData 后台刷新时闪烁
+const hasInitialSidebarData = ref(false)
+watch(chatsData, (data) => {
+  if (data) hasInitialSidebarData.value = true
+})
+const showSidebarSkeleton = computed(() => !hasInitialSidebarData.value && sidebarLoading.value)
+
 // 确保 session 同步后再拉取侧边栏数据，修复客户端首次导航到 /chat 时数据为空
 onMounted(async () => {
   await refreshSession()
@@ -118,7 +125,7 @@ async function logout() {
 
         <!-- 侧边栏加载骨架屏 -->
         <div
-          v-if="!collapsed && sidebarLoading && loggedIn"
+          v-if="!collapsed && showSidebarSkeleton && loggedIn"
           class="space-y-1 mt-2"
         >
           <USkeleton class="h-3 w-10 mb-1" />
@@ -215,7 +222,7 @@ async function logout() {
             <!-- 配额：分段指示器 -->
             <div class="space-y-2">
               <!-- 加载骨架 -->
-              <template v-if="sidebarLoading">
+              <template v-if="showSidebarSkeleton">
                 <div class="flex gap-1">
                   <USkeleton
                     v-for="i in 5"
