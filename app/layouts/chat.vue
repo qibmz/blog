@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
+
 const chatSearchOpen = ref(false)
 
 const { loggedIn, user, clear, fetch: refreshSession } = useUserSession()
@@ -29,6 +31,84 @@ onMounted(async () => {
 // 提供给子页面调用，在发送消息后刷新侧边栏数据（聊天列表 + 今日剩余次数）
 provide('refreshSidebar', refreshSidebar)
 
+// ─── 侧边栏操作菜单（重命名/置顶/删除）────────────────────
+const renameOpen = ref(false)
+const renameChat = ref<Chat | null>(null)
+const renameInput = ref('')
+
+const deleteOpen = ref(false)
+const deleteTarget = ref<Chat | null>(null)
+
+// $fetch 路由类型接受 get/patch/post（小写）
+function patchChat(id: string, body: Record<string, unknown>) {
+  return $fetch(`/api/chats/${id}`, { method: 'PATCH', body })
+}
+
+function getChatMenuItems(chat: Chat): DropdownMenuItem[][] {
+  const isPinned = !!(chat as { pinned?: boolean }).pinned
+  return [
+    [
+      {
+        label: '重命名',
+        icon: 'i-lucide-pencil',
+        onSelect() {
+          renameChat.value = chat
+          renameInput.value = chat.title ?? ''
+          renameOpen.value = true
+        }
+      },
+      isPinned
+        ? {
+            label: '取消置顶',
+            icon: 'i-lucide-pin-off',
+            onSelect() {
+              patchChat(chat.id, { action: 'pin', pinned: false })
+                .then(() => refreshNuxtData('sidebar-chats'))
+            }
+          }
+        : {
+            label: '置顶',
+            icon: 'i-lucide-pin',
+            onSelect() {
+              patchChat(chat.id, { action: 'pin', pinned: true })
+                .then(() => refreshNuxtData('sidebar-chats'))
+            }
+          }
+    ],
+    [
+      {
+        label: '删除',
+        icon: 'i-lucide-trash-2',
+        color: 'error',
+        onSelect() {
+          deleteTarget.value = chat
+          deleteOpen.value = true
+        }
+      }
+    ]
+  ]
+}
+
+async function handleRename() {
+  if (!renameChat.value || !renameInput.value.trim()) return
+  await patchChat(renameChat.value.id, { action: 'rename', title: renameInput.value.trim() })
+  renameOpen.value = false
+  refreshNuxtData('sidebar-chats')
+}
+
+async function handleDelete() {
+  if (!deleteTarget.value) return
+  const id = deleteTarget.value.id
+  await patchChat(id, { action: 'delete' })
+  deleteOpen.value = false
+  refreshNuxtData('sidebar-chats')
+  // 如果当前正在被删除的聊天页面，跳转到 /chat
+  const route = useRoute()
+  if (route.params.id === id) {
+    await navigateTo('/chat')
+  }
+}
+
 type Chat = NonNullable<typeof chatsData.value>['chats'][number]
 
 const chatItems = computed(() => {
@@ -40,7 +120,8 @@ const chatItems = computed(() => {
       label: item.title || '加载中...',
       to: `/chat/${item.id}`,
       slot: 'chat' as const,
-      icon: undefined
+      icon: (item as { pinned?: boolean }).pinned ? 'i-lucide-pin' : undefined,
+      chatData: item
     }))
   ])
 })
@@ -151,17 +232,22 @@ async function logout() {
             linkTrailing: 'translate-x-full group-hover:translate-x-0 [@media(hover:none)]:translate-x-0 group-has-data-[state=open]:translate-x-0 transition-transform absolute inset-y-0 end-0 flex items-center'
           }"
         >
-          <template #chat-trailing>
-            <UButton
-              as="div"
-              icon="i-lucide-ellipsis"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              class="rounded-[5px] hover:bg-accented/50 focus-visible:bg-accented/50"
-              aria-label="更多操作"
-              @click.stop.prevent
-            />
+          <template #chat-trailing="{ item }">
+            <UDropdownMenu
+              :items="getChatMenuItems((item as { chatData: Chat }).chatData)"
+              :content="{ align: 'end' }"
+            >
+              <UButton
+                as="div"
+                icon="i-lucide-ellipsis"
+                color="neutral"
+                variant="ghost"
+                size="sm"
+                class="rounded-[5px] hover:bg-accented/50 focus-visible:bg-accented/50"
+                aria-label="更多操作"
+                @click.stop.prevent
+              />
+            </UDropdownMenu>
           </template>
         </UNavigationMenu>
       </template>
@@ -303,5 +389,60 @@ async function logout() {
     </div>
 
     <ChatSearch v-model="chatSearchOpen" />
+
+    <!-- 重命名弹窗 -->
+    <UModal
+      v-model:open="renameOpen"
+      title="重命名对话"
+    >
+      <template #body>
+        <UInput
+          v-model="renameInput"
+          placeholder="输入新标题"
+          autofocus
+          @keyup.enter="handleRename"
+        />
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton
+            label="取消"
+            color="neutral"
+            variant="ghost"
+            @click="renameOpen = false"
+          />
+          <UButton
+            label="确认"
+            color="primary"
+            @click="handleRename"
+          />
+        </div>
+      </template>
+    </UModal>
+
+    <!-- 删除确认弹窗 -->
+    <UModal
+      v-model:open="deleteOpen"
+      title="删除对话"
+    >
+      <template #body>
+        <p>确定删除「<strong>{{ deleteTarget?.title || '新对话' }}</strong>」？此操作不可撤销。</p>
+      </template>
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton
+            label="取消"
+            color="neutral"
+            variant="ghost"
+            @click="deleteOpen = false"
+          />
+          <UButton
+            label="删除"
+            color="error"
+            @click="handleDelete"
+          />
+        </div>
+      </template>
+    </UModal>
   </UDashboardGroup>
 </template>
