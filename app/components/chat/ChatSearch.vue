@@ -3,18 +3,15 @@ import type { CommandPaletteGroup, CommandPaletteItem } from '@nuxt/ui'
 
 const model = defineModel<boolean>({ required: true })
 
-interface ChatItem {
-  id: string
-  title: string | null
-  createdAt: string
-  model: string | null
-  userId: string | null
-}
-
-// 复用布局中 key='sidebar-chats' 的数据，无需重复请求
-const { data: chatsData } = useNuxtData<{ chats: ChatItem[], remainingToday: number }>('sidebar-chats')
+// 与布局共用 key='sidebar-chats'，Nuxt 自动去重，不会重复请求
+const { data: chatsData } = useAPI('/api/chats', {
+  key: 'sidebar-chats',
+  lazy: true,
+  default: () => ({ chats: [], remainingToday: 0 }),
+  ignoreResponseError: true
+})
 const groups = computed<CommandPaletteGroup[]>(() => {
-  const chats = (chatsData.value?.chats ?? []) as ChatItem[]
+  const chats = (chatsData.value?.chats ?? [])
   return groupChatsByDate(chats).map(group => ({
     id: group.label,
     label: group.label,
