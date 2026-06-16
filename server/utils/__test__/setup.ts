@@ -14,6 +14,7 @@ export const mockSchema = {
     userId: 'user_id',
     title: 'title',
     model: 'model',
+    pinned: 'pinned',
     createdAt: 'created_at'
   },
   messages: {
