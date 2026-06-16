@@ -6,7 +6,8 @@ if (process.env.VERCEL_ENV !== 'preview') {
   process.exit(0)
 }
 
-if (!process.env.DATABASE_URL) {
+const dbUrl = process.env.DATABASE_URL
+if (!dbUrl) {
   console.warn('[prebuild-migrate] ⚠️  DATABASE_URL 未设置，跳过数据库迁移')
   process.exit(0)
 }
@@ -21,12 +22,15 @@ try {
   })
   console.log('[prebuild-migrate] ✅ 迁移执行成功')
 } catch (err) {
-  const message = err?.stderr || err?.stdout || err?.message || String(err)
+  // 脱敏：避免 DATABASE_URL 中的密码出现在构建日志中
+  const raw = err?.stderr || err?.stdout || err?.message || String(err)
+  const sanitized = raw.replaceAll(dbUrl, '[REDACTED]')
+
   console.error('[prebuild-migrate] ❌ 迁移执行失败:')
-  console.error(message)
+  console.error(sanitized)
 
   // 如果是"已存在"类错误（幂等保护未覆盖的情况），不阻塞构建
-  if (message.includes('already exists') || message.includes('duplicate')) {
+  if (sanitized.includes('already exists') || sanitized.includes('duplicate')) {
     console.warn('[prebuild-migrate] ⚠️  检测到对象已存在（可能来自 push 或 Neon 分支 fork），继续构建')
   } else {
     console.error('[prebuild-migrate] ❌ 未知错误，终止构建')
