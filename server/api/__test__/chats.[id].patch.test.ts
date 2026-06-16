@@ -1,8 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mockDbFindFirst, mockDbUpdate, mockDbDelete, mockUser, mockReadValidatedBody } from '../../utils/__test__/setup'
+import { createError } from 'h3'
+import {
+  mockDbFindFirst, mockDbUpdate, mockDbDelete, mockUser,
+  mockReadValidatedBody, mockRequireUserSession
+} from '../../utils/__test__/setup'
 
 beforeEach(() => {
-  vi.clearAllMocks()
+  vi.resetAllMocks()
+  // 每个测试开始前恢复 requireUserSession 默认实现（带用户会话）
+  vi.stubGlobal('requireUserSession', mockRequireUserSession)
 })
 
 function patchBody(body: { action: string, title?: string, pinned?: boolean }) {
@@ -77,5 +83,17 @@ describe('PATCH /api/chats/[id]', () => {
     const { default: handler } = await import('../chats/[id].patch')
     const event = { context: {}, path: '/api/chats/nonexistent' } as any
     await expect(handler(event)).rejects.toMatchObject({ statusCode: 404 })
+  })
+
+  it('should return 401 when not authenticated', async () => {
+    // 覆盖 requireUserSession 为未登录状态
+    vi.stubGlobal('requireUserSession', () => {
+      throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+    })
+    patchBody({ action: 'rename', title: 'X' })
+
+    const { default: handler } = await import('../chats/[id].patch')
+    const event = { context: {}, path: '/api/chats/test-chat-id' } as any
+    await expect(handler(event)).rejects.toMatchObject({ statusCode: 401 })
   })
 })

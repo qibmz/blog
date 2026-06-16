@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
+import { api } from '~/composables/useApi'
 
 const chatSearchOpen = ref(false)
 
@@ -39,9 +40,9 @@ const renameInput = ref('')
 const deleteOpen = ref(false)
 const deleteTarget = ref<Chat | null>(null)
 
-// $fetch 路由类型接受 get/patch/post（小写）
+// 使用 api()（带全局错误拦截和 toast），不走裸 $fetch
 function patchChat(id: string, body: Record<string, unknown>) {
-  return $fetch(`/api/chats/${id}`, { method: 'PATCH', body })
+  return api()(`/api/chats/${id}`, { method: 'PATCH', body })
 }
 
 function getChatMenuItems(chat: Chat): DropdownMenuItem[][] {
@@ -64,6 +65,7 @@ function getChatMenuItems(chat: Chat): DropdownMenuItem[][] {
             onSelect() {
               patchChat(chat.id, { action: 'pin', pinned: false })
                 .then(() => refreshNuxtData('sidebar-chats'))
+                .catch(() => {}) // error handled by api() interceptor
             }
           }
         : {
@@ -72,6 +74,7 @@ function getChatMenuItems(chat: Chat): DropdownMenuItem[][] {
             onSelect() {
               patchChat(chat.id, { action: 'pin', pinned: true })
                 .then(() => refreshNuxtData('sidebar-chats'))
+                .catch(() => {}) // error handled by api() interceptor
             }
           }
     ],

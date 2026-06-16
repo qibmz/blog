@@ -26,22 +26,25 @@ export default defineEventHandler(async (event) => {
     throw raiseNotFound('Chat not found')
   }
 
+  // 所有权条件：id + userId，防止 TOCTOU
+  const ownership = and(eq(schema.chats.id, id), eq(schema.chats.userId, user.id))
+
   switch (body.action) {
     case 'rename': {
       await db.update(schema.chats)
         .set({ title: body.title })
-        .where(eq(schema.chats.id, id))
+        .where(ownership)
       return { ...chat, title: body.title }
     }
     case 'pin': {
       await db.update(schema.chats)
         .set({ pinned: body.pinned })
-        .where(eq(schema.chats.id, id))
+        .where(ownership)
       return { ...chat, pinned: body.pinned }
     }
     case 'delete': {
       // messages 设置了 onDelete: cascade，自动级联删除
-      await db.delete(schema.chats).where(eq(schema.chats.id, id))
+      await db.delete(schema.chats).where(ownership)
       return { deleted: true }
     }
   }
