@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
-import { api } from '~/composables/useApi'
 
 const chatSearchOpen = ref(false)
 
@@ -40,9 +39,29 @@ const renameInput = ref('')
 const deleteOpen = ref(false)
 const deleteTarget = ref<Chat | null>(null)
 
-// 使用 api()（带全局错误拦截和 toast），不走裸 $fetch
-function patchChat(id: string, body: Record<string, unknown>) {
-  return api()(`/api/chats/${id}`, { method: 'PATCH', body })
+// 遵循项目规范：命令式 API 调用使用 useAPI + immediate:false + execute()
+// 与 chat/index.vue 的 POST 模式保持一致
+const patchId = ref('')
+const patchBody = ref<Record<string, unknown>>({})
+const { execute: executePatch } = useAPI(
+  () => `/api/chats/${patchId.value}`,
+  {
+    method: 'PATCH',
+    body: patchBody,
+    immediate: false,
+    watch: false
+  }
+)
+
+async function patchChat(id: string, body: Record<string, unknown>) {
+  patchId.value = id
+  patchBody.value = body
+  try {
+    await executePatch()
+  } catch {
+    // useAPI 拦截器已弹出 toast，此处仅阻止异常继续传播
+    return
+  }
 }
 
 function getChatMenuItems(chat: Chat): DropdownMenuItem[][] {
@@ -65,7 +84,7 @@ function getChatMenuItems(chat: Chat): DropdownMenuItem[][] {
             onSelect() {
               patchChat(chat.id, { action: 'pin', pinned: false })
                 .then(() => refreshNuxtData('sidebar-chats'))
-                .catch(() => {}) // error handled by api() interceptor
+                .catch(() => {}) // error handled by useAPI interceptor
             }
           }
         : {
@@ -74,7 +93,7 @@ function getChatMenuItems(chat: Chat): DropdownMenuItem[][] {
             onSelect() {
               patchChat(chat.id, { action: 'pin', pinned: true })
                 .then(() => refreshNuxtData('sidebar-chats'))
-                .catch(() => {}) // error handled by api() interceptor
+                .catch(() => {}) // error handled by useAPI interceptor
             }
           }
     ],
@@ -95,6 +114,7 @@ function getChatMenuItems(chat: Chat): DropdownMenuItem[][] {
 async function handleRename() {
   if (!renameChat.value || !renameInput.value.trim()) return
   await patchChat(renameChat.value.id, { action: 'rename', title: renameInput.value.trim() })
+  // patchChat 内部已 catch 错误（toast 由拦截器处理），只有成功时才继续
   renameOpen.value = false
   refreshNuxtData('sidebar-chats')
 }
@@ -103,6 +123,7 @@ async function handleDelete() {
   if (!deleteTarget.value) return
   const id = deleteTarget.value.id
   await patchChat(id, { action: 'delete' })
+  // patchChat 内部已 catch 错误，只有成功时才继续
   deleteOpen.value = false
   refreshNuxtData('sidebar-chats')
   // 如果当前正在被删除的聊天页面，跳转到 /chat

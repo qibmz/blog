@@ -48,12 +48,6 @@ function getApi() {
 }
 
 /**
- * 带统一错误拦截的 $fetch 实例，用于命令式 API 调用（POST/PATCH/DELETE）。
- * GET 类请求优先使用 useAPI()。
- */
-export const api = () => getApi()
-
-/**
  * 带统一错误拦截的 API composable，签名和 useFetch 一致。
  * - 401 自动跳转 /login（传 skipAuthRedirect: true 可跳过，仅透传错误）
  * - 其他 4xx/5xx 弹出 toast 并透传错误
