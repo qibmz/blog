@@ -43,8 +43,8 @@ const { data: blogFiles } = useLazyAsyncData('blogSearch', () => queryCollection
   default: () => []
 })
 const links = [{
-  label: '常用网站/工具',
-  icon: 'i-lucide-pen-tool',
+  label: '备忘录',
+  icon: 'i-lucide-bookmark',
   to: '/docs'
 }, {
   label: '博客',
