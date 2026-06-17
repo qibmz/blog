@@ -38,8 +38,19 @@ onMounted(() => {
   }
 })
 
+const router = useRouter()
+
 function login(provider: OAuthProvider) {
   window.location.href = `/auth/${provider}`
+}
+
+function goBack() {
+  // 有浏览器历史则返回上一页，无则跳首页
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    navigateTo('/')
+  }
 }
 </script>
 
@@ -127,12 +138,13 @@ function login(provider: OAuthProvider) {
       <NuxtLink
         to="/"
         class="inline-flex items-center gap-1.5 text-xs text-muted/70 hover:text-muted transition-colors duration-200"
+        @click.prevent="goBack"
       >
         <UIcon
           name="i-lucide-arrow-left"
           class="w-3.5 h-3.5"
         />
-        首页
+        返回
       </NuxtLink>
     </Motion>
   </div>

@@ -94,10 +94,11 @@ function onQuickChat(label: string) {
               :rows="3"
               :disabled="pending"
               class="[view-transition-name:chat-prompt]"
+              :ui="{ footer: 'flex-wrap' }"
               @submit="onSubmit"
             >
               <template #footer>
-                <div class="flex items-center gap-1">
+                <div class="flex items-center gap-1 flex-wrap">
                   <UButton
                     label="深度思考"
                     icon="i-lucide-brain"
@@ -112,7 +113,7 @@ function onQuickChat(label: string) {
                     value-key="value"
                     size="sm"
                     variant="ghost"
-                    class="min-w-48"
+                    class="min-w-32 sm:min-w-48"
                   >
                     <template #leading="{ modelValue }">
                       <UIcon

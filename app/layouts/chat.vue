@@ -463,6 +463,7 @@ async function logout() {
           v-model="renameInput"
           placeholder="输入新标题"
           autofocus
+          class="w-full"
           @keyup.enter="handleRename"
         />
       </template>

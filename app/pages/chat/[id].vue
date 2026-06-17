@@ -201,7 +201,7 @@ onMounted(() => {
               placeholder="继续提问..."
               variant="subtle"
               class="sticky bottom-0 [view-transition-name:chat-prompt] rounded-b-none z-10"
-              :ui="{ base: 'px-1.5' }"
+              :ui="{ base: 'px-1.5', footer: 'flex-wrap' }"
               @submit="onSubmit"
             >
               <template #footer>
