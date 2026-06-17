@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const [chats, todayCount] = await Promise.all([
     db.query.chats.findMany({
       where: eq(schema.chats.userId, session.user.id),
-      orderBy: () => desc(schema.chats.createdAt)
+      orderBy: () => [desc(schema.chats.pinned), desc(schema.chats.createdAt)]
     }),
     getTodayCount(session.user.id)
   ])

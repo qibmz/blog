@@ -1,4 +1,4 @@
-import { pgTable, text, jsonb, timestamp, index } from 'drizzle-orm/pg-core'
+import { pgTable, text, jsonb, timestamp, index, boolean } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
 export const chats = pgTable('chats', {
@@ -6,9 +6,11 @@ export const chats = pgTable('chats', {
   userId: text('user_id'),
   title: text('title'),
   model: text('model'),
+  pinned: boolean('pinned').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow()
 }, table => [
-  index('chats_user_id_idx').on(table.userId)
+  index('chats_user_id_idx').on(table.userId),
+  index('chats_user_id_pinned_idx').on(table.userId, table.pinned, table.createdAt)
 ])
 
 export const messages = pgTable('messages', {

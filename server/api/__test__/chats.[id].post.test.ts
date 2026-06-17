@@ -146,7 +146,8 @@ describe('POST /api/chats/:id', () => {
     expect(mockStreamText).toHaveBeenCalledWith(
       expect.objectContaining({
         providerOptions: {
-          deepseek: { thinking: { type: 'enabled' } }
+          deepseek: { thinking: { type: 'enabled' } },
+          mimo: { thinking: { type: 'enabled' } }
         }
       })
     )
@@ -195,7 +196,8 @@ describe('POST /api/chats/:id', () => {
     expect(mockStreamText).toHaveBeenCalledWith(
       expect.objectContaining({
         providerOptions: {
-          deepseek: { thinking: { type: 'disabled' } }
+          deepseek: { thinking: { type: 'disabled' } },
+          mimo: { thinking: { type: 'disabled' } }
         }
       })
     )

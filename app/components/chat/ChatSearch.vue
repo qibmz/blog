@@ -3,32 +3,52 @@ import type { CommandPaletteGroup, CommandPaletteItem } from '@nuxt/ui'
 
 const model = defineModel<boolean>({ required: true })
 
-interface ChatItem {
-  id: string
-  title: string | null
-  createdAt: string
-  model: string | null
-  userId: string | null
-}
-
-const { data: chatsData } = await useAPI('/api/chats', {
+// 与布局共用 key='sidebar-chats'，Nuxt 自动去重，不会重复请求
+const { data: chatsData } = useAPI('/api/chats', {
+  key: 'sidebar-chats',
+  lazy: true,
+  skipAuthRedirect: true,
   default: () => ({ chats: [], remainingToday: 0 }),
   ignoreResponseError: true
 })
-
 const groups = computed<CommandPaletteGroup[]>(() => {
-  const chats = (chatsData.value?.chats ?? []) as ChatItem[]
-  return groupChatsByDate(chats).map(group => ({
-    id: group.label,
-    label: group.label,
-    items: group.items.map(c => ({
-      id: c.id,
-      label: c.title || '加载中...',
-      to: `/chat/${c.id}`,
-      icon: 'i-lucide-message-square',
-      onSelect() { model.value = false }
-    } satisfies CommandPaletteItem))
-  }))
+  const chats = (chatsData.value?.chats ?? [])
+  const pinned = chats.filter(c => (c as { pinned?: boolean }).pinned)
+  const unpinned = chats.filter(c => !(c as { pinned?: boolean }).pinned)
+
+  const result: CommandPaletteGroup[] = []
+
+  // 置顶分组
+  if (pinned.length > 0) {
+    result.push({
+      id: '置顶',
+      label: '置顶',
+      items: pinned.map(c => ({
+        id: c.id,
+        label: c.title || '加载中...',
+        to: `/chat/${c.id}`,
+        icon: 'i-lucide-pin',
+        onSelect() { model.value = false }
+      } satisfies CommandPaletteItem))
+    })
+  }
+
+  // 未置顶的按日期分组
+  groupChatsByDate(unpinned).forEach((group) => {
+    result.push({
+      id: group.label,
+      label: group.label,
+      items: group.items.map(c => ({
+        id: c.id,
+        label: c.title || '加载中...',
+        to: `/chat/${c.id}`,
+        icon: 'i-lucide-message-square',
+        onSelect() { model.value = false }
+      } satisfies CommandPaletteItem))
+    })
+  })
+
+  return result
 })
 </script>
 

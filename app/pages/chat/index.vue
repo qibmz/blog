@@ -14,7 +14,7 @@ const { data, pending, error, execute } = useAPI<{ id: string }>('/api/chats', {
 })
 
 const hour = new Date().getHours()
-const greeting = hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好'
+const greeting = hour < 12 ? '早上好，Master' : hour < 18 ? '下午好，Master' : '晚上好，Master'
 
 const quickSuggestions = [
   { label: '为什么选择 Nuxt UI？', icon: 'i-logos-nuxt-icon' },
@@ -45,6 +45,7 @@ async function createChat(text: string) {
   await execute()
   if (error.value) return
   if (data.value) {
+    refreshNuxtData('sidebar-chats')
     await navigateTo(`/chat/${data.value.id}`)
   }
 }
@@ -83,7 +84,12 @@ function onQuickChat(label: string) {
       <template #body>
         <div class="flex flex-1 overflow-y-auto items-center justify-center">
           <UContainer class="w-full max-w-2xl py-10 flex flex-col gap-6">
-            <h1 class="text-3xl sm:text-4xl font-bold text-highlighted">
+            <h1 class="text-3xl sm:text-4xl font-bold text-highlighted flex items-center justify-center gap-3">
+              <NuxtImg
+                src="/image/logo.png"
+                alt="AI Chat"
+                class="w-8 h-8 sm:w-9 sm:h-9 shrink-0"
+              />
               {{ greeting }}
             </h1>
 
@@ -93,10 +99,11 @@ function onQuickChat(label: string) {
               :rows="3"
               :disabled="pending"
               class="[view-transition-name:chat-prompt]"
+              :ui="{ footer: 'flex-wrap' }"
               @submit="onSubmit"
             >
               <template #footer>
-                <div class="flex items-center gap-1">
+                <div class="flex items-center gap-1 flex-wrap">
                   <UButton
                     label="深度思考"
                     icon="i-lucide-brain"
@@ -111,7 +118,7 @@ function onQuickChat(label: string) {
                     value-key="value"
                     size="sm"
                     variant="ghost"
-                    class="min-w-48"
+                    class="min-w-32 sm:min-w-48"
                   >
                     <template #leading="{ modelValue }">
                       <UIcon
