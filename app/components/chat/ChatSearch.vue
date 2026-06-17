@@ -13,17 +13,42 @@ const { data: chatsData } = useAPI('/api/chats', {
 })
 const groups = computed<CommandPaletteGroup[]>(() => {
   const chats = (chatsData.value?.chats ?? [])
-  return groupChatsByDate(chats).map(group => ({
-    id: group.label,
-    label: group.label,
-    items: group.items.map(c => ({
-      id: c.id,
-      label: c.title || '加载中...',
-      to: `/chat/${c.id}`,
-      icon: 'i-lucide-message-square',
-      onSelect() { model.value = false }
-    } satisfies CommandPaletteItem))
-  }))
+  const pinned = chats.filter(c => (c as { pinned?: boolean }).pinned)
+  const unpinned = chats.filter(c => !(c as { pinned?: boolean }).pinned)
+
+  const result: CommandPaletteGroup[] = []
+
+  // 置顶分组
+  if (pinned.length > 0) {
+    result.push({
+      id: '置顶',
+      label: '置顶',
+      items: pinned.map(c => ({
+        id: c.id,
+        label: c.title || '加载中...',
+        to: `/chat/${c.id}`,
+        icon: 'i-lucide-pin',
+        onSelect() { model.value = false }
+      } satisfies CommandPaletteItem))
+    })
+  }
+
+  // 未置顶的按日期分组
+  groupChatsByDate(unpinned).forEach((group) => {
+    result.push({
+      id: group.label,
+      label: group.label,
+      items: group.items.map(c => ({
+        id: c.id,
+        label: c.title || '加载中...',
+        to: `/chat/${c.id}`,
+        icon: 'i-lucide-message-square',
+        onSelect() { model.value = false }
+      } satisfies CommandPaletteItem))
+    })
+  })
+
+  return result
 })
 </script>
 

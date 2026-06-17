@@ -137,17 +137,54 @@ type Chat = NonNullable<typeof chatsData.value>['chats'][number]
 
 const chatItems = computed(() => {
   const chats = (chatsData.value?.chats ?? []) as Chat[]
-  return groupChatsByDate(chats).flatMap(group => [
-    { label: group.label, type: 'label' as const },
-    ...group.items.map(item => ({
-      id: item.id,
-      label: item.title || '加载中...',
-      to: `/chat/${item.id}`,
-      slot: 'chat' as const,
-      icon: (item as { pinned?: boolean }).pinned ? 'i-lucide-pin' : undefined,
-      chatData: item
-    }))
-  ])
+  // 分离置顶和未置顶
+  const pinned = chats.filter(c => (c as { pinned?: boolean }).pinned)
+  const unpinned = chats.filter(c => !(c as { pinned?: boolean }).pinned)
+
+  interface ChatNavItem {
+    id?: string
+    label: string
+    type: 'link' | 'label'
+    to?: string
+    slot?: string
+    icon?: string
+    chatData?: Chat
+  }
+
+  const result: ChatNavItem[] = []
+
+  // 置顶分组（不关心日期，直接列在顶部）
+  if (pinned.length > 0) {
+    result.push({ label: '置顶', type: 'label' })
+    pinned.forEach((item) => {
+      result.push({
+        id: item.id,
+        label: item.title || '加载中...',
+        type: 'link',
+        to: `/chat/${item.id}`,
+        slot: 'chat',
+        icon: 'i-lucide-pin',
+        chatData: item
+      })
+    })
+  }
+
+  // 未置顶的按日期分组
+  groupChatsByDate(unpinned).forEach((group) => {
+    result.push({ label: group.label, type: 'label' })
+    group.items.forEach((item) => {
+      result.push({
+        id: item.id,
+        label: item.title || '加载中...',
+        type: 'link',
+        to: `/chat/${item.id}`,
+        slot: 'chat',
+        chatData: item
+      })
+    })
+  })
+
+  return result
 })
 
 const topItems = [
