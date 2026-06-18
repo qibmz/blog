@@ -184,7 +184,7 @@ function goBack() {
     <!--
       右侧：登录区
     -->
-    <main class="flex-1 flex items-center">
+    <main class="flex-1 flex items-start lg:items-center">
       <div class="w-full max-w-md mx-auto px-6 py-12 lg:py-0">
         <!-- 移动端：返回 + 亮暗切换 + logo -->
         <div class="lg:hidden space-y-10 mb-12">
