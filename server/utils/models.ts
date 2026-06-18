@@ -39,6 +39,8 @@ export interface ModelOption {
   label: string
   /** Iconify 图标名（前端用） */
   icon: string
+  /** 是否支持图片/文件输入（视觉/多模态） */
+  supportsImages?: boolean
 }
 
 export interface ProviderConfig {
@@ -56,6 +58,8 @@ export interface ProviderConfig {
   exclude: string[]
   /** 根据 model ID 创建 LanguageModel 实例 */
   getInstance: (modelId: string) => LanguageModel
+  /** 检测 model ID 是否支持图片输入（视觉/多模态） */
+  supportsImages?: (modelId: string) => boolean
 }
 
 export const PROVIDER_REGISTRY: ProviderConfig[] = [
@@ -66,7 +70,8 @@ export const PROVIDER_REGISTRY: ProviderConfig[] = [
     modelsUrl: 'https://api.deepseek.com/v1/models',
     headers: () => ({ Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}` }),
     exclude: [],
-    getInstance: id => deepseek(id)
+    getInstance: id => deepseek(id),
+    supportsImages: () => false // DeepSeek 无视觉模型
   },
   {
     name: 'MiMo',
@@ -75,7 +80,14 @@ export const PROVIDER_REGISTRY: ProviderConfig[] = [
     modelsUrl: 'https://api.xiaomimimo.com/v1/models',
     headers: () => ({ 'api-key': process.env.MIMO_API_KEY ?? '' }),
     exclude: ['tts', 'embedding', 'whisper', 'dall-e'],
-    getInstance: id => mimo(id)
+    getInstance: id => mimo(id),
+    // 仅 mimo-v2.5（除 pro/flash）和 mimo-v2-omni（除 pro/flash）支持视觉
+    // 参考：https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/multimodal-understanding/image-understanding
+    supportsImages: (id) => {
+      if (id.startsWith('mimo-v2.5') && !id.includes('-pro') && !id.includes('-flash')) return true
+      if (id.startsWith('mimo-v2-omni') && !id.includes('-pro') && !id.includes('-flash')) return true
+      return false
+    }
   }
   // ── 在此继续追加 ──────────────────────────────────────────────────────────
   // {
@@ -108,6 +120,14 @@ export function getModel(value: string): LanguageModel {
   if (provider) return provider.getInstance(value)
   // 未知前缀 → 回退到第一个 provider
   return PROVIDER_REGISTRY[0]!.getInstance(value)
+}
+
+/** 检测 model ID 是否支持图片输入 */
+export function modelSupportsImages(modelId: string): boolean {
+  const provider = PROVIDER_REGISTRY.find(p =>
+    p.prefixes.some(px => modelId.startsWith(px))
+  )
+  return provider?.supportsImages?.(modelId) ?? false
 }
 
 /** 将 model ID 转换为人类可读的 label */

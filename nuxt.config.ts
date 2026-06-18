@@ -73,6 +73,7 @@ export default defineNuxtConfig({
 
   nitro: {
     baseURL: process.env.NUXT_APP_BASE_URL || '/',
+    maxBodySize: '10mb',
     imports: {
       dirs: ['server/db']
     },

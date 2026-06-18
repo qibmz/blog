@@ -43,7 +43,8 @@ async function fetchAvailableModels(): Promise<ModelOption[]> {
         .map(id => ({
           value: id,
           label: `${provider.name} ${modelIdToLabel(provider, id)}`,
-          icon: provider.icon
+          icon: provider.icon,
+          supportsImages: provider.supportsImages?.(id) ?? false
         }))
 
       models.push(...matched)

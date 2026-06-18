@@ -2,10 +2,14 @@ import { z } from 'zod'
 
 // ─── 消息结构 ────────────────────────────────────
 
-const UIMessagePartSchema = z.looseObject({
-  type: z.string(),
-  text: z.string().optional()
-})
+const UIMessagePartSchema = z.intersection(
+  z.object({ type: z.string() }),
+  z.union([
+    z.object({ type: z.literal('text'), text: z.string() }),
+    z.object({ type: z.literal('file'), url: z.string(), mediaType: z.string(), filename: z.string().optional() }),
+    z.any() // reasoning, tool-call, data 等其他 part 类型
+  ])
+)
 
 export const UIMessageSchema = z.looseObject({
   id: z.string(),

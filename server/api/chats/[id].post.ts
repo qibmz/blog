@@ -1,6 +1,6 @@
 import { defineEventHandler, getValidatedRouterParams, readValidatedBody } from 'h3'
 import { and, eq } from 'drizzle-orm'
-import { getModel, DEFAULT_MODEL } from '../../utils/models'
+import { getModel, DEFAULT_MODEL, modelSupportsImages } from '../../utils/models'
 import { checkDailyLimit } from '../../utils/rateLimiter'
 import { z } from 'zod'
 import {
@@ -24,6 +24,14 @@ export default defineEventHandler(async (event) => {
     messages: z.array(UIMessageSchema),
     options: z.object({ thinkingMode: z.boolean().optional() }).optional()
   }).parse)
+
+  // 非视觉模型拒绝图片
+  const hasImageParts = messages.some(msg =>
+    msg.parts?.some(p => (p as { type: string }).type === 'file')
+  )
+  if (hasImageParts && !modelSupportsImages(modelValue)) {
+    throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
+  }
 
   const chat = await db.query.chats.findFirst({
     where: and(eq(schema.chats.id, id), eq(schema.chats.userId, user.id))

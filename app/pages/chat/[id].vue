@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Chat } from '@ai-sdk/vue'
-import { DefaultChatTransport, isReasoningUIPart, isTextUIPart } from 'ai'
+import { DefaultChatTransport, isReasoningUIPart, isTextUIPart, convertFileListToFileUIParts } from 'ai'
 import { isPartStreaming } from '@nuxt/ui/utils/ai'
-import type { UIMessage } from 'ai'
+import type { UIMessage, FileUIPart } from 'ai'
 
 definePageMeta({ layout: 'chat' })
 
@@ -13,6 +13,83 @@ const { data: chatData } = await useAPI(`/api/chats/${id}`)
 if (!chatData.value) throw createError({ statusCode: 404 })
 const { model: selectedModel, models: modelOptions } = useModels()
 const { thinkingMode } = useChatOptions()
+
+// ─── 图片上传状态 ────────────────────────────────
+const uploadFiles = ref<File | null>(null)
+const selectedFiles = ref<File[]>([])
+const fileParts = ref<FileUIPart[]>([])
+const converting = ref(false)
+
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
+const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+const MAX_FILES = 3
+
+async function handleFiles(incoming: File[]) {
+  const list = Array.from(incoming)
+
+  // 数量上限
+  if (selectedFiles.value.length + list.length > MAX_FILES) {
+    useToast().add({
+      title: `最多上传 ${MAX_FILES} 张图片`,
+      color: 'warning',
+      icon: 'i-lucide-alert-triangle',
+      duration: 3000
+    })
+    return
+  }
+
+  // 类型 + 大小校验
+  const valid: File[] = []
+  for (const f of list) {
+    if (!ALLOWED_TYPES.includes(f.type)) {
+      useToast().add({ title: `"${f.name}" 格式不支持`, description: '支持 JPEG、PNG、GIF、WebP、BMP', color: 'warning', icon: 'i-lucide-image', duration: 3000 })
+      continue
+    }
+    if (f.size > MAX_FILE_SIZE) {
+      useToast().add({ title: `"${f.name}" 过大`, description: `最大 5MB，当前 ${(f.size / 1024 / 1024).toFixed(1)}MB`, color: 'warning', icon: 'i-lucide-alert-triangle', duration: 3000 })
+      continue
+    }
+    valid.push(f)
+  }
+
+  if (valid.length === 0) return
+
+  converting.value = true
+  try {
+    const parts = await convertFileListToFileUIParts(valid as unknown as FileList)
+    fileParts.value = [...fileParts.value, ...parts]
+    selectedFiles.value = [...selectedFiles.value, ...valid]
+  } catch (e) {
+    useToast().add({ title: '图片读取失败', description: e instanceof Error ? e.message : '请重试', color: 'error', duration: 4000 })
+  } finally {
+    converting.value = false
+  }
+}
+
+function onUploadChange(file: File | null | undefined) {
+  if (file) {
+    handleFiles([file])
+    nextTick(() => {
+      uploadFiles.value = null
+    })
+  }
+}
+
+function clearFiles() {
+  selectedFiles.value = []
+  fileParts.value = []
+}
+
+function removeFile(index: number) {
+  selectedFiles.value.splice(index, 1)
+  fileParts.value.splice(index, 1)
+}
+
+// 当前模型是否支持图片输入
+const currentModel = computed(() =>
+  modelOptions.value.find(m => m.value === selectedModel.value)
+)
+
 // 仅在没有 cookie 偏好时回退到聊天记录中的模型
 if (!selectedModel.value) {
   selectedModel.value = chatData.value.model ?? modelOptions.value[0]?.value ?? ''
@@ -22,9 +99,6 @@ const chatTitle = ref(chatData.value.title ?? '新对话')
 useSeoMeta({ title: computed(() => `${chatTitle.value} — AI Chat`) })
 
 const input = ref('')
-
-// refreshNuxtData('sidebar-chats') 直接刷新布局中的侧边栏数据
-// 服务端 onFinish 在流结束前已完成 DB 写入，客户端 onFinish 触发时数据已就绪
 
 const chat = new Chat({
   id,
@@ -45,7 +119,6 @@ const chat = new Chat({
   },
   onFinish: ({ isError }) => {
     if (!isError) {
-      // 服务端 onFinish 在流结束前已完成 DB 写入，无需延迟等待
       refreshNuxtData('sidebar-chats')
     }
   }
@@ -54,7 +127,6 @@ const chat = new Chat({
 const { copy, copied } = useClipboard()
 const toast = useToast()
 
-// 每条消息的反馈状态（赞/踩互斥）
 const feedbackState = ref<Record<string, { liked?: boolean, disliked?: boolean }>>({})
 
 function getTextContent(parts: UIMessage['parts']) {
@@ -110,13 +182,23 @@ const assistantConfig = {
 }
 
 function onSubmit() {
-  if (!input.value.trim()) return
-  chat.sendMessage({ text: input.value })
+  const hasFiles = fileParts.value.length > 0
+  const hasText = input.value.trim().length > 0
+
+  if (!hasFiles && !hasText) return
+
+  if (hasFiles) {
+    chat.sendMessage({
+      text: hasText ? input.value : '',
+      files: [...fileParts.value]
+    })
+  } else {
+    chat.sendMessage({ text: input.value })
+  }
   input.value = ''
+  clearFiles()
 }
 
-// 从首页新建聊天跳转过来时，最后一条是用户消息且无 AI 回复，自动触发生成
-// nextTick 等 View Transition 动画结束后再发请求，避免 InvalidStateError
 onMounted(() => {
   const messages = chatData.value?.messages ?? []
   if (messages.at(-1)?.role === 'user') {
@@ -194,6 +276,10 @@ onMounted(() => {
               <template #indicator>
                 <UChatShimmer text="思考中..." />
               </template>
+
+              <template #files="{ parts: msgFileParts }">
+                <ChatFileList :parts="msgFileParts as FileUIPart[]" />
+              </template>
             </UChatMessages>
 
             <UChatPrompt
@@ -204,22 +290,50 @@ onMounted(() => {
               :ui="{ base: 'px-1.5', footer: 'flex-wrap' }"
               @submit="onSubmit"
             >
+              <template
+                v-if="fileParts.length > 0"
+                #header
+              >
+                <ChatFileList
+                  :parts="fileParts"
+                  removable
+                  @remove="removeFile"
+                />
+              </template>
+
               <template #footer>
-                <UButton
-                  label="深度思考"
-                  icon="i-lucide-brain"
-                  :variant="thinkingMode ? 'soft' : 'ghost'"
-                  :color="thinkingMode ? 'primary' : 'neutral'"
-                  size="sm"
-                  @click="thinkingMode = !thinkingMode"
-                />
-                <UChatPromptSubmit
-                  :status="chat.status"
-                  color="neutral"
-                  size="sm"
-                  @stop="chat.stop()"
-                  @reload="chat.regenerate()"
-                />
+                <div class="flex items-center gap-1.5 flex-wrap w-full">
+                  <UFileUpload
+                    v-if="currentModel?.supportsImages"
+                    v-model="uploadFiles"
+                    variant="button"
+                    :icon="converting ? 'i-lucide-loader-2' : 'i-lucide-paperclip'"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/bmp"
+                    :disabled="converting"
+                    color="neutral"
+                    size="sm"
+                    aria-label="上传图片"
+                    @update:model-value="onUploadChange"
+                  />
+
+                  <div class="flex-1" />
+
+                  <UButton
+                    label="深度思考"
+                    icon="i-lucide-brain"
+                    :variant="thinkingMode ? 'soft' : 'ghost'"
+                    :color="thinkingMode ? 'primary' : 'neutral'"
+                    size="sm"
+                    @click="thinkingMode = !thinkingMode"
+                  />
+                  <UChatPromptSubmit
+                    :status="chat.status"
+                    color="neutral"
+                    size="sm"
+                    @stop="chat.stop()"
+                    @reload="chat.regenerate()"
+                  />
+                </div>
               </template>
             </UChatPrompt>
           </UContainer>
