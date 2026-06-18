@@ -7,6 +7,13 @@
     "nuxt": {
       "type": "http",
       "url": "https://nuxt.com/mcp"
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ]
     }
+  
   }
 }
