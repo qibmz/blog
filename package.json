@@ -36,6 +36,7 @@
     "@vueuse/nuxt": "^14.3.0",
     "ai": "^6.0.208",
     "better-sqlite3": "^12.11.1",
+    "compressorjs": "^1.3.0",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
     "klinecharts": "10.0.0-beta1",

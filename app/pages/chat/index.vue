@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { convertFileListToFileUIParts } from 'ai'
 import type { FileUIPart } from 'ai'
+import { compressImageFile } from '~/utils/compressImage'
 
 definePageMeta({ layout: 'chat' })
 
@@ -67,8 +68,10 @@ async function handleFiles(incoming: File[]) {
 
   converting.value = true
   try {
+    // 压缩大图，减小 base64 体积加速上传
+    const compressed = await Promise.all(valid.map((f: File) => compressImageFile(f)))
     const dt = new DataTransfer()
-    valid.forEach(f => dt.items.add(f))
+    compressed.forEach((f: File) => dt.items.add(f))
     const parts = await convertFileListToFileUIParts(dt.files)
     fileParts.value = [...fileParts.value, ...parts]
     selectedFiles.value = [...selectedFiles.value, ...valid]
