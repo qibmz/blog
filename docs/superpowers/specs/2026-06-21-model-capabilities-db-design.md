@@ -73,16 +73,30 @@ DB 查询失败时 catch 住，走 fallback 逻辑，不阻塞模型列表返回
 |------|------|
 | `server/db/schema.ts` | 新增 `models` 表定义 |
 | `server/db/migrations/` | `drizzle-kit generate` 生成迁移 SQL |
-| `server/db/seed-models.ts` | 新增，幂等初始化脚本 |
+| `server/db/seed-models.ts` | 新增，幂等全量初始化脚本 |
+| `scripts/prebuild-migrate.js` | 在 `drizzle-kit push` 后追加执行 seed |
 | `server/utils/models.ts` | `supportsImages` 保留作为 fallback，行为不变 |
 | `server/api/models.get.ts` | 在 `fetchAvailableModels()` 中插入 DB 查询 |
 
 ### 迁移与上线
 
-1. 修改 schema → `drizzle-kit generate` 生成迁移文件
-2. 部署到 preview — Vercel prebuild 脚本自动执行 `drizzle-kit push --force`，创建 `models` 表
-3. 手动运行 `seed-models.ts` 填充初始数据
-4. Production 环境手动执行 `drizzle-kit push` + seed
+#### Preview（测试服）
+
+Prebuild 自动完成全部操作，无需手动干预：
+
+1. `scripts/prebuild-migrate.js` 自动执行 `drizzle-kit push --force` → 创建 `models` 表
+2. seed 脚本接在 prebuild 流程中执行（幂等，多次执行无副作用）→ 填充全量模型能力数据
+
+改造 `scripts/prebuild-migrate.js`，在 `drizzle-kit push` 成功后追加执行 seed。
+
+#### Production（正式服）
+
+Prebuild 跳过 production，需手动操作一次：
+
+1. `drizzle-kit push` — 创建 `models` 表
+2. 手动运行 seed 脚本 — 填充全量初始数据
+
+之后日常运维只需直接操作 DB（见下方），无需再跑 seed。
 
 ### 日常运维
 
