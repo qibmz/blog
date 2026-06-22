@@ -20,6 +20,7 @@ const {
   readyParts,
   statuses,
   errors,
+  isCompressing,
   addFiles,
   removeFile,
   clearFiles
@@ -142,6 +143,7 @@ function onSubmit() {
   const hasText = input.value.trim().length > 0
 
   if (!hasFiles && !hasText) return
+  if (isCompressing.value) return
 
   if (hasFiles) {
     chat.sendMessage({
@@ -256,6 +258,7 @@ onMounted(() => {
               variant="subtle"
               class="sticky bottom-0 [view-transition-name:chat-prompt] rounded-b-none z-10"
               :ui="{ base: 'px-1.5', footer: 'flex-wrap' }"
+              :disabled="isCompressing"
               @submit="onSubmit"
             >
               <template
@@ -282,6 +285,7 @@ onMounted(() => {
                     color="neutral"
                     size="sm"
                     aria-label="上传图片"
+                    :preview="false"
                     @update:model-value="onUploadChange"
                   />
 

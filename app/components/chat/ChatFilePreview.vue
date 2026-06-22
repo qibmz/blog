@@ -60,7 +60,7 @@ onUnmounted(() => {
   <div class="relative group/thumb shrink-0">
     <!-- 卡片主体 -->
     <div
-      class="relative rounded-xl overflow-hidden border border-border/60 ring-1 ring-border/20 shadow-sm group-hover/thumb:shadow-md transition-shadow duration-200"
+      class="relative rounded-xl overflow-hidden group-hover/thumb:shadow-md transition-shadow duration-200"
       :class="{
         'cursor-zoom-in': isImage,
         'opacity-60': status === 'uploading'

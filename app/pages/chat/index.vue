@@ -27,6 +27,7 @@ const {
   readyParts,
   statuses,
   errors,
+  isCompressing,
   addFiles,
   removeFile,
   clearFiles
@@ -129,7 +130,7 @@ function onSubmit() {
               v-model="input"
               placeholder="有什么可以帮你的？"
               :rows="3"
-              :disabled="pending"
+              :disabled="pending || isCompressing"
               class="[view-transition-name:chat-prompt]"
               :ui="{ footer: 'flex-wrap' }"
               @submit="onSubmit"
@@ -158,6 +159,7 @@ function onSubmit() {
                     color="neutral"
                     size="sm"
                     aria-label="上传图片"
+                    :preview="false"
                     @update:model-value="onUploadChange"
                   />
 
