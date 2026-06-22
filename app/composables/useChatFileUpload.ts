@@ -58,10 +58,16 @@ export function useChatFileUpload() {
     }
   }
 
-  /** 压缩单个文件并返回 FileUIPart */
-  async function compressOne(item: FileItem) {
+  /**
+   * 压缩单个文件并更新状态。
+   * 必须通过 index 访问 items.value[index] 拿到 Vue Proxy 对象再修改，
+   * 否则修改 raw plain object 不会触发响应式更新。
+   */
+  async function compressOne(index: number) {
+    const item = items.value[index]
+    if (!item) return
+
     try {
-      console.log(item)
       const compressed = await compressImageFile(item.file)
       // compressed 可能是原文件（跳过压缩）或新的 File
       const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -78,7 +84,6 @@ export function useChatFileUpload() {
       }
       item.status = 'ready'
     } catch (e) {
-      console.error(e)
       item.status = 'error'
       item.error = e instanceof Error ? e.message : '图片处理失败，请重试'
       // 不释放 blob URL —— 预览仍可用原图
@@ -116,6 +121,7 @@ export function useChatFileUpload() {
     if (valid.length === 0) return
 
     // 立即创建 entries（blob URL 预览即刻可用）
+    const startIndex = items.value.length
     const newItems: FileItem[] = valid.map(file => ({
       id: crypto.randomUUID(),
       file,
@@ -125,8 +131,10 @@ export function useChatFileUpload() {
     }))
     items.value = [...items.value, ...newItems]
 
-    // 并行压缩
-    await Promise.allSettled(newItems.map(compressOne))
+    // 并行压缩 —— 传 index，通过 items.value[index] 拿 Proxy 对象
+    await Promise.allSettled(
+      newItems.map((_, i) => compressOne(startIndex + i))
+    )
   }
 
   function removeFile(index: number) {
