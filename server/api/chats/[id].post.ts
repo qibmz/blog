@@ -45,18 +45,33 @@ export default defineEventHandler(async (event) => {
 
   // 首次对话自动生成标题（不阻塞数据流，通过 waitUntil 确保在 serverless 环境完整执行）
   if (!chat.title && messages.length > 0) {
-    // 只提取文本内容用于标题生成，避免 base64 图片数据撑爆上下文
-    const userText = messages[0]!.parts
-      ?.filter(p => p.type === 'text')
-      .map(p => (p as { text: string }).text)
-      .join(' ') || '新对话'
-    const titlePromise = generateText({
-      model,
-      system: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。如果用户只发了图片没有文字，根据图片描述生成标题。',
-      prompt: userText.substring(0, 500)
-    }).then(async ({ text: title }) => {
+    const firstParts = messages[0]!.parts ?? []
+    const textParts = firstParts.filter(p => p.type === 'text') as { type: 'text', text: string }[]
+    const fileParts = firstParts.filter(p => p.type === 'file') as { type: 'file', url: string, mediaType: string }[]
+    const userText = textParts.map(p => p.text).join(' ') || ''
+
+    // 纯文字用 prompt 快速生成标题；有图片时用 messages 传图给模型
+    const titlePromise = (fileParts.length > 0
+      ? generateText({
+          model,
+          system: '根据用户的消息生成一个简短标题（最多15个字，不加标点和引号）。',
+          messages: [{
+            role: 'user' as const,
+            content: [
+              { type: 'text' as const, text: userText || '根据图片内容生成一个简短标题（最多15个字）' },
+              { type: 'image' as const, image: fileParts[0]!.url, mediaType: fileParts[0]!.mediaType }
+            ]
+          }]
+        })
+      : generateText({
+          model,
+          system: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。',
+          prompt: (userText || '新对话').substring(0, 500)
+        })
+    ).then(async ({ text: title }) => {
+      const safeTitle = title.length > 20 ? title.slice(0, 20) : title
       await db.update(schema.chats)
-        .set({ title, model: modelValue })
+        .set({ title: safeTitle, model: modelValue })
         .where(eq(schema.chats.id, id))
       return title
     }).catch((err) => {

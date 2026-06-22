@@ -229,7 +229,10 @@ onMounted(() => {
       :ui="{ body: 'p-0 sm:p-0 overscroll-none' }"
     >
       <template #header>
-        <UDashboardNavbar :title="chatTitle">
+        <UDashboardNavbar
+          :title="chatTitle"
+          :ui="{ title: 'truncate min-w-0' }"
+        >
           <template #right>
             <UBadge
               v-if="currentModel"

@@ -294,7 +294,8 @@ async function logout() {
             :items="chatItems"
             orientation="vertical"
             :ui="{
-              link: 'overflow-hidden pr-7.5',
+              link: 'overflow-hidden pr-7.5 min-w-0',
+              linkLabel: 'truncate',
               linkTrailing: 'translate-x-full group-hover:translate-x-0 [@media(hover:none)]:translate-x-0 group-has-data-[state=open]:translate-x-0 transition-transform absolute inset-y-0 end-0 flex items-center'
             }"
           >
