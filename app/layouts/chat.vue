@@ -192,6 +192,20 @@ const chatItems = computed(() => {
   return result
 })
 
+const topItems = [
+  {
+    label: '回到首页',
+    to: '/',
+    icon: 'i-lucide-home'
+  },
+  {
+    label: '新对话',
+    to: '/chat',
+    icon: 'i-lucide-circle-plus',
+    kbds: ['meta', 'O']
+  }
+]
+
 async function logout() {
   await clear()
   await navigateTo('/chat')
@@ -208,50 +222,61 @@ async function logout() {
       class="border-r-0 py-4 dark:[--ui-bg-elevated:var(--ui-color-neutral-900)]"
     >
       <template #header="{ collapsed }">
-        <NuxtLink
-          v-if="!collapsed"
-          to="/chat"
-          class="flex items-center gap-2 font-bold text-base text-highlighted"
-        >
+        <div class="flex items-center gap-2">
+          <NuxtLink
+            v-if="!collapsed"
+            to="/chat"
+            class="flex items-center gap-2 font-bold text-base text-highlighted"
+          >
+            <NuxtImg
+              src="/image/logo.png"
+              alt="AI Chat"
+              class="w-6 h-6 shrink-0"
+            />
+            <span>AI Chat</span>
+          </NuxtLink>
           <NuxtImg
+            v-else
             src="/image/logo.png"
             alt="AI Chat"
-            class="w-6 h-6 shrink-0"
+            class="w-6 h-6 mx-auto"
           />
-          <span>AI Chat</span>
-        </NuxtLink>
-        <NuxtImg
-          v-else
-          src="/image/logo.png"
-          alt="AI Chat"
-          class="w-6 h-6 mx-auto"
-        />
-        <div
-          v-if="!collapsed"
-          class="flex items-center gap-0.5 ms-auto"
-        >
-          <UButton
-            icon="i-lucide-search"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            aria-label="搜索对话"
-            @click="chatSearchOpen = true"
-          />
-          <UButton
-            icon="i-lucide-circle-plus"
-            color="neutral"
-            variant="ghost"
-            size="sm"
-            aria-label="新对话"
-            to="/chat"
-          />
-          <UDashboardSidebarCollapse />
+          <div class="flex items-center gap-0.5 ms-auto">
+            <UButton
+              icon="i-lucide-search"
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              aria-label="搜索对话"
+              @click="chatSearchOpen = true"
+            />
+            <UDashboardSidebarCollapse />
+          </div>
         </div>
-        <UDashboardSidebarCollapse
-          v-else
-          class="ms-auto"
-        />
+
+        <!-- 固定导航：不随消息列表滚动 -->
+        <UNavigationMenu
+          v-if="!collapsed"
+          :items="topItems"
+          orientation="vertical"
+          class="mt-1"
+        >
+          <template #item-trailing="{ item }">
+            <div
+              v-if="(item as typeof topItems[number]).kbds?.length"
+              class="flex items-center gap-px opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <UKbd
+                v-for="kbd in (item as typeof topItems[number]).kbds"
+                :key="kbd"
+                :value="kbd"
+                size="sm"
+                variant="soft"
+                class="bg-accented/50"
+              />
+            </div>
+          </template>
+        </UNavigationMenu>
       </template>
 
       <template #default="{ collapsed }">
