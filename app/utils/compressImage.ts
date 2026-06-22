@@ -11,6 +11,9 @@ export function compressImageFile(file: File): Promise<File> {
   // GIF / BMP 不压缩
   if (file.type === 'image/gif' || file.type === 'image/bmp') return Promise.resolve(file)
 
+  // JPEG 且体积已很小，跳过压缩（重编码反而可能变大 + 浪费时间）
+  if (file.type === 'image/jpeg' && file.size < 500 * 1024) return Promise.resolve(file)
+
   return new Promise((resolve, reject) => {
     let settled = false
 
