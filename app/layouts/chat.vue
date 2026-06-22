@@ -203,6 +203,12 @@ const topItems = [
     to: '/chat',
     icon: 'i-lucide-circle-plus',
     kbds: ['meta', 'O']
+  },
+  {
+    label: '搜索对话',
+    icon: 'i-lucide-search',
+    kbds: ['meta', 'K'],
+    onSelect: () => { chatSearchOpen.value = true }
   }
 ]
 
@@ -222,52 +228,36 @@ async function logout() {
       class="border-r-0 py-4 dark:[--ui-bg-elevated:var(--ui-color-neutral-900)]"
     >
       <template #header="{ collapsed }">
-        <div class="flex items-center gap-2">
-          <NuxtLink
-            v-if="!collapsed"
-            to="/chat"
-            class="flex items-center gap-2 font-bold text-base text-highlighted"
-          >
-            <NuxtImg
-              src="/image/logo.png"
-              alt="AI Chat"
-              class="w-6 h-6 shrink-0"
-            />
-            <span>AI Chat</span>
-          </NuxtLink>
+        <NuxtLink
+          v-if="!collapsed"
+          to="/chat"
+          class="flex items-center gap-2"
+        >
           <NuxtImg
-            v-else
             src="/image/logo.png"
             alt="AI Chat"
-            class="w-6 h-6 mx-auto"
+            class="w-6 h-6 shrink-0"
           />
-          <div class="flex items-center gap-0.5 ms-auto">
-            <UButton
-              icon="i-lucide-search"
-              color="neutral"
-              variant="ghost"
-              size="sm"
-              aria-label="搜索对话"
-              @click="chatSearchOpen = true"
-            />
-            <UDashboardSidebarCollapse />
-          </div>
-        </div>
+          <span class="text-base font-bold text-highlighted">AI Chat</span>
+        </NuxtLink>
 
-        <!-- 固定导航：不随消息列表滚动 -->
+        <UDashboardSidebarCollapse class="ms-auto" />
+      </template>
+
+      <template #default="{ collapsed }">
+        <!-- 固定导航：回到首页 / 新对话 / 搜索 — 折叠时自动仅显示图标 -->
         <UNavigationMenu
-          v-if="!collapsed"
           :items="topItems"
+          :collapsed="collapsed"
           orientation="vertical"
-          class="mt-1"
         >
           <template #item-trailing="{ item }">
             <div
-              v-if="(item as typeof topItems[number]).kbds?.length"
+              v-if="item.kbds?.length"
               class="flex items-center gap-px opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <UKbd
-                v-for="kbd in (item as typeof topItems[number]).kbds"
+                v-for="kbd in item.kbds"
                 :key="kbd"
                 :value="kbd"
                 size="sm"
@@ -277,55 +267,56 @@ async function logout() {
             </div>
           </template>
         </UNavigationMenu>
-      </template>
 
-      <template #default="{ collapsed }">
-        <!-- 侧边栏加载骨架屏 -->
-        <div
-          v-if="!collapsed && showSidebarSkeleton && loggedIn"
-          class="space-y-1 mt-2"
-        >
-          <USkeleton class="h-3 w-10 mb-1" />
-          <USkeleton
-            v-for="i in 3"
-            :key="i"
-            class="h-8 w-full"
-          />
-          <USkeleton class="h-3 w-12 mb-1 mt-3" />
-          <USkeleton
-            v-for="i in 2"
-            :key="i"
-            class="h-8 w-full"
-          />
-        </div>
+        <!-- 聊天列表区域（仅展开时显示） -->
+        <template v-if="!collapsed">
+          <!-- 加载骨架屏 -->
+          <div
+            v-if="showSidebarSkeleton && loggedIn"
+            class="space-y-1"
+          >
+            <USkeleton class="h-3 w-10 mb-1" />
+            <USkeleton
+              v-for="i in 3"
+              :key="i"
+              class="h-8 w-full"
+            />
+            <USkeleton class="h-3 w-12 mb-1 mt-3" />
+            <USkeleton
+              v-for="i in 2"
+              :key="i"
+              class="h-8 w-full"
+            />
+          </div>
 
-        <UNavigationMenu
-          v-else-if="!collapsed"
-          :items="chatItems"
-          orientation="vertical"
-          :ui="{
-            link: 'overflow-hidden pr-7.5',
-            linkTrailing: 'translate-x-full group-hover:translate-x-0 [@media(hover:none)]:translate-x-0 group-has-data-[state=open]:translate-x-0 transition-transform absolute inset-y-0 end-0 flex items-center'
-          }"
-        >
-          <template #chat-trailing="{ item }">
-            <UDropdownMenu
-              :items="getChatMenuItems((item as { chatData: Chat }).chatData)"
-              :content="{ align: 'end' }"
-            >
-              <UButton
-                as="div"
-                icon="i-lucide-ellipsis"
-                color="neutral"
-                variant="ghost"
-                size="sm"
-                class="rounded-[5px] hover:bg-accented/50 focus-visible:bg-accented/50"
-                aria-label="更多操作"
-                @click.stop.prevent
-              />
-            </UDropdownMenu>
-          </template>
-        </UNavigationMenu>
+          <UNavigationMenu
+            v-else
+            :items="chatItems"
+            orientation="vertical"
+            :ui="{
+              link: 'overflow-hidden pr-7.5',
+              linkTrailing: 'translate-x-full group-hover:translate-x-0 [@media(hover:none)]:translate-x-0 group-has-data-[state=open]:translate-x-0 transition-transform absolute inset-y-0 end-0 flex items-center'
+            }"
+          >
+            <template #chat-trailing="{ item }">
+              <UDropdownMenu
+                :items="getChatMenuItems((item as { chatData: Chat }).chatData)"
+                :content="{ align: 'end' }"
+              >
+                <UButton
+                  as="div"
+                  icon="i-lucide-ellipsis"
+                  color="neutral"
+                  variant="ghost"
+                  size="sm"
+                  class="rounded-[5px] hover:bg-accented/50 focus-visible:bg-accented/50"
+                  aria-label="更多操作"
+                  @click.stop.prevent
+                />
+              </UDropdownMenu>
+            </template>
+          </UNavigationMenu>
+        </template>
       </template>
 
       <template #footer="{ collapsed }">
