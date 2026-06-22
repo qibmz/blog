@@ -68,11 +68,17 @@ onUnmounted(() => {
       @click="openZoom"
     >
       <UTooltip :text="part.filename ?? '文件'">
+        <template v-if="isImage">
+          <img
+            :src="part.url"
+            :alt="part.filename ?? '图片'"
+            class="max-w-48 max-h-64 object-contain rounded-lg"
+          >
+        </template>
         <UAvatar
+          v-else
           :size="size"
-          :src="isImage ? part.url : undefined"
           :icon="getFileIcon()"
-          :ui="isImage ? { image: 'object-contain' } : undefined"
           class="rounded-lg"
         />
       </UTooltip>
