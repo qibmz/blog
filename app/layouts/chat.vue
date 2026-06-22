@@ -3,6 +3,11 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 
 const chatSearchOpen = ref(false)
 
+defineShortcuts({
+  meta_k: () => { chatSearchOpen.value = true },
+  meta_o: () => navigateTo('/chat')
+})
+
 const { loggedIn, user, clear, fetch: refreshSession } = useUserSession()
 
 // 未登录优雅降级，不跳转 /login
@@ -187,26 +192,6 @@ const chatItems = computed(() => {
   return result
 })
 
-const topItems = [
-  {
-    label: '回到首页',
-    to: '/',
-    icon: 'i-lucide-home'
-  },
-  {
-    label: '新对话',
-    to: '/chat',
-    icon: 'i-lucide-circle-plus',
-    kbds: ['meta', 'O']
-  },
-  {
-    label: '搜索对话',
-    icon: 'i-lucide-search',
-    kbds: ['meta', 'K'],
-    onClick: () => { chatSearchOpen.value = true }
-  }
-]
-
 async function logout() {
   await clear()
   await navigateTo('/chat')
@@ -241,32 +226,35 @@ async function logout() {
           alt="AI Chat"
           class="w-6 h-6 mx-auto"
         />
-        <UDashboardSidebarCollapse class="ms-auto" />
+        <div
+          v-if="!collapsed"
+          class="flex items-center gap-0.5 ms-auto"
+        >
+          <UButton
+            icon="i-lucide-search"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="搜索对话"
+            @click="chatSearchOpen = true"
+          />
+          <UButton
+            icon="i-lucide-circle-plus"
+            color="neutral"
+            variant="ghost"
+            size="sm"
+            aria-label="新对话"
+            to="/chat"
+          />
+          <UDashboardSidebarCollapse />
+        </div>
+        <UDashboardSidebarCollapse
+          v-else
+          class="ms-auto"
+        />
       </template>
 
       <template #default="{ collapsed }">
-        <UNavigationMenu
-          :items="topItems"
-          :collapsed="collapsed"
-          orientation="vertical"
-        >
-          <template #item-trailing="{ item }">
-            <div
-              v-if="(item as typeof topItems[number]).kbds?.length"
-              class="flex items-center gap-px opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <UKbd
-                v-for="kbd in (item as typeof topItems[number]).kbds"
-                :key="kbd"
-                :value="kbd"
-                size="sm"
-                variant="soft"
-                class="bg-accented/50"
-              />
-            </div>
-          </template>
-        </UNavigationMenu>
-
         <!-- 侧边栏加载骨架屏 -->
         <div
           v-if="!collapsed && showSidebarSkeleton && loggedIn"
