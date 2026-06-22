@@ -30,3 +30,20 @@ try {
   console.error(sanitized)
   process.exit(1)
 }
+
+// ─── Seed 模型能力数据 ──────────────────────────────────────────────────────
+console.log('[prebuild-migrate] Running seed-models...')
+try {
+  execSync('npx tsx server/db/seed-models.ts', {
+    stdio: 'pipe',
+    encoding: 'utf-8',
+    timeout: 30_000
+  })
+  console.log('[prebuild-migrate] ✅ Seed complete')
+} catch (err) {
+  const raw = err?.stderr || err?.stdout || err?.message || String(err)
+  console.error('[prebuild-migrate] ❌ Seed 失败:')
+  console.error(raw)
+  // Seed 失败不阻塞部署（模型列表仍可通过 fallback 正常返回）
+  console.warn('[prebuild-migrate] ⚠️  继续部署（模型能力 fallback 到硬编码逻辑）')
+}
