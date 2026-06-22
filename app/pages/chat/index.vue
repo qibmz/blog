@@ -49,6 +49,10 @@ function onDrop(event: DragEvent) {
   addFiles(Array.from(event.dataTransfer.files))
 }
 
+const currentModel = computed(() =>
+  modelOptions.value.find(m => m.value === selectedModel.value)
+)
+
 async function createChat(text: string) {
   if (!loggedIn.value) {
     await navigateTo('/login')
@@ -148,7 +152,7 @@ function onSubmit() {
               <template #footer>
                 <div class="flex items-center gap-1.5 flex-wrap w-full">
                   <UFileUpload
-
+                    v-if="currentModel?.supportsImages"
                     v-model="uploadFiles"
                     variant="button"
                     icon="i-lucide-paperclip"
