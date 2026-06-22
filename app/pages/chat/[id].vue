@@ -228,6 +228,14 @@ onMounted(() => {
       <template #header>
         <UDashboardNavbar :title="chatTitle">
           <template #right>
+            <UBadge
+              v-if="currentModel"
+              :label="currentModel.label"
+              size="sm"
+              variant="subtle"
+              color="neutral"
+              class="hidden sm:inline-flex"
+            />
             <UColorModeButton />
             <UButton
               to="/chat"

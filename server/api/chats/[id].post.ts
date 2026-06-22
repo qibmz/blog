@@ -45,10 +45,15 @@ export default defineEventHandler(async (event) => {
 
   // 首次对话自动生成标题（不阻塞数据流，通过 waitUntil 确保在 serverless 环境完整执行）
   if (!chat.title && messages.length > 0) {
+    // 只提取文本内容用于标题生成，避免 base64 图片数据撑爆上下文
+    const userText = messages[0].parts
+      ?.filter(p => p.type === 'text')
+      .map(p => (p as { text: string }).text)
+      .join(' ') || '新对话'
     const titlePromise = generateText({
       model,
-      system: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。',
-      prompt: JSON.stringify(messages[0])
+      system: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。如果用户只发了图片没有文字，根据图片描述生成标题。',
+      prompt: userText.substring(0, 500)
     }).then(async ({ text: title }) => {
       await db.update(schema.chats)
         .set({ title, model: modelValue })
