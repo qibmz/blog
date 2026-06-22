@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   // 首次对话自动生成标题（不阻塞数据流，通过 waitUntil 确保在 serverless 环境完整执行）
   if (!chat.title && messages.length > 0) {
     // 只提取文本内容用于标题生成，避免 base64 图片数据撑爆上下文
-    const userText = messages[0].parts
+    const userText = messages[0]!.parts
       ?.filter(p => p.type === 'text')
       .map(p => (p as { text: string }).text)
       .join(' ') || '新对话'
