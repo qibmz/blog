@@ -61,6 +61,7 @@ export function useChatFileUpload() {
   /** 压缩单个文件并返回 FileUIPart */
   async function compressOne(item: FileItem) {
     try {
+      console.log(item)
       const compressed = await compressImageFile(item.file)
       // compressed 可能是原文件（跳过压缩）或新的 File
       const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -77,6 +78,7 @@ export function useChatFileUpload() {
       }
       item.status = 'ready'
     } catch (e) {
+      console.error(e)
       item.status = 'error'
       item.error = e instanceof Error ? e.message : '图片处理失败，请重试'
       // 不释放 blob URL —— 预览仍可用原图

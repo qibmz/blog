@@ -4,15 +4,22 @@ const COMPRESS_TIMEOUT_MS = 15_000
 
 /**
  * 使用 compressorjs 压缩图片，最长边 ≤ 1920px，quality 0.8。
- * GIF/BMP 不处理直接返回原文件。
- * 超时 15 秒未完成则抛出错误，避免 Compressor Web Worker 加载失败导致 promise 永不落定。
+ * - JPEG：重编码压缩，小文件跳过
+ * - PNG：只缩放尺寸，保留格式和透明通道，小文件跳过
+ * - WebP：转 JPEG
+ * - GIF/BMP：不处理直接返回
+ * 超时 15 秒未完成则抛出错误。
  */
 export function compressImageFile(file: File): Promise<File> {
   // GIF / BMP 不压缩
   if (file.type === 'image/gif' || file.type === 'image/bmp') return Promise.resolve(file)
 
-  // JPEG 且体积已很小，跳过压缩（重编码反而可能变大 + 浪费时间）
-  if (file.type === 'image/jpeg' && file.size < 500 * 1024) return Promise.resolve(file)
+  // JPEG / PNG 且体积已很小，跳过压缩
+  if (file.size < 500 * 1024 && (file.type === 'image/jpeg' || file.type === 'image/png')) {
+    return Promise.resolve(file)
+  }
+
+  const isPNG = file.type === 'image/png'
 
   return new Promise((resolve, reject) => {
     let settled = false
@@ -27,8 +34,16 @@ export function compressImageFile(file: File): Promise<File> {
       maxWidth: 1920,
       maxHeight: 1920,
       quality: 0.8,
-      convertTypes: ['image/webp', 'image/png'],
-      convertSize: 0, // 始终转 JPEG，体积最优
+      // PNG 不转换格式，只缩放；WebP 转 JPEG
+      convertTypes: ['image/webp'],
+      convertSize: 0,
+      // 转 JPEG 时透明区域填白
+      beforeDraw(context, canvas) {
+        if (!isPNG) {
+          context.fillStyle = '#fff'
+          context.fillRect(0, 0, canvas.width, canvas.height)
+        }
+      },
       success: (result) => {
         if (settled) return
         settled = true
