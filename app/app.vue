@@ -68,6 +68,11 @@ const searchNavigation = computed(() => [
   ...(blogNavigation.value || []),
   ...(docsNavigation.value || [])
 ])
+
+// 预热 Neon 数据库连接，减少后续功能的冷启动延迟
+onMounted(() => {
+  $fetch('/api/version').catch(() => {})
+})
 </script>
 
 <template>
