@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import { convertFileListToFileUIParts } from 'ai'
-import type { FileUIPart } from 'ai'
-import { compressImageFile } from '~/utils/compressImage'
-
 definePageMeta({ layout: 'chat' })
 
 useSeoMeta({ title: 'AI Chat' })
@@ -25,57 +21,22 @@ const { loggedIn } = useUserSession()
 const { model: selectedModel, models: modelOptions } = useModels()
 const { thinkingMode } = useChatOptions()
 
-// ─── 图片上传状态 ────────────────────────────────
+// ─── 图片上传 ────────────────────────────────
+const {
+  previewParts,
+  readyParts,
+  statuses,
+  errors,
+  addFiles,
+  removeFile,
+  clearFiles
+} = useChatFileUpload()
+
 const uploadFiles = ref<File | null>(null)
-const selectedFiles = ref<File[]>([])
-const fileParts = ref<FileUIPart[]>([])
-const converting = ref(false)
-
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
-const MAX_FILE_SIZE = 5 * 1024 * 1024
-const MAX_FILES = 3
-
-async function handleFiles(incoming: File[]) {
-  const list = Array.from(incoming)
-
-  if (selectedFiles.value.length + list.length > MAX_FILES) {
-    useToast().add({ title: `最多上传 ${MAX_FILES} 张图片`, color: 'warning', icon: 'i-lucide-alert-triangle', duration: 3000 })
-    return
-  }
-
-  const valid: File[] = []
-  for (const f of list) {
-    if (!ALLOWED_TYPES.includes(f.type)) {
-      useToast().add({ title: `"${f.name}" 格式不支持`, description: '支持 JPEG、PNG、GIF、WebP、BMP', color: 'warning', icon: 'i-lucide-image', duration: 3000 })
-      continue
-    }
-    if (f.size > MAX_FILE_SIZE) {
-      useToast().add({ title: `"${f.name}" 过大`, description: `最大 5MB，当前 ${(f.size / 1024 / 1024).toFixed(1)}MB`, color: 'warning', icon: 'i-lucide-alert-triangle', duration: 3000 })
-      continue
-    }
-    valid.push(f)
-  }
-  if (valid.length === 0) return
-
-  converting.value = true
-  try {
-    // 压缩大图，减小 base64 体积加速上传
-    const compressed = await Promise.all(valid.map((f: File) => compressImageFile(f)))
-    const dt = new DataTransfer()
-    compressed.forEach((f: File) => dt.items.add(f))
-    const parts = await convertFileListToFileUIParts(dt.files)
-    fileParts.value = [...fileParts.value, ...parts]
-    selectedFiles.value = [...selectedFiles.value, ...valid]
-  } catch (e) {
-    useToast().add({ title: '图片读取失败', description: e instanceof Error ? e.message : '请重试', color: 'error', duration: 4000 })
-  } finally {
-    converting.value = false
-  }
-}
 
 function onUploadChange(file: File | null | undefined) {
   if (file) {
-    handleFiles([file])
+    addFiles([file])
     nextTick(() => {
       uploadFiles.value = null
     })
@@ -84,17 +45,7 @@ function onUploadChange(file: File | null | undefined) {
 
 function onDrop(event: DragEvent) {
   if (!event.dataTransfer?.files.length) return
-  handleFiles(Array.from(event.dataTransfer.files))
-}
-
-function clearFiles() {
-  selectedFiles.value = []
-  fileParts.value = []
-}
-
-function removeFile(index: number) {
-  selectedFiles.value.splice(index, 1)
-  fileParts.value.splice(index, 1)
+  addFiles(Array.from(event.dataTransfer.files))
 }
 
 const currentModel = computed(() =>
@@ -107,7 +58,7 @@ async function createChat(text: string) {
     return
   }
   const trimmed = text.trim()
-  const hasFiles = fileParts.value.length > 0
+  const hasFiles = readyParts.value.length > 0
   if (!trimmed && !hasFiles) return
 
   chatBody.value = {
@@ -115,7 +66,7 @@ async function createChat(text: string) {
       id: crypto.randomUUID(),
       role: 'user',
       parts: [
-        ...fileParts.value,
+        ...readyParts.value,
         ...(trimmed ? [{ type: 'text', text: trimmed }] : [])
       ]
     },
@@ -184,11 +135,13 @@ function onSubmit() {
               @submit="onSubmit"
             >
               <template
-                v-if="fileParts.length > 0"
+                v-if="previewParts.length > 0"
                 #header
               >
                 <ChatFileList
-                  :parts="fileParts"
+                  :parts="previewParts"
+                  :statuses="statuses"
+                  :errors="errors"
                   removable
                   @remove="removeFile"
                 />
@@ -200,20 +153,13 @@ function onSubmit() {
                     v-if="currentModel?.supportsImages"
                     v-model="uploadFiles"
                     variant="button"
+                    icon="i-lucide-paperclip"
                     accept="image/jpeg,image/png,image/gif,image/webp,image/bmp"
-                    :disabled="converting"
                     color="neutral"
                     size="sm"
                     aria-label="上传图片"
                     @update:model-value="onUploadChange"
-                  >
-                    <template #leading>
-                      <UIcon
-                        :name="converting ? 'i-lucide-loader-2' : 'i-lucide-paperclip'"
-                        :class="{ 'animate-spin': converting }"
-                      />
-                    </template>
-                  </UFileUpload>
+                  />
 
                   <div class="flex-1" />
 

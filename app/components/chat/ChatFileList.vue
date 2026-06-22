@@ -2,10 +2,14 @@
 import type { FileUIPart } from 'ai'
 import type { AvatarProps } from '@nuxt/ui'
 
-withDefaults(defineProps<{
+type FileStatus = 'idle' | 'uploading' | 'uploaded' | 'error'
+
+const props = withDefaults(defineProps<{
   parts: FileUIPart[]
   size?: AvatarProps['size']
   removable?: boolean
+  statuses?: Record<number, FileStatus>
+  errors?: Record<number, string>
 }>(), {
   size: '2xl',
   removable: false
@@ -23,7 +27,9 @@ defineEmits<{
       :key="i"
       :part="part"
       :size="size"
-      :removable="removable"
+      :removable="removable && props.statuses?.[i] !== 'uploading'"
+      :status="props.statuses?.[i] ?? 'idle'"
+      :error="props.errors?.[i]"
       @remove="$emit('remove', i)"
     />
   </div>
