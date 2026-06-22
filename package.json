@@ -57,5 +57,10 @@
     "vitest": "^4.1.9",
     "vue-tsc": "^3.3.4"
   },
+  "pnpm": {
+    "overrides": {
+      "h3": "1.15.11"
+    }
+  },
   "packageManager": "pnpm@10.19.0"
 }
