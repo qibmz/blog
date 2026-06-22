@@ -9,7 +9,7 @@ definePageMeta({ layout: 'chat' })
 const route = useRoute()
 const id = route.params.id as string
 
-const { data: chatData } = await useAPI(`/api/chats/${id}`)
+const { data: chatData, refresh: refreshChat } = await useAPI(`/api/chats/${id}`)
 if (!chatData.value) throw createError({ statusCode: 404 })
 const { model: selectedModel, models: modelOptions } = useModels()
 const { thinkingMode } = useChatOptions()
@@ -53,6 +53,10 @@ if (!selectedModel.value) {
 }
 
 const chatTitle = ref(chatData.value.title ?? '新对话')
+// 服务器异步生成标题后，刷新数据时同步更新本地 title
+watch(() => chatData.value?.title, (newTitle) => {
+  if (newTitle) chatTitle.value = newTitle
+})
 useSeoMeta({ title: computed(() => `${chatTitle.value} — AI Chat`) })
 
 const input = ref('')
@@ -77,6 +81,7 @@ const chat = new Chat({
   onFinish: ({ isError }) => {
     if (!isError) {
       refreshNuxtData('sidebar-chats')
+      refreshChat()
     }
   }
 })
