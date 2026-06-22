@@ -1,5 +1,4 @@
 import type { FileUIPart } from 'ai'
-import { convertFileListToFileUIParts } from 'ai'
 import { compressImageFile } from '~/utils/compressImage'
 
 export interface FileItem {
@@ -63,18 +62,24 @@ export function useChatFileUpload() {
   async function compressOne(item: FileItem) {
     try {
       const compressed = await compressImageFile(item.file)
-      const dt = new DataTransfer()
-      dt.items.add(compressed)
-      const parts = await convertFileListToFileUIParts(dt.files)
-      item.part = parts[0] ?? null
+      // compressed 可能是原文件（跳过压缩）或新的 File
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => reject(new Error('读取文件失败'))
+        reader.readAsDataURL(compressed)
+      })
+      item.part = {
+        type: 'file',
+        url: dataUrl,
+        mediaType: compressed.type || item.file.type,
+        filename: compressed.name || item.file.name
+      }
       item.status = 'ready'
     } catch (e) {
       item.status = 'error'
       item.error = e instanceof Error ? e.message : '图片处理失败，请重试'
-      // 压缩/转换失败时释放预览 blob URL
-      if (item.previewPart.url?.startsWith('blob:')) {
-        URL.revokeObjectURL(item.previewPart.url)
-      }
+      // 不释放 blob URL —— 预览仍可用原图
     }
   }
 
