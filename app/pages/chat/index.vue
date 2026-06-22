@@ -20,15 +20,6 @@ const { data, pending, error, execute } = useAPI<{ id: string }>('/api/chats', {
 const hour = new Date().getHours()
 const greeting = hour < 12 ? '早上好，Master' : hour < 18 ? '下午好，Master' : '晚上好，Master'
 
-const quickSuggestions = [
-  { label: '为什么选择 Nuxt UI？', icon: 'i-logos-nuxt-icon' },
-  { label: '帮我创建一个 Vue composable', icon: 'i-logos-vue' },
-  { label: 'Tailwind CSS 最佳实践', icon: 'i-logos-tailwindcss-icon' },
-  { label: '为什么要考虑 VueUse？', icon: 'i-logos-vueuse' },
-  { label: '展示一张销售数据图表', icon: 'i-lucide-line-chart' },
-  { label: '帮我查询今天的天气', icon: 'i-lucide-sun' }
-]
-
 const { loggedIn } = useUserSession()
 
 const { model: selectedModel, models: modelOptions } = useModels()
@@ -143,10 +134,6 @@ async function createChat(text: string) {
 function onSubmit() {
   createChat(input.value)
 }
-
-function onQuickChat(label: string) {
-  createChat(label)
-}
 </script>
 
 <template>
@@ -213,14 +200,20 @@ function onQuickChat(label: string) {
                     v-if="currentModel?.supportsImages"
                     v-model="uploadFiles"
                     variant="button"
-                    :icon="converting ? 'i-lucide-loader-2' : 'i-lucide-paperclip'"
                     accept="image/jpeg,image/png,image/gif,image/webp,image/bmp"
                     :disabled="converting"
                     color="neutral"
                     size="sm"
                     aria-label="上传图片"
                     @update:model-value="onUploadChange"
-                  />
+                  >
+                    <template #leading>
+                      <UIcon
+                        :name="converting ? 'i-lucide-loader-2' : 'i-lucide-paperclip'"
+                        :class="{ 'animate-spin': converting }"
+                      />
+                    </template>
+                  </UFileUpload>
 
                   <div class="flex-1" />
 
@@ -255,20 +248,6 @@ function onQuickChat(label: string) {
                 </div>
               </template>
             </UChatPrompt>
-
-            <div class="flex flex-wrap gap-2">
-              <UButton
-                v-for="item in quickSuggestions"
-                :key="item.label"
-                :icon="item.icon"
-                :label="item.label"
-                size="sm"
-                color="neutral"
-                variant="outline"
-                class="rounded-full"
-                @click="onQuickChat(item.label)"
-              />
-            </div>
 
             <div
               v-if="!loggedIn"

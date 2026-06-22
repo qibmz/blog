@@ -329,14 +329,20 @@ onMounted(() => {
                     v-if="currentModel?.supportsImages"
                     v-model="uploadFiles"
                     variant="button"
-                    :icon="converting ? 'i-lucide-loader-2' : 'i-lucide-paperclip'"
                     accept="image/jpeg,image/png,image/gif,image/webp,image/bmp"
                     :disabled="converting"
                     color="neutral"
                     size="sm"
                     aria-label="上传图片"
                     @update:model-value="onUploadChange"
-                  />
+                  >
+                    <template #leading>
+                      <UIcon
+                        :name="converting ? 'i-lucide-loader-2' : 'i-lucide-paperclip'"
+                        :class="{ 'animate-spin': converting }"
+                      />
+                    </template>
+                  </UFileUpload>
 
                   <div class="flex-1" />
 
