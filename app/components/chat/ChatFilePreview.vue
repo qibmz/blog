@@ -68,9 +68,16 @@ onUnmounted(() => {
       @click="openZoom"
     >
       <UTooltip :text="part.filename ?? '文件'">
+        <!-- 图片：<img> 保持原始横宽比，UAvatar 会强制 1:1 -->
+        <img
+          v-if="isImage"
+          :src="part.url"
+          :alt="part.filename ?? '图片'"
+          class="object-contain max-w-24 max-h-24 rounded-lg"
+        >
         <UAvatar
+          v-else
           :size="size"
-          :src="isImage ? part.url : undefined"
           :icon="getFileIcon()"
           class="rounded-lg"
         />
