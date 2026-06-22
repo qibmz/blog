@@ -157,6 +157,10 @@ export const mock$Fetch = vi.fn()
 // ─── Apply ALL globals ──────────────────────────────────────────────────────
 vi.stubGlobal('db', mockDb)
 vi.stubGlobal('schema', mockSchema)
+// Nitro auto-imports individual schema exports as top-level identifiers
+vi.stubGlobal('models', mockSchema.models)
+vi.stubGlobal('chats', mockSchema.chats)
+vi.stubGlobal('messages', mockSchema.messages)
 vi.stubGlobal('$fetch', mock$Fetch)
 
 // h3 auto-imports

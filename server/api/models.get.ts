@@ -1,4 +1,5 @@
 import { defineEventHandler } from 'h3'
+import { inArray } from 'drizzle-orm'
 import {
   PROVIDER_REGISTRY,
   FALLBACK_MODELS,
@@ -28,31 +29,73 @@ async function fetchAvailableModels(): Promise<ModelOption[]> {
     })
   )
 
-  const models: ModelOption[] = []
+  // 第一阶段：收集所有匹配的模型 ID
+  const allModelIds: string[] = []
+  const providerModelMap = new Map<number, string[]>()
 
   PROVIDER_REGISTRY.forEach((provider, i) => {
     const result = results[i]!
 
     if (result.status === 'fulfilled') {
-      // 筛选出属于该 provider 且未被排除的模型
       const matched = [...result.value]
         .filter(id =>
           provider.prefixes.some(px => id.startsWith(px))
           && !provider.exclude.some(ex => id.toLowerCase().includes(ex.toLowerCase()))
         )
-        .map(id => ({
-          value: id,
-          label: `${provider.name} ${modelIdToLabel(provider, id)}`,
-          icon: provider.icon,
-          supportsImages: provider.supportsImages?.(id) ?? false
-        }))
-
-      models.push(...matched)
+      allModelIds.push(...matched)
+      providerModelMap.set(i, matched)
     }
     // API 失败：该 provider 不出现在列表中（不做 fallback，保持列表干净）
   })
 
-  return models
+  // 第二阶段：批量 DB 查询
+  const dbMap = new Map<string, boolean>()
+  let dbOk = false
+  if (allModelIds.length > 0) {
+    try {
+      const records = await db
+        .select({ id: models.id, supportsImages: models.supportsImages })
+        .from(models)
+        .where(inArray(models.id, allModelIds))
+      for (const r of records) {
+        dbMap.set(r.id, r.supportsImages)
+      }
+      dbOk = true
+    } catch (err) {
+      console.warn('[models] DB query failed, using provider fallback:', err)
+    }
+  }
+
+  // 第三阶段：构建 ModelOption[]
+  const modelOptions: ModelOption[] = []
+
+  PROVIDER_REGISTRY.forEach((provider, i) => {
+    const ids = providerModelMap.get(i)
+    if (!ids) return
+
+    for (const id of ids) {
+      let supportsImages: boolean
+      if (dbMap.has(id)) {
+        supportsImages = dbMap.get(id)! // 优先级 1: DB 权威来源
+      } else if (dbOk) {
+        // 优先级 2: DB 查询成功但无此模型记录（全量 Seed 下的异常）
+        console.warn(`[models] DB miss for ${id}, model should be seeded`)
+        supportsImages = provider.supportsImages?.(id) ?? false
+      } else {
+        // 优先级 3: DB 查询失败
+        supportsImages = provider.supportsImages?.(id) ?? false
+      }
+
+      modelOptions.push({
+        value: id,
+        label: `${provider.name} ${modelIdToLabel(provider, id)}`,
+        icon: provider.icon,
+        supportsImages
+      })
+    }
+  })
+
+  return modelOptions
 }
 
 export default defineEventHandler(async () => {
