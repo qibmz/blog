@@ -30,3 +30,10 @@ export const chatsRelations = relations(chats, ({ many }) => ({
 export const messagesRelations = relations(messages, ({ one }) => ({
   chat: one(chats, { fields: [messages.chatId], references: [chats.id] })
 }))
+
+export const models = pgTable('models', {
+  id: text('id').primaryKey(),
+  supportsImages: boolean('supports_images').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow()
+})
