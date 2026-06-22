@@ -126,11 +126,24 @@ function onSubmit() {
               {{ greeting }}
             </h1>
 
+            <!-- POST 请求期间显示加载状态，避免漫长等待中用户感知不到反馈 -->
+            <div
+              v-if="pending"
+              class="flex flex-col items-center justify-center gap-4 py-20"
+            >
+              <UIcon
+                name="i-lucide-loader-circle"
+                class="w-12 h-12 animate-spin text-primary"
+              />
+              <span class="text-sm text-muted">正在创建对话...</span>
+            </div>
+
             <UChatPrompt
+              v-else
               v-model="input"
               placeholder="有什么可以帮你的？"
               :rows="3"
-              :disabled="pending || isCompressing"
+              :disabled="isCompressing"
               class="[view-transition-name:chat-prompt]"
               :ui="{ footer: 'flex-wrap' }"
               @submit="onSubmit"
@@ -190,7 +203,7 @@ function onSubmit() {
                     </template>
                   </USelectMenu>
                   <UChatPromptSubmit
-                    :status="pending ? 'submitted' : 'ready'"
+                    status="ready"
                     color="neutral"
                     size="sm"
                   />
