@@ -219,7 +219,7 @@ onMounted(() => {
 
 <template>
   <div
-    class="flex flex-1 flex-col min-h-0"
+    class="flex flex-1 flex-col min-h-0 overflow-hidden"
     @dragover.prevent
     @drop.prevent="onDrop"
   >
@@ -229,10 +229,7 @@ onMounted(() => {
       :ui="{ body: 'p-0 sm:p-0 overscroll-none' }"
     >
       <template #header>
-        <UDashboardNavbar
-          :title="chatTitle"
-          :ui="{ title: 'truncate min-w-0' }"
-        >
+        <UDashboardNavbar :title="chatTitle">
           <template #right>
             <UBadge
               v-if="currentModel"
