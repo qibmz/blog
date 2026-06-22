@@ -7,7 +7,8 @@ export const chats = pgTable('chats', {
   title: text('title'),
   model: text('model'),
   pinned: boolean('pinned').notNull().default(false),
-  createdAt: timestamp('created_at').notNull().defaultNow()
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at')
 }, table => [
   index('chats_user_id_idx').on(table.userId),
   index('chats_user_id_pinned_idx').on(table.userId, table.pinned, table.createdAt)

@@ -1,5 +1,5 @@
 import { defineEventHandler } from 'h3'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, and, isNull } from 'drizzle-orm'
 import { getTodayCount, DAILY_LIMIT } from '../utils/rateLimiter'
 
 export default defineEventHandler(async (event) => {
@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
 
   const [chats, todayCount] = await Promise.all([
     db.query.chats.findMany({
-      where: eq(schema.chats.userId, session.user.id),
+      where: and(eq(schema.chats.userId, session.user.id), isNull(schema.chats.deletedAt)),
       orderBy: () => [desc(schema.chats.pinned), desc(schema.chats.createdAt)]
     }),
     getTodayCount(session.user.id)

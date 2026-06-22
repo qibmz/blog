@@ -18,7 +18,8 @@ export const mockSchema = {
     title: 'title',
     model: 'model',
     pinned: 'pinned',
-    createdAt: 'created_at'
+    createdAt: 'created_at',
+    deletedAt: 'deleted_at'
   },
   messages: {
     id: 'id',

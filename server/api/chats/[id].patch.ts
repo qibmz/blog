@@ -37,8 +37,9 @@ export default defineEventHandler(async (event) => {
       return { ...chat, pinned: body.pinned }
     }
     case 'delete': {
-      // messages 设置了 onDelete: cascade，自动级联删除
-      await db.delete(schema.chats).where(ownership)
+      await db.update(schema.chats)
+        .set({ deletedAt: new Date() })
+        .where(ownership)
       return { deleted: true }
     }
   }

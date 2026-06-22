@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createError } from 'h3'
 import {
-  mockDbFindFirst, mockDbUpdate, mockDbDelete, mockUser,
+  mockDbFindFirst, mockDbUpdate, mockUser,
   mockReadValidatedBody, mockRequireUserSession
 } from '../../utils/__test__/setup'
 
@@ -73,7 +73,7 @@ describe('PATCH /api/chats/[id]', () => {
     const result = await handler(event)
 
     expect(result).toEqual({ deleted: true })
-    expect(mockDbDelete).toHaveBeenCalled()
+    expect(mockDbUpdate).toHaveBeenCalled()
   })
 
   it('should return 404 when chat not found', async () => {
