@@ -88,6 +88,11 @@ function onUploadChange(file: File | null | undefined) {
   }
 }
 
+function onDrop(event: DragEvent) {
+  if (!event.dataTransfer?.files.length) return
+  handleFiles(Array.from(event.dataTransfer.files))
+}
+
 function clearFiles() {
   selectedFiles.value = []
   fileParts.value = []
@@ -142,7 +147,11 @@ function onQuickChat(label: string) {
 </script>
 
 <template>
-  <div class="flex flex-1 flex-col min-h-0">
+  <div
+    class="flex flex-1 flex-col min-h-0"
+    @dragover.prevent
+    @drop.prevent="onDrop"
+  >
     <UDashboardPanel
       id="home"
       class="min-h-0 flex-1"
