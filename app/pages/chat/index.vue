@@ -144,6 +144,7 @@ function onSubmit() {
                   :statuses="statuses"
                   :errors="errors"
                   removable
+                  compact
                   @remove="removeFile"
                 />
               </template>

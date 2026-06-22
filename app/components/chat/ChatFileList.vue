@@ -10,9 +10,11 @@ const props = withDefaults(defineProps<{
   removable?: boolean
   statuses?: Record<number, FileStatus>
   errors?: Record<number, string>
+  compact?: boolean
 }>(), {
   size: '2xl',
-  removable: false
+  removable: false,
+  compact: false
 })
 
 defineEmits<{
@@ -27,6 +29,7 @@ defineEmits<{
       :key="i"
       :part="part"
       :size="size"
+      :compact="compact"
       :removable="removable && props.statuses?.[i] !== 'uploading'"
       :status="props.statuses?.[i] ?? 'idle'"
       :error="props.errors?.[i]"

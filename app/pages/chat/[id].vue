@@ -270,6 +270,7 @@ onMounted(() => {
                   :statuses="statuses"
                   :errors="errors"
                   removable
+                  compact
                   @remove="removeFile"
                 />
               </template>

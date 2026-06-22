@@ -9,12 +9,14 @@ interface ChatFilePreviewProps {
   removable?: boolean
   status?: 'idle' | 'uploading' | 'uploaded' | 'error'
   error?: string
+  compact?: boolean
 }
 
 const props = withDefaults(defineProps<ChatFilePreviewProps>(), {
   size: '2xl',
   removable: false,
-  status: 'idle'
+  status: 'idle',
+  compact: false
 })
 
 const emit = defineEmits<{
@@ -72,12 +74,14 @@ onUnmounted(() => {
           <img
             :src="part.url"
             :alt="part.filename ?? '图片'"
-            class="max-w-48 max-h-64 object-contain rounded-lg"
+            :class="compact
+              ? 'size-20 object-cover rounded-lg'
+              : 'max-w-48 max-h-64 object-contain rounded-lg'"
           >
         </template>
         <UAvatar
           v-else
-          :size="size"
+          :size="compact ? 'lg' : size"
           :icon="getFileIcon()"
           class="rounded-lg"
         />
