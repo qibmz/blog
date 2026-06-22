@@ -67,7 +67,9 @@ async function handleFiles(incoming: File[]) {
 
   converting.value = true
   try {
-    const parts = await convertFileListToFileUIParts(valid as unknown as FileList)
+    const dt = new DataTransfer()
+    valid.forEach(f => dt.items.add(f))
+    const parts = await convertFileListToFileUIParts(dt.files)
     fileParts.value = [...fileParts.value, ...parts]
     selectedFiles.value = [...selectedFiles.value, ...valid]
   } catch (e) {
