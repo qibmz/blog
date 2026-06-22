@@ -57,57 +57,65 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="relative group">
-    <UTooltip :text="part.filename ?? '文件'">
-      <UAvatar
-        :size="size"
-        :src="isImage ? part.url : undefined"
-        :icon="getFileIcon()"
-        class="rounded-lg"
-        :class="{
-          'opacity-50': status === 'uploading',
-          'cursor-zoom-in': isImage
-        }"
-        @click="openZoom"
-      />
-    </UTooltip>
-
-    <!-- Uploading overlay -->
+  <div class="relative group/thumb shrink-0">
+    <!-- 卡片主体 -->
     <div
-      v-if="status === 'uploading'"
-      class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-lg"
+      class="relative rounded-xl overflow-hidden border border-border/60 ring-1 ring-border/20 shadow-sm group-hover/thumb:shadow-md transition-shadow duration-200"
+      :class="{
+        'cursor-zoom-in': isImage,
+        'opacity-60': status === 'uploading'
+      }"
+      @click="openZoom"
     >
-      <UIcon
-        name="i-lucide-loader-2"
-        class="size-6 animate-spin text-white"
-      />
-    </div>
+      <UTooltip :text="part.filename ?? '文件'">
+        <UAvatar
+          :size="size"
+          :src="isImage ? part.url : undefined"
+          :icon="getFileIcon()"
+          class="rounded-lg"
+        />
+      </UTooltip>
 
-    <!-- Error overlay -->
-    <UTooltip
-      v-if="status === 'error'"
-      :text="error"
-    >
-      <div class="absolute inset-0 flex items-center justify-center bg-error/50 rounded-lg">
+      <!-- 上传中：毛玻璃遮罩 + 旋转图标 -->
+      <div
+        v-if="status === 'uploading'"
+        class="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-xl"
+      >
         <UIcon
-          name="i-lucide-alert-circle"
-          class="size-6 text-white"
+          name="i-lucide-loader-2"
+          class="size-5 animate-spin text-white drop-shadow"
         />
       </div>
-    </UTooltip>
 
-    <!-- Remove button -->
-    <UButton
+      <!-- 错误遮罩 -->
+      <div
+        v-if="status === 'error'"
+        class="absolute inset-0 flex items-center justify-center bg-error/40 backdrop-blur-[2px] rounded-xl"
+      >
+        <UTooltip :text="error">
+          <UIcon
+            name="i-lucide-alert-circle"
+            class="size-5 text-white drop-shadow"
+          />
+        </UTooltip>
+      </div>
+    </div>
+
+    <!-- 关闭按钮：毛玻璃圆，内缩定位 -->
+    <button
       v-if="removable && status !== 'uploading'"
-      icon="i-lucide-x"
-      size="xs"
-      color="neutral"
-      class="absolute p-0 -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-full ring ring-bg"
-      aria-label="Remove file"
-      @click="emit('remove')"
-    />
+      type="button"
+      class="absolute top-1.5 right-1.5 size-5 flex items-center justify-center rounded-full bg-black/55 backdrop-blur-md text-white/90 opacity-0 group-hover/thumb:opacity-100 hover:bg-black/75 hover:text-white hover:scale-110 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary z-10"
+      aria-label="移除文件"
+      @click.stop="emit('remove')"
+    >
+      <UIcon
+        name="i-lucide-x"
+        class="size-3.5"
+      />
+    </button>
 
-    <!-- Lightbox zoom -->
+    <!-- Lightbox -->
     <Teleport to="body">
       <AnimatePresence>
         <div

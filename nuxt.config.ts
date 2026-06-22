@@ -73,7 +73,6 @@ export default defineNuxtConfig({
 
   nitro: {
     baseURL: process.env.NUXT_APP_BASE_URL || '/',
-    maxBodySize: '10mb',
     imports: {
       dirs: ['server/db']
     },
@@ -85,6 +84,9 @@ export default defineNuxtConfig({
     }
   },
   vite: {
+    css: {
+      devSourcemap: true
+    },
     esbuild: {
       drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
     }
