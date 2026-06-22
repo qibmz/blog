@@ -70,7 +70,11 @@ export function useChatFileUpload() {
       item.status = 'ready'
     } catch (e) {
       item.status = 'error'
-      item.error = e instanceof Error ? e.message : '压缩失败'
+      item.error = e instanceof Error ? e.message : '图片处理失败，请重试'
+      // 压缩/转换失败时释放预览 blob URL
+      if (item.previewPart.url?.startsWith('blob:')) {
+        URL.revokeObjectURL(item.previewPart.url)
+      }
     }
   }
 
