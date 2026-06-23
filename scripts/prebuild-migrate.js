@@ -42,8 +42,9 @@ try {
   console.log('[prebuild-migrate] ✅ Seed complete')
 } catch (err) {
   const raw = err?.stderr || err?.stdout || err?.message || String(err)
+  const sanitized = raw.replaceAll(dbUrl, '[REDACTED]')
   console.error('[prebuild-migrate] ❌ Seed 失败:')
-  console.error(raw)
+  console.error(sanitized)
   // Seed 失败不阻塞部署（模型列表仍可通过 fallback 正常返回）
   console.warn('[prebuild-migrate] ⚠️  继续部署（模型能力 fallback 到硬编码逻辑）')
 }

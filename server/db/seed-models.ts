@@ -51,7 +51,13 @@ for (const model of seedData) {
       createdAt: new Date(),
       updatedAt: new Date()
     })
-    .onConflictDoNothing({ target: [schema.models.id] })
+    .onConflictDoUpdate({
+      target: schema.models.id,
+      set: {
+        supportsImages: model.supportsImages,
+        updatedAt: new Date()
+      }
+    })
 }
 
 console.log('[seed-models] ✅ Seed complete')

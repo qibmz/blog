@@ -156,6 +156,10 @@ export function useChatFileUpload() {
     items.value = []
   }
 
+  onScopeDispose(() => {
+    clearFiles()
+  })
+
   /** 是否有文件仍在压缩中 */
   const isCompressing = computed(() =>
     items.value.some(i => i.status === 'compressing')

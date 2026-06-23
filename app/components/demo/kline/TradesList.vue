@@ -45,6 +45,7 @@ const lastHeadTradeId = ref<number | null>(null)
 const flashTradeIds = ref<Set<number>>(new Set())
 const lastFlashTime = ref(0)
 const FLASH_COOLDOWN = 500 // 两次 flash 之间最少间隔 ms
+const flashTimeoutIds = new Set<ReturnType<typeof setTimeout>>()
 
 const formatPrice = (price: string) => {
   return parseFloat(price).toFixed(2)
@@ -107,11 +108,13 @@ watch(
         updated.add(latestId)
         flashTradeIds.value = updated
         lastFlashTime.value = now
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
           const cleared = new Set(flashTradeIds.value)
           cleared.delete(latestId)
           flashTradeIds.value = cleared
+          flashTimeoutIds.delete(timeoutId)
         }, 700)
+        flashTimeoutIds.add(timeoutId)
       }
     }
 
@@ -139,6 +142,12 @@ watch(
   },
   { deep: true }
 )
+onUnmounted(() => {
+  for (const id of flashTimeoutIds) {
+    clearTimeout(id)
+  }
+  flashTimeoutIds.clear()
+})
 </script>
 
 <template>

@@ -10,6 +10,7 @@
 
 import { createDeepSeek } from '@ai-sdk/deepseek'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+import { eq } from 'drizzle-orm'
 import type { LanguageModel } from 'ai'
 
 // ─── Provider 实例 ───────────────────────────────────────────────────────────
@@ -122,8 +123,19 @@ export function getModel(value: string): LanguageModel {
   return PROVIDER_REGISTRY[0]!.getInstance(value)
 }
 
-/** 检测 model ID 是否支持图片输入 */
-export function modelSupportsImages(modelId: string): boolean {
+/** 检测 model ID 是否支持图片输入（DB 优先，Provider fallback） */
+export async function modelSupportsImages(modelId: string): Promise<boolean> {
+  // 1. DB 优先 — 和 /api/models 保持一致的数据源
+  try {
+    const row = await db.query.models.findFirst({
+      where: eq(schema.models.id, modelId)
+    })
+    if (row) return row.supportsImages ?? false
+  } catch {
+    // DB 查询失败 → fallback 到 Provider 硬编码
+  }
+
+  // 2. Provider 硬编码 fallback
   const provider = PROVIDER_REGISTRY.find(p =>
     p.prefixes.some(px => modelId.startsWith(px))
   )

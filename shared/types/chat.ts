@@ -7,7 +7,13 @@ const UIMessagePartSchema = z.intersection(
   z.union([
     z.object({ type: z.literal('text'), text: z.string() }),
     z.object({ type: z.literal('file'), url: z.string(), mediaType: z.string(), filename: z.string().optional() }),
-    z.any() // reasoning, tool-call, data 等其他 part 类型
+    // reasoning、tool-call、data 等其他 part 类型
+    // passthrough 保留未知字段，refine 排除 text/file 避免误匹配
+    z.object({ type: z.string() }).passthrough().refine(
+      (p): p is { type: string } & Record<string, unknown> =>
+        p.type !== 'text' && p.type !== 'file',
+      { message: 'Unknown part type should not match text/file literal' }
+    )
   ])
 )
 

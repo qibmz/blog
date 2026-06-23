@@ -70,8 +70,15 @@ const searchNavigation = computed(() => [
 ])
 
 // 预热 Neon 数据库连接，减少后续功能的冷启动延迟
+const { execute: prewarmDb } = useAPI('/api/version', {
+  immediate: false,
+  watch: false,
+  skipAuthRedirect: true
+})
+
+// 预热 Neon 数据库连接，减少后续功能的冷启动延迟
 onMounted(() => {
-  $fetch('/api/version').catch(() => {})
+  prewarmDb().catch(() => {})
 })
 </script>
 

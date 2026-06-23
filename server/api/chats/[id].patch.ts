@@ -1,5 +1,5 @@
 import { defineEventHandler, getValidatedRouterParams, readValidatedBody } from 'h3'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { z } from 'zod'
 
 export default defineEventHandler(async (event) => {
@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
 
   // 验证所有权
   const chat = await db.query.chats.findFirst({
-    where: and(eq(schema.chats.id, id), eq(schema.chats.userId, user.id))
+    where: and(eq(schema.chats.id, id), eq(schema.chats.userId, user.id), isNull(schema.chats.deletedAt))
   })
 
   if (!chat) {

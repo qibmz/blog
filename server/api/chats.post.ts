@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   // 非视觉模型拒绝图片
   const modelValue = model ?? DEFAULT_MODEL
   const hasImageParts = message.parts?.some(p => (p as { type: string }).type === 'file')
-  if (hasImageParts && !modelSupportsImages(modelValue)) {
+  if (hasImageParts && !(await modelSupportsImages(modelValue))) {
     throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
   }
 

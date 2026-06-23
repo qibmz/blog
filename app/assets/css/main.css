@@ -86,6 +86,6 @@ html {
   scrollbar-width: thin;
   scrollbar-color: var(--ui-color-neutral-300) transparent;
 }
-.dark html {
+html.dark {
   scrollbar-color: var(--ui-color-neutral-600) transparent;
 }

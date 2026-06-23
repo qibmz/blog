@@ -29,6 +29,16 @@ const {
 const uploadFiles = ref<File | null>(null)
 
 function onUploadChange(file: File | null | undefined) {
+  if (!currentModel.value?.supportsImages) {
+    useToast().add({
+      title: '当前模型不支持图片输入',
+      color: 'warning',
+      icon: 'i-lucide-alert-triangle',
+      duration: 3000
+    })
+    uploadFiles.value = null
+    return
+  }
   if (file) {
     addFiles([file])
     nextTick(() => {
@@ -38,6 +48,15 @@ function onUploadChange(file: File | null | undefined) {
 }
 
 function onDrop(event: DragEvent) {
+  if (!currentModel.value?.supportsImages) {
+    useToast().add({
+      title: '当前模型不支持图片输入',
+      color: 'warning',
+      icon: 'i-lucide-alert-triangle',
+      duration: 3000
+    })
+    return
+  }
   if (!event.dataTransfer?.files.length) return
   addFiles(Array.from(event.dataTransfer.files))
 }

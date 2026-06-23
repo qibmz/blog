@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   const hasImageParts = messages.some(msg =>
     msg.parts?.some(p => (p as { type: string }).type === 'file')
   )
-  if (hasImageParts && !modelSupportsImages(modelValue)) {
+  if (hasImageParts && !(await modelSupportsImages(modelValue))) {
     throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
   }
 
