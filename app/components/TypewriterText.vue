@@ -10,13 +10,15 @@ const props = withDefaults(defineProps<{
   pauseDuration: 1800
 })
 
-const displayText = ref('')
+// 初始就显示第一个词的首字符，避免页面抖动
+const displayText = ref(props.texts[0]?.charAt(0) ?? '')
 const currentIndex = ref(0)
 const isDeleting = ref(false)
 const isBlinking = ref(true)
 
-// 用 useTimeoutFn 替代手写 setTimeout
-const { start } = useTimeoutFn(tick, 500, { immediate: false })
+function scheduleTick(delay: number) {
+  useTimeoutFn(tick, delay)
+}
 
 function tick() {
   const current = props.texts[currentIndex.value] ?? ''
@@ -28,30 +30,43 @@ function tick() {
   }
 
   if (!isDeleting.value) {
-    displayText.value = current.slice(0, displayText.value.length + 1)
+    // === 打字阶段 ===
+    isBlinking.value = false
+    if (displayText.value.length < current.length) {
+      displayText.value = current.slice(0, displayText.value.length + 1)
+    }
+
     if (displayText.value === current) {
+      // 打完当前词，闪烁等待后进入删除
       isBlinking.value = true
-      useTimeoutFn(() => {
-        isDeleting.value = true
-        isBlinking.value = false
-        tick()
-      }, props.pauseDuration)
+      isDeleting.value = true
+      scheduleTick(props.pauseDuration)
       return
     }
+
+    scheduleTick(props.typingSpeed)
   } else {
+    // === 删除阶段 ===
+    isBlinking.value = false
     displayText.value = current.slice(0, displayText.value.length - 1)
+
     if (displayText.value === '') {
+      // 删完，切到下一个词并立即显示首字符（Vue 响应式批处理，DOM 不会看到空状态）
       isDeleting.value = false
       currentIndex.value = (currentIndex.value + 1) % props.texts.length
+      const nextText = props.texts[currentIndex.value] ?? ''
+      displayText.value = nextText.charAt(0)
+      scheduleTick(props.typingSpeed)
+      return
     }
-  }
 
-  const speed = isDeleting.value ? props.deletingSpeed : props.typingSpeed
-  useTimeoutFn(tick, speed)
+    scheduleTick(props.deletingSpeed)
+  }
 }
 
 onMounted(() => {
-  start()
+  // 首字符已展示，短暂延迟后开始打第二个字符
+  scheduleTick(props.typingSpeed)
 })
 </script>
 
