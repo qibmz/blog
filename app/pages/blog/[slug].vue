@@ -21,6 +21,21 @@ useSeoMeta({
   description,
   ogDescription: description
 })
+
+const copied = ref(false)
+
+async function copyMarkdown() {
+  if (!post.value?.rawbody || copied.value) return
+  try {
+    await navigator.clipboard.writeText(post.value.rawbody)
+    copied.value = true
+    setTimeout(() => {
+      copied.value = false
+    }, 2000)
+  } catch {
+    // clipboard not available — silently ignore
+  }
+}
 </script>
 
 <template>
@@ -36,6 +51,17 @@ useSeoMeta({
         />
         <span class="text-muted">&middot;</span>
         <time class="text-muted">{{ new Date(post.date).toLocaleDateString('en', { year: 'numeric', month: 'short', day: 'numeric' }) }}</time>
+        <span class="text-muted">&middot;</span>
+        <UButton
+          v-if="post.rawbody"
+          :label="copied ? '已复制' : '复制 Markdown'"
+          :icon="copied ? 'i-lucide-check' : 'i-lucide-clipboard-copy'"
+          variant="ghost"
+          size="xs"
+          :color="copied ? 'success' : 'neutral'"
+          :class="['transition-all duration-300', copied ? 'pointer-events-none' : '']"
+          @click="copyMarkdown"
+        />
       </template>
 
       <div class="flex flex-wrap items-center gap-3 mt-4">
