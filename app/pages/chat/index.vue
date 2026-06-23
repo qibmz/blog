@@ -16,51 +16,103 @@ const { data, pending, error, execute } = useAPI<{ id: string }>('/api/chats', {
 const hour = new Date().getHours()
 const greeting = hour < 12 ? '早上好，Master' : hour < 18 ? '下午好，Master' : '晚上好，Master'
 
-const quickSuggestions = [
-  { label: '为什么选择 Nuxt UI？', icon: 'i-logos-nuxt-icon' },
-  { label: '帮我创建一个 Vue composable', icon: 'i-logos-vue' },
-  { label: 'Tailwind CSS 最佳实践', icon: 'i-logos-tailwindcss-icon' },
-  { label: '为什么要考虑 VueUse？', icon: 'i-logos-vueuse' },
-  { label: '展示一张销售数据图表', icon: 'i-lucide-line-chart' },
-  { label: '帮我查询今天的天气', icon: 'i-lucide-sun' }
-]
-
 const { loggedIn } = useUserSession()
 
 const { model: selectedModel, models: modelOptions } = useModels()
 const { thinkingMode } = useChatOptions()
+
+// ─── 图片上传 ────────────────────────────────
+const {
+  previewParts,
+  readyParts,
+  statuses,
+  errors,
+  isCompressing,
+  addFiles,
+  removeFile,
+  clearFiles
+} = useChatFileUpload()
+
+const uploadFiles = ref<File | null>(null)
+
+function onUploadChange(file: File | null | undefined) {
+  if (!currentModel.value?.supportsImages) {
+    useToast().add({
+      title: '当前模型不支持图片输入',
+      color: 'warning',
+      icon: 'i-lucide-alert-triangle',
+      duration: 3000
+    })
+    uploadFiles.value = null
+    return
+  }
+  if (file) {
+    addFiles([file])
+    nextTick(() => {
+      uploadFiles.value = null
+    })
+  }
+}
+
+function onDrop(event: DragEvent) {
+  if (!currentModel.value?.supportsImages) {
+    useToast().add({
+      title: '当前模型不支持图片输入',
+      color: 'warning',
+      icon: 'i-lucide-alert-triangle',
+      duration: 3000
+    })
+    return
+  }
+  if (!event.dataTransfer?.files.length) return
+  addFiles(Array.from(event.dataTransfer.files))
+}
+
+const currentModel = computed(() =>
+  modelOptions.value.find(m => m.value === selectedModel.value)
+)
+
 async function createChat(text: string) {
   if (!loggedIn.value) {
     await navigateTo('/login')
     return
   }
   const trimmed = text.trim()
-  if (!trimmed) return
+  const hasFiles = readyParts.value.length > 0
+  if (!trimmed && !hasFiles) return
 
   chatBody.value = {
-    message: { id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text: trimmed }] },
+    message: {
+      id: crypto.randomUUID(),
+      role: 'user',
+      parts: [
+        ...readyParts.value,
+        ...(trimmed ? [{ type: 'text', text: trimmed }] : [])
+      ]
+    },
     model: selectedModel.value,
     options: { thinkingMode: thinkingMode.value }
   }
   await execute()
   if (error.value) return
   if (data.value) {
+    clearFiles()
     refreshNuxtData('sidebar-chats')
     await navigateTo(`/chat/${data.value.id}`)
   }
 }
 
-function onSubmit() {
-  createChat(input.value)
-}
-
-function onQuickChat(label: string) {
-  createChat(label)
+async function onSubmit() {
+  await createChat(input.value)
 }
 </script>
 
 <template>
-  <div class="flex flex-1 flex-col min-h-0">
+  <div
+    class="flex flex-1 flex-col min-h-0"
+    @dragover.prevent
+    @drop.prevent="onDrop"
+  >
     <UDashboardPanel
       id="home"
       class="min-h-0 flex-1"
@@ -93,17 +145,59 @@ function onQuickChat(label: string) {
               {{ greeting }}
             </h1>
 
+            <!-- POST 请求期间显示加载状态，避免漫长等待中用户感知不到反馈 -->
+            <div
+              v-if="pending"
+              class="flex flex-col items-center justify-center gap-4 py-20"
+            >
+              <UIcon
+                name="i-lucide-loader-circle"
+                class="w-12 h-12 animate-spin text-primary"
+              />
+              <span class="text-sm text-muted">正在创建对话...</span>
+            </div>
+
             <UChatPrompt
+              v-else
               v-model="input"
               placeholder="有什么可以帮你的？"
               :rows="3"
-              :disabled="pending"
+              :disabled="isCompressing"
               class="[view-transition-name:chat-prompt]"
               :ui="{ footer: 'flex-wrap' }"
               @submit="onSubmit"
             >
+              <template
+                v-if="previewParts.length > 0"
+                #header
+              >
+                <ChatFileList
+                  :parts="previewParts"
+                  :statuses="statuses"
+                  :errors="errors"
+                  removable
+                  compact
+                  @remove="removeFile"
+                />
+              </template>
+
               <template #footer>
-                <div class="flex items-center gap-1 flex-wrap">
+                <div class="flex items-center gap-1.5 flex-wrap w-full">
+                  <UFileUpload
+                    v-if="currentModel?.supportsImages"
+                    v-model="uploadFiles"
+                    variant="button"
+                    icon="i-lucide-paperclip"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/bmp"
+                    color="neutral"
+                    size="sm"
+                    aria-label="上传图片"
+                    :preview="false"
+                    @update:model-value="onUploadChange"
+                  />
+
+                  <div class="flex-1" />
+
                   <UButton
                     label="深度思考"
                     icon="i-lucide-brain"
@@ -127,28 +221,14 @@ function onQuickChat(label: string) {
                       />
                     </template>
                   </USelectMenu>
+                  <UChatPromptSubmit
+                    status="ready"
+                    color="neutral"
+                    size="sm"
+                  />
                 </div>
-                <UChatPromptSubmit
-                  :status="pending ? 'submitted' : 'ready'"
-                  color="neutral"
-                  size="sm"
-                />
               </template>
             </UChatPrompt>
-
-            <div class="flex flex-wrap gap-2">
-              <UButton
-                v-for="item in quickSuggestions"
-                :key="item.label"
-                :icon="item.icon"
-                :label="item.label"
-                size="sm"
-                color="neutral"
-                variant="outline"
-                class="rounded-full"
-                @click="onQuickChat(item.label)"
-              />
-            </div>
 
             <div
               v-if="!loggedIn"

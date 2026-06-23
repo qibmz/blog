@@ -1,7 +1,8 @@
 {
   "enabledMcpjsonServers": [
     "nuxt-ui",
-    "nuxt"
+    "nuxt",
+    "playwright"
   ],
   "enableAllProjectMcpServers": true
 }

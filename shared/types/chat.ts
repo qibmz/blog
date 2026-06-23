@@ -2,10 +2,20 @@ import { z } from 'zod'
 
 // ─── 消息结构 ────────────────────────────────────
 
-const UIMessagePartSchema = z.looseObject({
-  type: z.string(),
-  text: z.string().optional()
-})
+const UIMessagePartSchema = z.intersection(
+  z.object({ type: z.string() }),
+  z.union([
+    z.object({ type: z.literal('text'), text: z.string() }),
+    z.object({ type: z.literal('file'), url: z.string(), mediaType: z.string(), filename: z.string().optional() }),
+    // reasoning、tool-call、data 等其他 part 类型
+    // passthrough 保留未知字段，refine 排除 text/file 避免误匹配
+    z.object({ type: z.string() }).passthrough().refine(
+      (p): p is { type: string } & Record<string, unknown> =>
+        p.type !== 'text' && p.type !== 'file',
+      { message: 'Unknown part type should not match text/file literal' }
+    )
+  ])
+)
 
 export const UIMessageSchema = z.looseObject({
   id: z.string(),

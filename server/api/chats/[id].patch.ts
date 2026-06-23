@@ -1,5 +1,5 @@
 import { defineEventHandler, getValidatedRouterParams, readValidatedBody } from 'h3'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { z } from 'zod'
 
 export default defineEventHandler(async (event) => {
@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
 
   // 验证所有权
   const chat = await db.query.chats.findFirst({
-    where: and(eq(schema.chats.id, id), eq(schema.chats.userId, user.id))
+    where: and(eq(schema.chats.id, id), eq(schema.chats.userId, user.id), isNull(schema.chats.deletedAt))
   })
 
   if (!chat) {
@@ -37,8 +37,9 @@ export default defineEventHandler(async (event) => {
       return { ...chat, pinned: body.pinned }
     }
     case 'delete': {
-      // messages 设置了 onDelete: cascade，自动级联删除
-      await db.delete(schema.chats).where(ownership)
+      await db.update(schema.chats)
+        .set({ deletedAt: new Date() })
+        .where(ownership)
       return { deleted: true }
     }
   }

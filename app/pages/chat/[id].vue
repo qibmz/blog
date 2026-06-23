@@ -2,29 +2,83 @@
 import { Chat } from '@ai-sdk/vue'
 import { DefaultChatTransport, isReasoningUIPart, isTextUIPart } from 'ai'
 import { isPartStreaming } from '@nuxt/ui/utils/ai'
-import type { UIMessage } from 'ai'
+import type { UIMessage, FileUIPart } from 'ai'
 
 definePageMeta({ layout: 'chat' })
 
 const route = useRoute()
 const id = route.params.id as string
 
-const { data: chatData } = await useAPI(`/api/chats/${id}`)
+const { data: chatData, refresh: refreshChat } = await useAPI(`/api/chats/${id}`)
 if (!chatData.value) throw createError({ statusCode: 404 })
 const { model: selectedModel, models: modelOptions } = useModels()
 const { thinkingMode } = useChatOptions()
+
+// ─── 图片上传 ────────────────────────────────
+const {
+  previewParts,
+  readyParts,
+  statuses,
+  errors,
+  isCompressing,
+  addFiles,
+  removeFile,
+  clearFiles
+} = useChatFileUpload()
+
+const uploadFiles = ref<File | null>(null)
+
+function onUploadChange(file: File | null | undefined) {
+  if (!currentModel.value?.supportsImages) {
+    useToast().add({
+      title: '当前模型不支持图片输入',
+      color: 'warning',
+      icon: 'i-lucide-alert-triangle',
+      duration: 3000
+    })
+    uploadFiles.value = null
+    return
+  }
+  if (file) {
+    addFiles([file])
+    nextTick(() => {
+      uploadFiles.value = null
+    })
+  }
+}
+
+function onDrop(event: DragEvent) {
+  if (!currentModel.value?.supportsImages) {
+    useToast().add({
+      title: '当前模型不支持图片输入',
+      color: 'warning',
+      icon: 'i-lucide-alert-triangle',
+      duration: 3000
+    })
+    return
+  }
+  if (!event.dataTransfer?.files.length) return
+  addFiles(Array.from(event.dataTransfer.files))
+}
+
+// 当前模型是否支持图片输入
+const currentModel = computed(() =>
+  modelOptions.value.find(m => m.value === selectedModel.value)
+)
+
 // 仅在没有 cookie 偏好时回退到聊天记录中的模型
 if (!selectedModel.value) {
   selectedModel.value = chatData.value.model ?? modelOptions.value[0]?.value ?? ''
 }
 
 const chatTitle = ref(chatData.value.title ?? '新对话')
+// 服务器异步生成标题后，刷新数据时同步更新本地 title
+watch(() => chatData.value?.title, (newTitle) => {
+  if (newTitle) chatTitle.value = newTitle
+})
 useSeoMeta({ title: computed(() => `${chatTitle.value} — AI Chat`) })
 
 const input = ref('')
-
-// refreshNuxtData('sidebar-chats') 直接刷新布局中的侧边栏数据
-// 服务端 onFinish 在流结束前已完成 DB 写入，客户端 onFinish 触发时数据已就绪
 
 const chat = new Chat({
   id,
@@ -45,8 +99,8 @@ const chat = new Chat({
   },
   onFinish: ({ isError }) => {
     if (!isError) {
-      // 服务端 onFinish 在流结束前已完成 DB 写入，无需延迟等待
       refreshNuxtData('sidebar-chats')
+      refreshChat()
     }
   }
 })
@@ -54,7 +108,6 @@ const chat = new Chat({
 const { copy, copied } = useClipboard()
 const toast = useToast()
 
-// 每条消息的反馈状态（赞/踩互斥）
 const feedbackState = ref<Record<string, { liked?: boolean, disliked?: boolean }>>({})
 
 function getTextContent(parts: UIMessage['parts']) {
@@ -110,13 +163,24 @@ const assistantConfig = {
 }
 
 function onSubmit() {
-  if (!input.value.trim()) return
-  chat.sendMessage({ text: input.value })
+  const hasFiles = readyParts.value.length > 0
+  const hasText = input.value.trim().length > 0
+
+  if (!hasFiles && !hasText) return
+  if (isCompressing.value) return
+
+  if (hasFiles) {
+    chat.sendMessage({
+      text: hasText ? input.value : '',
+      files: [...readyParts.value]
+    })
+  } else {
+    chat.sendMessage({ text: input.value })
+  }
   input.value = ''
+  clearFiles()
 }
 
-// 从首页新建聊天跳转过来时，最后一条是用户消息且无 AI 回复，自动触发生成
-// nextTick 等 View Transition 动画结束后再发请求，避免 InvalidStateError
 onMounted(() => {
   const messages = chatData.value?.messages ?? []
   if (messages.at(-1)?.role === 'user') {
@@ -126,7 +190,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-1 flex-col min-h-0">
+  <div
+    class="flex flex-1 flex-col min-h-0 overflow-hidden"
+    @dragover.prevent
+    @drop.prevent="onDrop"
+  >
     <UDashboardPanel
       id="chat"
       class="relative min-h-0 flex-1"
@@ -135,6 +203,14 @@ onMounted(() => {
       <template #header>
         <UDashboardNavbar :title="chatTitle">
           <template #right>
+            <UBadge
+              v-if="currentModel"
+              :label="currentModel.label"
+              size="sm"
+              variant="subtle"
+              color="neutral"
+              class="hidden sm:inline-flex"
+            />
             <UColorModeButton />
             <UButton
               to="/chat"
@@ -194,6 +270,10 @@ onMounted(() => {
               <template #indicator>
                 <UChatShimmer text="思考中..." />
               </template>
+
+              <template #files="{ parts: msgFileParts }">
+                <ChatFileList :parts="msgFileParts as FileUIPart[]" />
+              </template>
             </UChatMessages>
 
             <UChatPrompt
@@ -202,24 +282,56 @@ onMounted(() => {
               variant="subtle"
               class="sticky bottom-0 [view-transition-name:chat-prompt] rounded-b-none z-10"
               :ui="{ base: 'px-1.5', footer: 'flex-wrap' }"
+              :disabled="isCompressing"
               @submit="onSubmit"
             >
+              <template
+                v-if="previewParts.length > 0"
+                #header
+              >
+                <ChatFileList
+                  :parts="previewParts"
+                  :statuses="statuses"
+                  :errors="errors"
+                  removable
+                  compact
+                  @remove="removeFile"
+                />
+              </template>
+
               <template #footer>
-                <UButton
-                  label="深度思考"
-                  icon="i-lucide-brain"
-                  :variant="thinkingMode ? 'soft' : 'ghost'"
-                  :color="thinkingMode ? 'primary' : 'neutral'"
-                  size="sm"
-                  @click="thinkingMode = !thinkingMode"
-                />
-                <UChatPromptSubmit
-                  :status="chat.status"
-                  color="neutral"
-                  size="sm"
-                  @stop="chat.stop()"
-                  @reload="chat.regenerate()"
-                />
+                <div class="flex items-center gap-1.5 flex-wrap w-full">
+                  <UFileUpload
+                    v-if="currentModel?.supportsImages"
+                    v-model="uploadFiles"
+                    variant="button"
+                    icon="i-lucide-paperclip"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/bmp"
+                    color="neutral"
+                    size="sm"
+                    aria-label="上传图片"
+                    :preview="false"
+                    @update:model-value="onUploadChange"
+                  />
+
+                  <div class="flex-1" />
+
+                  <UButton
+                    label="深度思考"
+                    icon="i-lucide-brain"
+                    :variant="thinkingMode ? 'soft' : 'ghost'"
+                    :color="thinkingMode ? 'primary' : 'neutral'"
+                    size="sm"
+                    @click="thinkingMode = !thinkingMode"
+                  />
+                  <UChatPromptSubmit
+                    :status="chat.status"
+                    color="neutral"
+                    size="sm"
+                    @stop="chat.stop()"
+                    @reload="chat.regenerate()"
+                  />
+                </div>
               </template>
             </UChatPrompt>
           </UContainer>

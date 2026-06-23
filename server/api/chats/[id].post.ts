@@ -1,6 +1,6 @@
 import { defineEventHandler, getValidatedRouterParams, readValidatedBody } from 'h3'
 import { and, eq } from 'drizzle-orm'
-import { getModel, DEFAULT_MODEL } from '../../utils/models'
+import { getModel, DEFAULT_MODEL, modelSupportsImages } from '../../utils/models'
 import { checkDailyLimit } from '../../utils/rateLimiter'
 import { z } from 'zod'
 import {
@@ -25,6 +25,14 @@ export default defineEventHandler(async (event) => {
     options: z.object({ thinkingMode: z.boolean().optional() }).optional()
   }).parse)
 
+  // 非视觉模型拒绝图片
+  const hasImageParts = messages.some(msg =>
+    msg.parts?.some(p => (p as { type: string }).type === 'file')
+  )
+  if (hasImageParts && !(await modelSupportsImages(modelValue))) {
+    throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
+  }
+
   const chat = await db.query.chats.findFirst({
     where: and(eq(schema.chats.id, id), eq(schema.chats.userId, user.id))
   })
@@ -37,13 +45,33 @@ export default defineEventHandler(async (event) => {
 
   // 首次对话自动生成标题（不阻塞数据流，通过 waitUntil 确保在 serverless 环境完整执行）
   if (!chat.title && messages.length > 0) {
-    const titlePromise = generateText({
-      model,
-      system: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。',
-      prompt: JSON.stringify(messages[0])
-    }).then(async ({ text: title }) => {
+    const firstParts = messages[0]!.parts ?? []
+    const textParts = firstParts.filter(p => p.type === 'text') as { type: 'text', text: string }[]
+    const fileParts = firstParts.filter(p => p.type === 'file') as { type: 'file', url: string, mediaType: string }[]
+    const userText = textParts.map(p => p.text).join(' ') || ''
+
+    // 纯文字用 prompt 快速生成标题；有图片时用 messages 传图给模型
+    const titlePromise = (fileParts.length > 0
+      ? generateText({
+          model,
+          system: '根据用户的消息生成一个简短标题（最多15个字，不加标点和引号）。',
+          messages: [{
+            role: 'user' as const,
+            content: [
+              { type: 'text' as const, text: userText || '根据图片内容生成一个简短标题（最多15个字）' },
+              { type: 'image' as const, image: fileParts[0]!.url, mediaType: fileParts[0]!.mediaType }
+            ]
+          }]
+        })
+      : generateText({
+          model,
+          system: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。',
+          prompt: (userText || '新对话').substring(0, 500)
+        })
+    ).then(async ({ text: title }) => {
+      const safeTitle = title.length > 20 ? title.slice(0, 20) : title
       await db.update(schema.chats)
-        .set({ title, model: modelValue })
+        .set({ title: safeTitle, model: modelValue })
         .where(eq(schema.chats.id, id))
       return title
     }).catch((err) => {

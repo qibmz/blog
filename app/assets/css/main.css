@@ -57,3 +57,35 @@ html.dark .shiki span {
     scrollbar-width: none;
   }
 }
+
+/* 全局细滚动条：替代原生粗滚动条 */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--ui-color-neutral-300);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ui-color-neutral-400);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--ui-color-neutral-600);
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--ui-color-neutral-500);
+}
+
+/* Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-color-neutral-300) transparent;
+}
+html.dark {
+  scrollbar-color: var(--ui-color-neutral-600) transparent;
+}

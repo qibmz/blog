@@ -7,7 +7,8 @@ export const chats = pgTable('chats', {
   title: text('title'),
   model: text('model'),
   pinned: boolean('pinned').notNull().default(false),
-  createdAt: timestamp('created_at').notNull().defaultNow()
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at')
 }, table => [
   index('chats_user_id_idx').on(table.userId),
   index('chats_user_id_pinned_idx').on(table.userId, table.pinned, table.createdAt)
@@ -30,3 +31,10 @@ export const chatsRelations = relations(chats, ({ many }) => ({
 export const messagesRelations = relations(messages, ({ one }) => ({
   chat: one(chats, { fields: [messages.chatId], references: [chats.id] })
 }))
+
+export const models = pgTable('models', {
+  id: text('id').primaryKey(),
+  supportsImages: boolean('supports_images').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow()
+})

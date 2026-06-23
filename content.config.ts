@@ -95,7 +95,8 @@ export const collections = {
         })
       ),
       date: z.date(),
-      badge: z.object({ label: z.string().nonempty() })
+      badge: z.object({ label: z.string().nonempty() }),
+      rawbody: z.string().optional()
     })
   }),
   aboutUs: defineCollection({

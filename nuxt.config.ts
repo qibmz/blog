@@ -62,7 +62,7 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
-    // '/chat/**': { ssr: false },
+    '/chat/**': { ssr: false },
     '/docs': { redirect: '/docs/getting-started', prerender: false }
   },
   experimental: {
@@ -84,6 +84,9 @@ export default defineNuxtConfig({
     }
   },
   vite: {
+    css: {
+      devSourcemap: true
+    },
     esbuild: {
       drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
     }

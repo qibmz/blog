@@ -15,6 +15,20 @@
       "when": 1781594807969,
       "tag": "0001_sharp_blackheart",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782094601758,
+      "tag": "0002_known_darwin",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782113640774,
+      "tag": "0003_aberrant_firelord",
+      "breakpoints": true
     }
   ]
 }

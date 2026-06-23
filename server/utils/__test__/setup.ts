@@ -18,7 +18,8 @@ export const mockSchema = {
     title: 'title',
     model: 'model',
     pinned: 'pinned',
-    createdAt: 'created_at'
+    createdAt: 'created_at',
+    deletedAt: 'deleted_at'
   },
   messages: {
     id: 'id',
@@ -26,6 +27,12 @@ export const mockSchema = {
     role: 'role',
     parts: 'parts',
     createdAt: 'created_at'
+  },
+  models: {
+    id: 'id',
+    supportsImages: 'supports_images',
+    createdAt: 'created_at',
+    updatedAt: 'updated_at'
   }
 }
 
@@ -40,6 +47,7 @@ export function resetStore() {
 export const mockDbSelectResult = vi.fn()
 export const mockDbFindFirst = vi.fn()
 export const mockDbFindMany = vi.fn()
+export const mockDbFindFirstModel = vi.fn()
 export const mockDbInsertReturning = vi.fn()
 export const mockDbUpdate = vi.fn(() => ({
   set: vi.fn(() => ({
@@ -49,17 +57,24 @@ export const mockDbUpdate = vi.fn(() => ({
 export const mockDbDelete = vi.fn()
 
 export const mockDb = {
-  select: vi.fn(() => ({
-    from: vi.fn(() => ({
+  select: vi.fn(() => {
+    const fromObj = {
       innerJoin: vi.fn(() => ({
         where: vi.fn(() => mockDbSelectResult())
-      }))
-    }))
-  })),
+      })),
+      where: vi.fn(() => mockDbSelectResult())
+    }
+    return {
+      from: vi.fn(() => fromObj)
+    }
+  }),
   query: {
     chats: {
       findFirst: (...args: unknown[]) => mockDbFindFirst(...args),
       findMany: (...args: unknown[]) => mockDbFindMany(...args)
+    },
+    models: {
+      findFirst: (...args: unknown[]) => mockDbFindFirstModel(...args)
     }
   },
   insert: vi.fn(() => ({
@@ -95,6 +110,7 @@ export const mockAnd = vi.fn((...args: unknown[]) => ({ _type: 'and', args }))
 export const mockDesc = vi.fn((col: unknown) => ({ _type: 'desc', col }))
 export const mockGte = vi.fn((a: unknown, b: unknown) => ({ _type: 'gte', a, b }))
 export const mockSql = vi.fn((_strings: TemplateStringsArray, ..._values: unknown[]) => ({ _type: 'sql' }))
+export const mockInArray = vi.fn((col: unknown, values: unknown[]) => ({ _type: 'inArray', col, values }))
 
 // ─── h3 auto-imports ────────────────────────────────────────────────────────
 export const mockDefineEventHandler = vi.fn((handler: (event: unknown) => unknown) => handler)
@@ -146,6 +162,10 @@ export const mock$Fetch = vi.fn()
 // ─── Apply ALL globals ──────────────────────────────────────────────────────
 vi.stubGlobal('db', mockDb)
 vi.stubGlobal('schema', mockSchema)
+// Nitro auto-imports individual schema exports as top-level identifiers
+vi.stubGlobal('models', mockSchema.models)
+vi.stubGlobal('chats', mockSchema.chats)
+vi.stubGlobal('messages', mockSchema.messages)
 vi.stubGlobal('$fetch', mock$Fetch)
 
 // h3 auto-imports
@@ -159,6 +179,7 @@ vi.stubGlobal('and', mockAnd)
 vi.stubGlobal('desc', mockDesc)
 vi.stubGlobal('gte', mockGte)
 vi.stubGlobal('sql', mockSql)
+vi.stubGlobal('inArray', mockInArray)
 
 // nuxt-auth-utils auto-import
 vi.stubGlobal('requireUserSession', mockRequireUserSession)
@@ -190,7 +211,8 @@ vi.mock('drizzle-orm', async () => {
     and: mockAnd,
     desc: mockDesc,
     gte: mockGte,
-    sql: mockSql
+    sql: mockSql,
+    inArray: mockInArray
   }
 })
 

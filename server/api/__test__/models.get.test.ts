@@ -80,3 +80,66 @@ describe('GET /api/models', () => {
     expect(mock$Fetch).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('DB-backed model capabilities', () => {
+  it('should use DB supportsImages when DB has record (priority 1)', async () => {
+    vi.resetModules()
+    const { mockDbSelectResult, mock$Fetch } = await import('../../utils/__test__/setup')
+
+    // Provider returns two models
+    mock$Fetch.mockResolvedValueOnce({
+      data: [{ id: 'test-v1' }, { id: 'test-v2' }]
+    })
+
+    // DB returns supportsImages = true for test-v1, false for test-v2
+    mockDbSelectResult.mockResolvedValue([
+      { id: 'test-v1', supportsImages: true },
+      { id: 'test-v2', supportsImages: false }
+    ])
+
+    const { default: handler } = await import('../models.get')
+    const event = { context: {}, path: '/api/models' } as any
+    const result = await handler(event)
+
+    const v1 = result.models.find((m: any) => m.value === 'test-v1')
+    const v2 = result.models.find((m: any) => m.value === 'test-v2')
+    expect(v1!.supportsImages).toBe(true)
+    expect(v2!.supportsImages).toBe(false)
+  })
+
+  it('should fallback when DB has no record for model (priority 2)', async () => {
+    vi.resetModules()
+    const { mockDbSelectResult, mock$Fetch } = await import('../../utils/__test__/setup')
+
+    mock$Fetch.mockResolvedValueOnce({
+      data: [{ id: 'test-v1' }]
+    })
+
+    // DB returns empty — model not found (dbOk=true, but no record)
+    mockDbSelectResult.mockResolvedValue([])
+
+    const { default: handler } = await import('../models.get')
+    const event = { context: {}, path: '/api/models' } as any
+    const result = await handler(event)
+
+    expect(result.models[0]!.supportsImages).toBe(false)
+  })
+
+  it('should fallback when DB query fails (priority 3)', async () => {
+    vi.resetModules()
+    const { mockDbSelectResult, mock$Fetch } = await import('../../utils/__test__/setup')
+
+    mock$Fetch.mockResolvedValueOnce({
+      data: [{ id: 'test-v1' }]
+    })
+
+    // DB query throws
+    mockDbSelectResult.mockRejectedValue(new Error('Connection refused'))
+
+    const { default: handler } = await import('../models.get')
+    const event = { context: {}, path: '/api/models' } as any
+    const result = await handler(event)
+
+    expect(result.models[0]!.supportsImages).toBe(false)
+  })
+})

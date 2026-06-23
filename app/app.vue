@@ -6,7 +6,7 @@ const color = computed(() => colorMode.value === 'dark' ? '#020618' : 'white')
 useHead({
   meta: [
     { charset: 'utf-8' },
-    { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+    { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content' },
     { key: 'theme-color', name: 'theme-color', content: color }
   ],
   link: [
@@ -43,8 +43,8 @@ const { data: blogFiles } = useLazyAsyncData('blogSearch', () => queryCollection
   default: () => []
 })
 const links = [{
-  label: '常用网站/工具',
-  icon: 'i-lucide-pen-tool',
+  label: '备忘录',
+  icon: 'i-lucide-bookmark',
   to: '/docs'
 }, {
   label: '博客',
@@ -68,6 +68,18 @@ const searchNavigation = computed(() => [
   ...(blogNavigation.value || []),
   ...(docsNavigation.value || [])
 ])
+
+// 预热 Neon 数据库连接，减少后续功能的冷启动延迟
+const { execute: prewarmDb } = useAPI('/api/version', {
+  immediate: false,
+  watch: false,
+  skipAuthRedirect: true
+})
+
+// 预热 Neon 数据库连接，减少后续功能的冷启动延迟
+onMounted(() => {
+  prewarmDb().catch(() => {})
+})
 </script>
 
 <template>

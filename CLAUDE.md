@@ -9,10 +9,13 @@
 - 开发：`pnpm dev`（`nuxt dev --host`）
 - 构建：`pnpm build` / 预览：`pnpm preview`
 - Lint：`pnpm lint`（eslint --fix）/ 类型检查：`pnpm typecheck` / 测试：`pnpm test`
-- 数据库迁移：`npx drizzle-kit generate` 生成迁移文件，然后 `npx drizzle-kit push` 同步到数据库。Vercel Preview 环境通过 `scripts/prebuild-migrate.js` 自动执行 `drizzle-kit push --force`
+- 数据库迁移：`npx drizzle-kit generate` 生成迁移文件
+  - **测试服（Vercel Preview）：** `scripts/prebuild-migrate.js` 在部署时自动执行 `drizzle-kit push --force` + seed，无需手动干预
+  - **正式服（Production）：** 使用 Neon SQL Editor（Web 控制台）粘贴 migration SQL 执行，或 `npx neonctl sql --sql "$(cat server/db/migrations/xxx.sql)"` 执行
 - **提交前检查**：`pnpm lint && pnpm test` 全部通过再提交
 - **提交消息使用中文**
 - **改 API/utils 必须补测试**：修改 `server/api/` 或 `server/utils/` 的逻辑时，必须在对应的 `__test__/` 目录下补充或更新测试用例。新增功能至少覆盖核心路径（正常 + 边界/错误）
+- **不要重复造轮子**：写任何工具方法之前，先确认是否有成熟的库可以直接用（如 `compressorjs` 压缩图片、`lodash` 工具函数等）。优先使用已有库，不要手动实现
 
 ## 编码规范
 
@@ -56,10 +59,12 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 **认证流程：** GitHub + Google OAuth，通过 `nuxt-auth-utils` 实现。路由：`server/routes/auth/github.get.ts` / `server/routes/auth/google.get.ts` → 设置用户 session → 重定向到 `/chat`。OAuth 登录统一调用 `login(provider: OAuthProvider)`。Session 使用 `NUXT_SESSION_PASSWORD` 环境变量加密。用户类型扩展见 `server/types/auth.d.ts`。**注意：** `login()` 内部使用 `window.location.href` 跳转到外部 OAuth 授权页面，这是正确做法，不要改成 `navigateTo()`。
 
 **数据库：** Neon PostgreSQL（serverless）+ Drizzle ORM。
-- Schema：`server/db/schema.ts` — `chats` 和 `messages` 两个表，一对多关系
+- Schema：`server/db/schema.ts` — `chats`、`messages` 和 `models` 三个表
 - DB 单例：`server/db/index.ts` — 懒初始化 Proxy，通过 `nitro.imports.dirs: ['server/db']` 自动导入
 - `db` 和 `schema` 在所有 `server/` 文件中自动可用，无需显式 import
 - 配置：`drizzle.config.ts`（使用 `DATABASE_URL` 环境变量）
+- **迁移流程：** 测试服 prebuild 自动 `drizzle-kit push --force` + seed；正式服用 Neon SQL Editor 或 `npx neonctl sql` 执行 migration SQL
+- **Seed 脚本：** `server/db/seed-models.ts` — 幂等，prebuild 中自动执行，正式服手动跑一次
 
 **API 接口**（除 `GET /api/chats` 使用 `getUserSession` 做未登录优雅降级外，均需通过 `requireUserSession(event)` 认证）：
 
@@ -104,7 +109,7 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 
 ### 页面规范
 
-- 使用 `useSeoMeta()` 设置每页 SEO，`defineOgImageComponent('Saas')` 生成 OG 图片
+- 使用 `useSeoMeta()` 设置每页 SEO
 - `useAsyncData()` 使用 `default: () => []` 模式，内容查询失败时安全回退
 - Chat 页面使用 `definePageMeta({ layout: 'chat' })` 指定 chat 布局
 - Docs 页面使用 `definePageMeta({ layout: 'docs' })` 指定 docs 布局
@@ -131,8 +136,9 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 | `nuxt.config.ts` | 模块、runtimeConfig、routeRules、nitro 配置 |
 | `content.config.ts` | 内容 collection schemas（Zod）— 改动这里会影响内容页面 |
 | `server/db/schema.ts` | 数据库表 — 修改后需运行 `drizzle-kit generate` |
+| `server/db/seed-models.ts` | 模型能力元数据初始化 — 幂等 seed，按需更新 |
 | `shared/types/chat.ts` | API 共享类型 — UIMessageSchema、PatchChatBodySchema、衍生 TS 类型 |
-| `server/utils/models.ts` | AI 模型注册 — 在此添加新的提供商/模型 |
+| `server/utils/models.ts` | AI 模型注册 + 能力 fallback — `models` 表优先 |
 | `server/utils/rateLimiter.ts` | 每日频率限制逻辑 |
 | `server/utils/errors.ts` | `raiseNotFound` / `raiseRateLimit` 错误工厂 |
 | `app/app.vue` | 根组件 — 全局导航数据、搜索、SEO 默认值 |
@@ -140,4 +146,4 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 | `app/composables/useApi.ts` | 全局 API 封装 + 错误拦截 |
 | `app/composables/useModels.ts` | 模型选择 + Cookie 持久化 |
 | `app/components/chat/ChatComark.ts` | AI 回复 Markdown 渲染（Comark + Shiki 高亮） |
-| `scripts/prebuild-migrate.js` | Vercel Preview 环境自动 DB schema 同步 |
+| `scripts/prebuild-migrate.js` | Vercel Preview 环境自动 DB schema 同步 + seed |

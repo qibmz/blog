@@ -102,3 +102,56 @@ describe('getModel', () => {
     }
   })
 })
+
+describe('modelSupportsImages', () => {
+  it('should return true for a MiMo model that supports images (provider fallback)', async () => {
+    const { modelSupportsImages } = await import('../models')
+    // DB 未命中 → fallback 到 Provider 规则
+    // mimo-v2.5 支持图片（非 pro/flash）
+    const result = await modelSupportsImages('mimo-v2.5')
+    expect(result).toBe(true)
+  })
+
+  it('should return false for a MiMo pro model (provider fallback)', async () => {
+    const { modelSupportsImages } = await import('../models')
+    // mimo-v2.5-pro 不支持图片
+    const result = await modelSupportsImages('mimo-v2.5-pro')
+    expect(result).toBe(false)
+  })
+
+  it('should return false for DeepSeek models (provider fallback)', async () => {
+    const { modelSupportsImages } = await import('../models')
+    const result = await modelSupportsImages('deepseek-v4-pro')
+    expect(result).toBe(false)
+  })
+
+  it('should return DB value when DB row exists (DB-first)', async () => {
+    const { mockDbFindFirstModel } = await import('./setup')
+    mockDbFindFirstModel.mockResolvedValueOnce({ supportsImages: true })
+
+    const { modelSupportsImages } = await import('../models')
+    // deepseek-v4-pro 在 Provider 规则中返回 false，但 DB 说有 → DB 优先
+    const result = await modelSupportsImages('deepseek-v4-pro')
+    expect(result).toBe(true)
+  })
+
+  it('should fallback to provider when DB query fails', async () => {
+    const { mockDbFindFirstModel } = await import('./setup')
+    mockDbFindFirstModel.mockRejectedValueOnce(new Error('DB connection error'))
+
+    const { modelSupportsImages } = await import('../models')
+    // DB 失败 → fallback 到 Provider，mimo-v2.5 应返回 true
+    const result = await modelSupportsImages('mimo-v2.5')
+    expect(result).toBe(true)
+  })
+
+  it('should fallback to provider for unknown model when DB returns null', async () => {
+    const { mockDbFindFirstModel } = await import('./setup')
+    mockDbFindFirstModel.mockResolvedValueOnce(null)
+
+    const { modelSupportsImages } = await import('../models')
+    // DB 无此 model → fallback 到 Provider
+    const result = await modelSupportsImages('deepseek-v4-pro')
+    expect(result).toBe(false)
+  })
+})

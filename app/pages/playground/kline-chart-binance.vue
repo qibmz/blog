@@ -18,7 +18,6 @@ const { isFullscreen, enter, exit } = useFullscreen(pageBodyRef)
 const symbol = ref('BNB/USDT')
 const period = ref<{ span: number, type: PeriodType }>({ span: 1, type: 'day' })
 
-// 将 UI 周期转换为币安 K 线间隔字符串 (例如: {span: 1, type: 'day'} -> '1d')
 const binanceInterval = computed(() => {
   const { span, type } = period.value
   const typeMap: Record<string, string> = {
@@ -29,15 +28,11 @@ const binanceInterval = computed(() => {
     month: 'M'
   }
   const suffix = typeMap[type] || 'd'
-
-  // 币安特殊处理：月线是 1M，其它通常是 1m, 1h 等
   return `${span}${suffix}`
 })
 
-// 使用 WebSocket 实时获取数据
 const { klineData, latestTrade, connected } = useBinanceBusiness(symbol, binanceInterval)
 
-// 实时更新交易列表 (按时间倒序排列，限制显示数量)
 const trades = ref<BinanceTradeData[]>([])
 watch(latestTrade, (newTrade) => {
   if (newTrade) {
@@ -61,69 +56,98 @@ const handlePeriodChange = (newPeriod: { span: number, type: PeriodType, label: 
 <template>
   <div>
     <UContainer>
-      <UPageHeader
-        title="📈 K线图表"
-        description="基于币安实现的实时K线图表组件演示"
-        class="py-12.5"
-      >
-        <template #links>
-          <UButton
-            icon="i-lucide-code"
-            label="源代码"
-            to="https://github.com/qibmz/blog/blob/main/app/components/demo/kline"
-            target="_blank"
-          />
-          <UButton
-            icon="i-lucide-external-link"
-            label="币安API"
-            to="https://www.binance.com/zh-CN/binance-api"
-            target="_blank"
-            color="warning"
-          />
-        </template>
-      </UPageHeader>
       <UPageBody ref="pageBody">
-        <div class="space-y-6">
-          <!-- 主图表区域 -->
-          <div class="overflow-hidden rounded-3xl border border-slate-200/60 bg-white ring-1 ring-slate-200/50 shadow-2xl shadow-slate-200/20 dark:border-slate-800/60 dark:bg-slate-950 dark:ring-slate-800/50 dark:shadow-none">
-            <!-- 顶部切换栏 -->
-            <DemoKlinePeriodBar
-              :symbol="symbol"
-              contract-address="0x2260fac5e5542a773aa44fbcff0b76cda6eb69cf"
-              :is-fullscreen="isFullscreen"
-              @toggle-fullscreen="toggleFullscreen"
-              @period-change="handlePeriodChange"
-            />
-            <!-- K线图表 -->
-            <DemoKlineChart
-              :symbol="symbol"
-              :period="period"
-              :latest-data="klineData"
-              class="border-t border-slate-100 dark:border-slate-900 mt-3"
-            />
-          </div>
-
-          <!-- 底部交易列表 -->
-          <div class="grid grid-cols-1 gap-6">
-            <div class="space-y-4">
-              <div class="flex items-center justify-between px-2">
-                <div class="flex items-center gap-2">
-                  <div class="h-5 w-1 rounded-full bg-primary-500" />
-                  <h3 class="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white">
-                    实时成交历史
-                  </h3>
+        <!-- 桌面端：图表+交易左右分栏 -->
+        <div class="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 lg:gap-6">
+          <!-- 左侧：主图表卡片 -->
+          <div class="flex flex-col overflow-hidden rounded-2xl border border-slate-200/60 bg-white shadow-sm dark:border-slate-800/60 dark:bg-slate-950">
+            <!-- 紧凑顶栏：标题 + 链接 + 全屏 -->
+            <div class="flex items-center justify-between gap-4 px-4 sm:px-6 py-3 border-b border-slate-100 dark:border-slate-800/80">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="hidden sm:flex items-center justify-center w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/30 shrink-0">
+                  <UIcon
+                    name="i-lucide-chart-candlestick"
+                    class="w-4 h-4 text-amber-600 dark:text-amber-400"
+                  />
                 </div>
-                <div class="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest">
-                  <span class="relative flex h-2 w-2">
-                    <span :class="['absolute inline-flex h-full w-full rounded-full opacity-75', connected ? 'animate-ping bg-emerald-400' : 'bg-red-400']" />
-                    <span :class="['relative inline-flex rounded-full h-2 w-2', connected ? 'bg-emerald-500' : 'bg-red-500']" />
-                  </span>
-                  {{ connected ? '实时连接中' : '连接已断开' }}
+                <div class="min-w-0">
+                  <h1 class="text-sm font-black text-slate-900 dark:text-white tracking-tight truncate">
+                    K线图表
+                  </h1>
+                  <p class="text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate">
+                    币安 WebSocket 实时数据
+                  </p>
                 </div>
               </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <UButton
+                  icon="i-lucide-code"
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  to="https://github.com/qibmz/blog/blob/main/app/components/demo/kline"
+                  target="_blank"
+                />
+                <UButton
+                  icon="i-lucide-external-link"
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  to="https://www.binance.com/zh-CN/binance-api"
+                  target="_blank"
+                />
+                <div class="w-px h-4 bg-slate-200 dark:bg-slate-800" />
+                <UButton
+                  :icon="isFullscreen ? 'i-lucide-minimize' : 'i-lucide-maximize'"
+                  size="xs"
+                  color="neutral"
+                  variant="ghost"
+                  @click="toggleFullscreen"
+                />
+              </div>
+            </div>
+
+            <!-- 市场数据 + 周期选择 -->
+            <DemoKlinePeriodBar
+              :symbol="symbol"
+              @period-change="handlePeriodChange"
+            />
+
+            <!-- K线图表 -->
+            <div class="border-t border-slate-100 dark:border-slate-800/80">
+              <DemoKlineChart
+                :symbol="symbol"
+                :period="period"
+                :latest-data="klineData"
+              />
+            </div>
+          </div>
+
+          <!-- 右侧：实时成交历史 -->
+          <div class="flex flex-col overflow-hidden rounded-2xl border border-slate-200/60 bg-white shadow-sm dark:border-slate-800/60 dark:bg-slate-950">
+            <!-- 列表顶栏 -->
+            <div class="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-slate-100 dark:border-slate-800/80">
+              <div class="flex items-center gap-2">
+                <div class="h-4 w-1 rounded-full bg-emerald-500" />
+                <h3 class="text-xs font-black uppercase tracking-widest text-slate-700 dark:text-slate-200">
+                  实时成交
+                </h3>
+              </div>
+              <div class="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                <span class="relative flex h-2 w-2">
+                  <span :class="['absolute inline-flex h-full w-full rounded-full opacity-75', connected ? 'animate-ping bg-emerald-400' : 'bg-red-400']" />
+                  <span :class="['relative inline-flex rounded-full h-2 w-2', connected ? 'bg-emerald-500' : 'bg-red-500']" />
+                </span>
+                <span class="hidden sm:inline">{{ connected ? '实时' : '断开' }}</span>
+              </div>
+            </div>
+
+            <!-- 交易列表 -->
+            <div class="flex-1 min-h-0">
               <DemoKlineTradesList
                 :trades="trades"
                 :symbol="symbol"
+                :connected="connected"
               />
             </div>
           </div>
