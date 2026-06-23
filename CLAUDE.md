@@ -109,7 +109,7 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 
 ### 页面规范
 
-- 使用 `useSeoMeta()` 设置每页 SEO，`defineOgImageComponent('Saas')` 生成 OG 图片
+- 使用 `useSeoMeta()` 设置每页 SEO
 - `useAsyncData()` 使用 `default: () => []` 模式，内容查询失败时安全回退
 - Chat 页面使用 `definePageMeta({ layout: 'chat' })` 指定 chat 布局
 - Docs 页面使用 `definePageMeta({ layout: 'docs' })` 指定 docs 布局

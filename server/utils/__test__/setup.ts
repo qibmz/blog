@@ -47,6 +47,7 @@ export function resetStore() {
 export const mockDbSelectResult = vi.fn()
 export const mockDbFindFirst = vi.fn()
 export const mockDbFindMany = vi.fn()
+export const mockDbFindFirstModel = vi.fn()
 export const mockDbInsertReturning = vi.fn()
 export const mockDbUpdate = vi.fn(() => ({
   set: vi.fn(() => ({
@@ -71,6 +72,9 @@ export const mockDb = {
     chats: {
       findFirst: (...args: unknown[]) => mockDbFindFirst(...args),
       findMany: (...args: unknown[]) => mockDbFindMany(...args)
+    },
+    models: {
+      findFirst: (...args: unknown[]) => mockDbFindFirstModel(...args)
     }
   },
   insert: vi.fn(() => ({
