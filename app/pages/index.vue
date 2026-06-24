@@ -65,10 +65,31 @@ const highlights = [
     class="relative min-h-screen"
   >
     <!-- ========== HERO ========== -->
-    <UPageHero>
+    <UPageHero
+      class="relative"
+      :ui="{
+        wrapper: 'backdrop-blur-xl bg-white/70 dark:bg-gray-950/60 rounded-2xl border border-white/30 dark:border-white/10 shadow-2xl p-8 md:p-10 max-w-2xl'
+      }"
+    >
       <template #top>
-        <HeroBackground />
-        <StarsBg />
+        <!-- 视频背景 -->
+        <div class="absolute inset-0 overflow-hidden -z-1">
+          <video
+            autoplay
+            loop
+            muted
+            playsinline
+            preload="auto"
+            class="absolute inset-0 w-full h-full object-cover"
+          >
+            <source
+              src="/video/hero-bg.mp4"
+              type="video/mp4"
+            >
+          </video>
+          <!-- 暗色叠加层，保证文字可读 -->
+          <div class="absolute inset-0 bg-linear-to-b from-gray-900/30 via-gray-900/20 to-white dark:to-gray-950" />
+        </div>
       </template>
 
       <template #title>
@@ -85,63 +106,39 @@ const highlights = [
       </template>
 
       <template #links>
-        <!-- 头像卡片 -->
-        <div class="flex flex-col items-center gap-6 mt-4">
+        <div class="flex flex-wrap items-center justify-center gap-3 mt-2">
           <Motion
-            :initial="{ opacity: 0, scale: 0.8 }"
-            :animate="{ opacity: 1, scale: 1 }"
-            :transition="{ type: 'spring', stiffness: 200, damping: 15 }"
+            :initial="{ opacity: 0, y: 15 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ duration: 0.4, delay: 0.3 }"
           >
-            <div class="relative group">
-              <div class="absolute -inset-1 rounded-full bg-linear-to-r from-primary-500 via-purple-500 to-pink-500 opacity-60 blur-md group-hover:opacity-90 transition-opacity duration-500" />
-              <NuxtImg
-                src="/image/avatar.avif"
-                alt="头像"
-                width="96"
-                height="96"
-                class="relative w-24 h-24 rounded-full object-cover ring-4 ring-white dark:ring-gray-900 shadow-xl"
-              />
-              <div class="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full ring-2 ring-white dark:ring-gray-900 flex items-center justify-center">
-                <span class="w-2 h-2 rounded-full bg-white" />
-              </div>
-            </div>
+            <UButton
+              to="/about-us"
+              size="lg"
+              color="primary"
+              variant="solid"
+              icon="i-lucide-user-round"
+              class="rounded-xl px-6"
+            >
+              关于我
+            </UButton>
           </Motion>
-
-          <!-- CTA 按钮 -->
-          <div class="flex flex-wrap items-center justify-center gap-3">
-            <Motion
-              :initial="{ opacity: 0, y: 15 }"
-              :animate="{ opacity: 1, y: 0 }"
-              :transition="{ duration: 0.4, delay: 0.3 }"
+          <Motion
+            :initial="{ opacity: 0, y: 15 }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ duration: 0.4, delay: 0.45 }"
+          >
+            <UButton
+              to="/blog"
+              size="lg"
+              color="primary"
+              variant="outline"
+              icon="i-lucide-pencil-line"
+              class="rounded-xl px-6"
             >
-              <UButton
-                to="/about-us"
-                size="lg"
-                color="primary"
-                variant="solid"
-                icon="i-lucide-user"
-                class="rounded-full px-6 shadow-lg shadow-primary-500/30 hover:shadow-primary-500/50 transition-all duration-300 hover:-translate-y-0.5"
-              >
-                关于我
-              </UButton>
-            </Motion>
-            <Motion
-              :initial="{ opacity: 0, y: 15 }"
-              :animate="{ opacity: 1, y: 0 }"
-              :transition="{ duration: 0.4, delay: 0.45 }"
-            >
-              <UButton
-                to="/blog"
-                size="lg"
-                color="neutral"
-                variant="outline"
-                icon="i-lucide-book-open"
-                class="rounded-full px-6 hover:-translate-y-0.5 transition-all duration-300"
-              >
-                博客
-              </UButton>
-            </Motion>
-          </div>
+              博客
+            </UButton>
+          </Motion>
         </div>
       </template>
     </UPageHero>
