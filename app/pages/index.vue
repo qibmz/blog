@@ -68,7 +68,7 @@ const highlights = [
     <UPageHero
       class="relative"
       :ui="{
-        wrapper: 'backdrop-blur-xl bg-white/70 dark:bg-gray-950/60 rounded-2xl border border-white/30 dark:border-white/10 shadow-2xl p-8 md:p-10 max-w-2xl'
+        wrapper: 'max-w-3xl mx-auto px-6 py-16 md:py-24'
       }"
     >
       <template #top>
@@ -80,33 +80,33 @@ const highlights = [
             muted
             playsinline
             preload="auto"
-            class="absolute inset-0 w-full h-full object-cover"
+            class="absolute inset-0 w-full h-full object-cover brightness-150 contrast-75 saturate-50 dark:brightness-100 dark:contrast-100 dark:saturate-100"
           >
             <source
               src="/video/hero-bg.mp4"
               type="video/mp4"
             >
           </video>
-          <!-- 暗色叠加层，保证文字可读 -->
-          <div class="absolute inset-0 bg-linear-to-b from-gray-900/30 via-gray-900/20 to-white dark:to-gray-950" />
+          <!-- light 模式：白色叠加层洗淡视频；dark 模式：保持原有暗色叠加 -->
+          <div class="absolute inset-0 bg-linear-to-b from-white/80 via-white/60 to-white dark:from-gray-900/30 dark:via-gray-900/20 dark:to-gray-950" />
         </div>
       </template>
 
       <template #title>
-        <span class="block">{{ page.title }}</span>
-        <span class="block text-2xl md:text-3xl font-medium text-gray-500 dark:text-gray-400 mt-2">
+        <span class="block text-4xl md:text-6xl font-bold text-gray-900 dark:text-white">{{ page.title }}</span>
+        <span class="block text-2xl md:text-4xl font-medium text-gray-600 dark:text-gray-400 mt-3">
           <TypewriterText :texts="typingTexts" />
         </span>
       </template>
 
       <template #description>
-        <p class="text-base md:text-lg text-gray-600 dark:text-gray-400 max-w-xl mx-auto leading-relaxed">
+        <p class="text-lg md:text-xl text-gray-700 dark:text-gray-400 max-w-xl mx-auto leading-relaxed mt-4">
           {{ page.description }}
         </p>
       </template>
 
       <template #links>
-        <div class="flex flex-wrap items-center justify-center gap-3 mt-2">
+        <div class="flex flex-wrap items-center justify-center gap-4 mt-6">
           <Motion
             :initial="{ opacity: 0, y: 15 }"
             :animate="{ opacity: 1, y: 0 }"
@@ -114,11 +114,11 @@ const highlights = [
           >
             <UButton
               to="/about-us"
-              size="lg"
+              size="xl"
               color="primary"
               variant="solid"
               icon="i-lucide-user-round"
-              class="rounded-xl px-6"
+              class="rounded-xl px-8 text-base"
             >
               关于我
             </UButton>
@@ -130,11 +130,11 @@ const highlights = [
           >
             <UButton
               to="/blog"
-              size="lg"
+              size="xl"
               color="primary"
               variant="outline"
               icon="i-lucide-pencil-line"
-              class="rounded-xl px-6"
+              class="rounded-xl px-8 text-base"
             >
               博客
             </UButton>
