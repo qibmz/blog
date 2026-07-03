@@ -12,6 +12,44 @@ useSeoMeta({
   ogDescription: description
 })
 
+// ========== Hero 视频延迟加载 ==========
+const videoRef = ref<HTMLVideoElement | null>(null)
+const videoReady = ref(false)
+const prefersReducedMotion = ref(true) // 默认不加载视频，检测后再决定
+
+onMounted(() => {
+  // 检测用户动效偏好
+  const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+  prefersReducedMotion.value = motionQuery.matches
+
+  // 不使用动效的用户才加载视频
+  if (!motionQuery.matches) {
+    prefersReducedMotion.value = false
+    // 延迟加载视频，不阻塞 LCP
+    const loadVideo = () => {
+      if (videoRef.value) {
+        // 动态设置 src 触发加载
+        const source = videoRef.value.querySelector('source')
+        if (source && !source.src) {
+          source.src = '/video/hero-bg.mp4'
+          videoRef.value.load()
+        }
+      }
+    }
+
+    if (typeof requestIdleCallback !== 'undefined') {
+      requestIdleCallback(loadVideo, { timeout: 2000 })
+    } else {
+      setTimeout(loadVideo, 200)
+    }
+  }
+})
+
+function onVideoReady() {
+  videoReady.value = true
+  videoRef.value?.play()
+}
+
 // 打字机标签
 const typingTexts = ['前端开发者', 'Web3 Builder', 'UniApp 跨平台']
 
@@ -72,18 +110,34 @@ const highlights = [
       }"
     >
       <template #top>
-        <!-- 视频背景 -->
+        <!-- 视频背景：poster 静态图先展示，视频延迟加载 -->
         <div class="absolute inset-0 overflow-hidden -z-1">
+          <!-- Poster 静态图：页面加载时立即渲染，LCP 走文本而非视频 -->
+          <img
+            v-if="!videoReady"
+            src="/video/hero-bg-poster.webp"
+            srcset="/video/hero-bg-poster-sm.webp 640w, /video/hero-bg-poster.webp 1280w"
+            sizes="100vw"
+            width="1280"
+            height="720"
+            loading="eager"
+            fetchpriority="high"
+            alt=""
+            class="absolute inset-0 w-full h-full object-cover brightness-150 contrast-75 saturate-50 dark:brightness-100 dark:contrast-100 dark:saturate-100"
+          >
+          <!-- 视频：页面可交互后延迟加载；prefers-reduced-motion 用户永不加载 -->
           <video
+            v-show="videoReady"
+            ref="videoRef"
             autoplay
             loop
             muted
             playsinline
-            preload="auto"
+            preload="none"
             class="absolute inset-0 w-full h-full object-cover brightness-150 contrast-75 saturate-50 dark:brightness-100 dark:contrast-100 dark:saturate-100"
+            @loadeddata="onVideoReady"
           >
             <source
-              src="/video/hero-bg.mp4"
               type="video/mp4"
             >
           </video>
