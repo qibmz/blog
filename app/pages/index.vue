@@ -159,13 +159,13 @@ const highlights = [
           :initial="{ opacity: 0, y: 12 }"
           :animate="{ opacity: 1, y: 0 }"
           :transition="{ duration: 0.4 }"
-          class="inline-flex items-center gap-2 rounded-full bg-white/70 dark:bg-white/5 backdrop-blur px-4 py-1.5 ring-1 ring-gray-200 dark:ring-white/10"
+          class="inline-flex items-center gap-2 rounded-full bg-white dark:bg-white/5 backdrop-blur px-4 py-1.5 ring-1 ring-gray-300 dark:ring-white/10 shadow-sm"
         >
           <span class="relative flex h-2 w-2">
             <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
             <span class="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
           </span>
-          <span class="text-xs font-medium text-gray-600 dark:text-gray-300">持续更新中 · 开放技术合作</span>
+          <span class="text-xs font-medium text-gray-700 dark:text-gray-300">持续更新中 · 开放技术合作</span>
         </Motion>
       </template>
 
@@ -229,31 +229,31 @@ const highlights = [
             target="_blank"
             size="lg"
             color="neutral"
-            variant="ghost"
+            variant="outline"
             icon="i-simple-icons-github"
             square
             aria-label="GitHub"
-            class="rounded-xl"
+            class="rounded-xl bg-white dark:bg-transparent"
           />
           <UButton
             :to="`mailto:${contactEmail}`"
             size="lg"
             color="neutral"
-            variant="ghost"
+            variant="outline"
             icon="i-lucide-mail"
             square
             aria-label="发送邮件"
-            class="rounded-xl"
+            class="rounded-xl bg-white dark:bg-transparent"
           />
           <UButton
             to="/blog"
             size="lg"
             color="neutral"
-            variant="ghost"
+            variant="outline"
             icon="i-lucide-rss"
             square
             aria-label="订阅博客"
-            class="rounded-xl"
+            class="rounded-xl bg-white dark:bg-transparent"
           />
         </Motion>
       </template>
