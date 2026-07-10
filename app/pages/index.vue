@@ -15,16 +15,12 @@ useSeoMeta({
 // ========== Hero 视频延迟加载 ==========
 const videoRef = ref<HTMLVideoElement | null>(null)
 const videoReady = ref(false)
-const prefersReducedMotion = ref(true) // 默认不加载视频，检测后再决定
-
 onMounted(() => {
   // 检测用户动效偏好
   const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
-  prefersReducedMotion.value = motionQuery.matches
 
   // 不使用动效的用户才加载视频
   if (!motionQuery.matches) {
-    prefersReducedMotion.value = false
     // 延迟加载视频，不阻塞 LCP
     const loadVideo = () => {
       if (videoRef.value) {
@@ -47,7 +43,9 @@ onMounted(() => {
 
 function onVideoReady() {
   videoReady.value = true
-  videoRef.value?.play()
+  videoRef.value?.play().catch(() => {
+    // Autoplay was blocked or interrupted; poster remains visible
+  })
 }
 
 // 打字机标签
@@ -399,6 +397,7 @@ const highlights = [
         >
           <!-- 特色大卡：最新一篇 -->
           <Motion
+            v-if="featuredUpdate"
             :initial="{ opacity: 0, y: 24 }"
             :while-in-view="{ opacity: 1, y: 0 }"
             :transition="{ type: 'tween', duration: 0.4, ease: 'easeOut' }"
