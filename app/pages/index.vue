@@ -12,6 +12,42 @@ useSeoMeta({
   ogDescription: description
 })
 
+// ========== Hero 视频延迟加载 ==========
+const videoRef = ref<HTMLVideoElement | null>(null)
+const videoReady = ref(false)
+onMounted(() => {
+  // 检测用户动效偏好
+  const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+
+  // 不使用动效的用户才加载视频
+  if (!motionQuery.matches) {
+    // 延迟加载视频，不阻塞 LCP
+    const loadVideo = () => {
+      if (videoRef.value) {
+        // 动态设置 src 触发加载
+        const source = videoRef.value.querySelector('source')
+        if (source && !source.src) {
+          source.src = '/video/hero-bg.mp4'
+          videoRef.value.load()
+        }
+      }
+    }
+
+    if (typeof requestIdleCallback !== 'undefined') {
+      requestIdleCallback(loadVideo, { timeout: 2000 })
+    } else {
+      setTimeout(loadVideo, 200)
+    }
+  }
+})
+
+function onVideoReady() {
+  videoReady.value = true
+  videoRef.value?.play().catch(() => {
+    // Autoplay was blocked or interrupted; poster remains visible
+  })
+}
+
 // 打字机标签
 const typingTexts = ['前端开发者', 'Web3 Builder', 'UniApp 跨平台']
 
@@ -50,6 +86,14 @@ const recentUpdates = computed(() =>
     }))
 )
 
+// 最新动态：首篇作为特色大卡，其余作为紧凑小卡（bento 布局）
+const featuredUpdate = computed(() => recentUpdates.value[0])
+const restUpdates = computed(() => recentUpdates.value.slice(1))
+
+// 联系方式（用于 Hero 社交链接与收尾 CTA）
+const githubUrl = 'https://github.com/qibmz'
+const contactEmail = (page.value as unknown as { contact?: { email?: string } })?.contact?.email || '1583326640@qq.com'
+
 // 技能亮点
 const highlights = [
   { title: '跨平台应用', description: 'UniApp 跨平台开发经验，覆盖微信/H5/App', icon: 'i-lucide-smartphone', gradient: 'from-green-500 to-emerald-500' },
@@ -68,45 +112,76 @@ const highlights = [
     <UPageHero
       class="relative"
       :ui="{
-        wrapper: 'backdrop-blur-xl bg-white/70 dark:bg-gray-950/60 rounded-2xl border border-white/30 dark:border-white/10 shadow-2xl p-8 md:p-10 max-w-2xl'
+        wrapper: 'max-w-3xl mx-auto px-6 py-16 md:py-24'
       }"
     >
       <template #top>
-        <!-- 视频背景 -->
+        <!-- 视频背景：poster 静态图先展示，视频延迟加载 -->
         <div class="absolute inset-0 overflow-hidden -z-1">
+          <!-- Poster 静态图：页面加载时立即渲染，LCP 走文本而非视频 -->
+          <img
+            v-if="!videoReady"
+            src="/video/hero-bg-poster.webp"
+            srcset="/video/hero-bg-poster-sm.webp 640w, /video/hero-bg-poster.webp 1280w"
+            sizes="100vw"
+            width="1280"
+            height="720"
+            loading="eager"
+            fetchpriority="high"
+            alt=""
+            class="absolute inset-0 w-full h-full object-cover brightness-110 contrast-90 saturate-75 dark:brightness-100 dark:contrast-100 dark:saturate-100"
+          >
+          <!-- 视频：页面可交互后延迟加载；prefers-reduced-motion 用户永不加载 -->
           <video
+            v-show="videoReady"
+            ref="videoRef"
             autoplay
             loop
             muted
             playsinline
-            preload="auto"
-            class="absolute inset-0 w-full h-full object-cover"
+            preload="none"
+            class="absolute inset-0 w-full h-full object-cover brightness-110 contrast-90 saturate-75 dark:brightness-100 dark:contrast-100 dark:saturate-100"
+            @loadeddata="onVideoReady"
           >
             <source
-              src="/video/hero-bg.mp4"
               type="video/mp4"
             >
           </video>
-          <!-- 暗色叠加层，保证文字可读 -->
-          <div class="absolute inset-0 bg-linear-to-b from-gray-900/30 via-gray-900/20 to-white dark:to-gray-950" />
+          <!-- light 模式：白色叠加层洗淡视频；dark 模式：保持原有暗色叠加 -->
+          <div class="absolute inset-0 bg-linear-to-b from-white/70 via-white/45 to-white dark:from-gray-900/30 dark:via-gray-900/20 dark:to-gray-950" />
         </div>
       </template>
 
+      <template #headline>
+        <Motion
+          :initial="{ opacity: 0, y: 12 }"
+          :animate="{ opacity: 1, y: 0 }"
+          :transition="{ duration: 0.4 }"
+          class="inline-flex items-center gap-2 rounded-full bg-white dark:bg-white/5 backdrop-blur px-4 py-1.5 ring-1 ring-gray-300 dark:ring-white/10 shadow-sm"
+        >
+          <span class="relative flex h-2 w-2">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-500 opacity-75" />
+            <span class="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+          </span>
+          <span class="text-xs font-medium text-gray-700 dark:text-gray-300">持续更新中 · 开放技术合作</span>
+        </Motion>
+      </template>
+
       <template #title>
-        <span class="block">{{ page.title }}</span>
-        <span class="block text-2xl md:text-3xl font-medium text-gray-500 dark:text-gray-400 mt-2">
+        <span class="block text-4xl md:text-6xl font-bold text-gray-900 dark:text-white">{{ page.title }}</span>
+        <span class="block text-2xl md:text-4xl font-medium text-gray-600 dark:text-gray-400 mt-3">
           <TypewriterText :texts="typingTexts" />
         </span>
       </template>
 
       <template #description>
-        <p class="text-base md:text-lg text-gray-600 dark:text-gray-400 max-w-xl mx-auto leading-relaxed">
+        <p class="text-lg md:text-xl text-gray-700 dark:text-gray-400 max-w-xl mx-auto leading-relaxed mt-4">
           {{ page.description }}
         </p>
       </template>
 
       <template #links>
-        <div class="flex flex-wrap items-center justify-center gap-3 mt-2">
+        <div class="flex flex-wrap items-center justify-center gap-4 mt-6">
           <Motion
             :initial="{ opacity: 0, y: 15 }"
             :animate="{ opacity: 1, y: 0 }"
@@ -114,11 +189,11 @@ const highlights = [
           >
             <UButton
               to="/about-us"
-              size="lg"
+              size="xl"
               color="primary"
               variant="solid"
               icon="i-lucide-user-round"
-              class="rounded-xl px-6"
+              class="rounded-xl px-8 text-base"
             >
               关于我
             </UButton>
@@ -130,16 +205,55 @@ const highlights = [
           >
             <UButton
               to="/blog"
-              size="lg"
+              size="xl"
               color="primary"
               variant="outline"
               icon="i-lucide-pencil-line"
-              class="rounded-xl px-6"
+              class="rounded-xl px-8 text-base"
             >
               博客
             </UButton>
           </Motion>
         </div>
+
+        <Motion
+          :initial="{ opacity: 0 }"
+          :animate="{ opacity: 1 }"
+          :transition="{ duration: 0.4, delay: 0.6 }"
+          class="flex items-center justify-center gap-2 mt-6"
+        >
+          <UButton
+            :to="githubUrl"
+            target="_blank"
+            size="lg"
+            color="neutral"
+            variant="outline"
+            icon="i-simple-icons-github"
+            square
+            aria-label="GitHub"
+            class="rounded-xl bg-white dark:bg-transparent"
+          />
+          <UButton
+            :to="`mailto:${contactEmail}`"
+            size="lg"
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-mail"
+            square
+            aria-label="发送邮件"
+            class="rounded-xl bg-white dark:bg-transparent"
+          />
+          <UButton
+            to="/blog"
+            size="lg"
+            color="neutral"
+            variant="outline"
+            icon="i-lucide-rss"
+            square
+            aria-label="订阅博客"
+            class="rounded-xl bg-white dark:bg-transparent"
+          />
+        </Motion>
       </template>
     </UPageHero>
 
@@ -281,48 +395,105 @@ const highlights = [
           v-if="recentUpdates.length"
           class="grid grid-cols-1 md:grid-cols-3 gap-5"
         >
+          <!-- 特色大卡：最新一篇 -->
           <Motion
-            v-for="(update, i) in recentUpdates"
-            :key="update.title"
+            v-if="featuredUpdate"
             :initial="{ opacity: 0, y: 24 }"
             :while-in-view="{ opacity: 1, y: 0 }"
-            :transition="{ type: 'tween', duration: 0.4, ease: 'easeOut', delay: i * 0.1 }"
+            :transition="{ type: 'tween', duration: 0.4, ease: 'easeOut' }"
             :viewport="{ once: true, margin: '-80px' }"
+            class="md:col-span-2"
           >
             <NuxtLink
-              :to="update.to"
-              class="group flex gap-4 bg-white dark:bg-gray-900 rounded-2xl p-5 ring-1 ring-gray-200 dark:ring-gray-800 h-full"
+              :to="featuredUpdate.to"
+              class="group relative flex flex-col justify-between overflow-hidden bg-white dark:bg-gray-900 rounded-2xl p-7 ring-1 ring-gray-200 dark:ring-gray-800 h-full min-h-56 transition-shadow duration-300 hover:shadow-xl hover:shadow-gray-200/50 dark:hover:shadow-black/30"
             >
-              <!-- 左侧分类竖线 -->
+              <!-- 装饰性顶部渐变条 -->
               <div
-                :class="`shrink-0 w-0.5 rounded-full transition-all duration-300 bg-gray-300 dark:bg-gray-600 group-hover:w-1 ${getCategoryColor(update.category)}`"
+                :class="`absolute inset-x-0 top-0 h-1 ${getCategoryColor(featuredUpdate.category)}`"
               />
-
-              <div class="flex flex-col gap-2 min-w-0">
-                <!-- 标题 -->
-                <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-primary-500 transition-colors duration-200 line-clamp-2 leading-snug text-[15px]">
-                  {{ update.title }}
+              <div class="flex flex-col gap-3">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex items-center rounded-full bg-primary-500/10 px-2.5 py-1 text-xs font-semibold text-primary-500">
+                    {{ featuredUpdate.category }}
+                  </span>
+                  <span class="text-xs font-medium text-gray-400 dark:text-gray-500">最新发布</span>
+                </div>
+                <h3 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white group-hover:text-primary-500 transition-colors duration-200 line-clamp-2 leading-snug text-balance">
+                  {{ featuredUpdate.title }}
                 </h3>
-
-                <!-- 摘要 -->
                 <p
-                  v-if="update.description"
-                  class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed"
+                  v-if="featuredUpdate.description"
+                  class="text-sm md:text-base text-gray-500 dark:text-gray-400 line-clamp-3 leading-relaxed"
                 >
-                  {{ update.description }}
+                  {{ featuredUpdate.description }}
                 </p>
-
-                <!-- 日期 -->
-                <div class="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 mt-auto pt-1">
+              </div>
+              <div class="flex items-center justify-between mt-6">
+                <div class="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
                   <UIcon
                     name="i-lucide-calendar"
                     class="w-3.5 h-3.5"
                   />
-                  {{ update.date }}
+                  {{ featuredUpdate.date }}
                 </div>
+                <span class="flex items-center gap-1 text-sm font-medium text-primary-500">
+                  阅读全文
+                  <UIcon
+                    name="i-lucide-arrow-right"
+                    class="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200"
+                  />
+                </span>
               </div>
             </NuxtLink>
           </Motion>
+
+          <!-- 右侧：其余紧凑小卡 -->
+          <div class="flex flex-col gap-5">
+            <Motion
+              v-for="(update, i) in restUpdates"
+              :key="update.title"
+              :initial="{ opacity: 0, y: 24 }"
+              :while-in-view="{ opacity: 1, y: 0 }"
+              :transition="{ type: 'tween', duration: 0.4, ease: 'easeOut', delay: (i + 1) * 0.1 }"
+              :viewport="{ once: true, margin: '-80px' }"
+              class="flex-1"
+            >
+              <NuxtLink
+                :to="update.to"
+                class="group flex gap-4 bg-white dark:bg-gray-900 rounded-2xl p-5 ring-1 ring-gray-200 dark:ring-gray-800 h-full transition-shadow duration-300 hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-black/30"
+              >
+                <!-- 左侧分类竖线 -->
+                <div
+                  :class="`shrink-0 w-0.5 rounded-full transition-all duration-300 bg-gray-300 dark:bg-gray-600 group-hover:w-1 ${getCategoryColor(update.category)}`"
+                />
+
+                <div class="flex flex-col gap-2 min-w-0">
+                  <!-- 标题 -->
+                  <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-primary-500 transition-colors duration-200 line-clamp-2 leading-snug text-[15px]">
+                    {{ update.title }}
+                  </h3>
+
+                  <!-- 摘要 -->
+                  <p
+                    v-if="update.description"
+                    class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed"
+                  >
+                    {{ update.description }}
+                  </p>
+
+                  <!-- 日期 -->
+                  <div class="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 mt-auto pt-1">
+                    <UIcon
+                      name="i-lucide-calendar"
+                      class="w-3.5 h-3.5"
+                    />
+                    {{ update.date }}
+                  </div>
+                </div>
+              </NuxtLink>
+            </Motion>
+          </div>
         </div>
 
         <!-- 空状态 -->
@@ -338,5 +509,55 @@ const highlights = [
         </div>
       </div>
     </UContainer>
+
+    <!-- ========== 收尾 CTA 区域 ========== -->
+    <div class="bg-gray-50/80 dark:bg-gray-950/60 border-t border-gray-200 dark:border-gray-800">
+      <UContainer>
+        <div class="py-16">
+          <Motion
+            :initial="{ opacity: 0, y: 24 }"
+            :while-in-view="{ opacity: 1, y: 0 }"
+            :transition="{ duration: 0.5 }"
+            :viewport="{ once: true, margin: '-80px' }"
+            class="relative overflow-hidden rounded-3xl bg-gray-900 dark:bg-gray-900 px-6 py-14 md:px-16 md:py-16 text-center ring-1 ring-gray-800"
+          >
+            <!-- 装饰渐变光晕 -->
+            <div class="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 h-64 w-64 rounded-full bg-primary-500/20 blur-3xl" />
+            <div class="relative flex flex-col items-center gap-5">
+              <span class="inline-block text-xs font-semibold uppercase tracking-widest text-primary-400">保持联系</span>
+              <h2 class="text-2xl md:text-4xl font-bold text-white text-balance max-w-xl">
+                一起做点有意思的东西
+              </h2>
+              <p class="text-base text-gray-400 max-w-md leading-relaxed text-pretty">
+                无论是技术交流、项目合作还是随便聊聊，欢迎通过下面的方式找到我。
+              </p>
+              <div class="flex flex-wrap items-center justify-center gap-3 mt-2">
+                <UButton
+                  :to="`mailto:${contactEmail}`"
+                  size="xl"
+                  color="primary"
+                  variant="solid"
+                  icon="i-lucide-mail"
+                  class="rounded-xl px-8 text-base"
+                >
+                  发邮件给我
+                </UButton>
+                <UButton
+                  :to="githubUrl"
+                  target="_blank"
+                  size="xl"
+                  color="neutral"
+                  variant="outline"
+                  icon="i-simple-icons-github"
+                  class="rounded-xl px-8 text-base"
+                >
+                  GitHub
+                </UButton>
+              </div>
+            </div>
+          </Motion>
+        </div>
+      </UContainer>
+    </div>
   </div>
 </template>
