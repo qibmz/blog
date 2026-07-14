@@ -127,15 +127,27 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
         <div class="absolute inset-0 -z-1 overflow-hidden">
           <img
             v-if="!videoReady"
-            :src="currentHeroMedia.poster"
-            :srcset="`${currentHeroMedia.posterSm} 640w, ${currentHeroMedia.poster} 1280w`"
+            src="/video/hero-bg-light-poster.webp"
+            srcset="/video/hero-bg-light-poster-sm.webp 640w, /video/hero-bg-light-poster.webp 1280w"
             sizes="100vw"
             width="1280"
             height="720"
             loading="eager"
             fetchpriority="high"
             alt=""
-            class="absolute inset-0 h-full w-full object-cover brightness-100 contrast-100 saturate-100 dark:brightness-90 dark:contrast-100 dark:saturate-100"
+            class="absolute inset-0 h-full w-full object-cover brightness-100 contrast-100 saturate-100 block dark:hidden"
+          >
+          <img
+            v-if="!videoReady"
+            src="/video/hero-bg-dark-poster.webp"
+            srcset="/video/hero-bg-dark-poster-sm.webp 640w, /video/hero-bg-dark-poster.webp 1280w"
+            sizes="100vw"
+            width="1280"
+            height="720"
+            loading="eager"
+            fetchpriority="high"
+            alt=""
+            class="absolute inset-0 h-full w-full object-cover brightness-90 contrast-100 saturate-100 hidden dark:block"
           >
           <video
             v-show="videoReady"
