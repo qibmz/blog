@@ -82,9 +82,11 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
     class="relative min-h-screen bg-[#F6F8FB] text-slate-900 dark:bg-gray-950 dark:text-gray-100"
   >
     <UPageHero
+      data-home-hero
       class="relative isolate min-h-[560px] overflow-hidden md:min-h-[600px]"
       :ui="{
-        wrapper: 'max-w-3xl mx-auto min-h-[560px] md:min-h-[600px] px-6 py-12 flex flex-col justify-center'
+        container: 'min-h-[560px] md:min-h-[600px] py-0 sm:py-0 lg:py-0',
+        wrapper: 'max-w-3xl mx-auto px-6 py-10 flex flex-col justify-center'
       }"
     >
       <template #top>
@@ -126,7 +128,7 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
           class="inline-flex items-center gap-2 rounded-full bg-slate-950/45 px-4 py-1.5 text-white ring-1 ring-white/20 backdrop-blur-md"
         >
           <span class="relative flex size-2">
-            <span class="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-70" />
+            <span class="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-70 motion-reduce:animate-none" />
             <span class="relative inline-flex size-2 rounded-full bg-emerald-400" />
           </span>
           <span class="text-xs font-medium text-slate-100">持续更新中 · 开放技术合作</span>

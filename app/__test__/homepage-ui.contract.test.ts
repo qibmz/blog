@@ -58,4 +58,21 @@ describe('homepage UI contracts', () => {
       'description: 记录前端开发、UniApp、Web3 与工程化实践中的问题和解决方案。'
     )
   })
+
+  it('uses a quiet translucent header without a jumping logo shadow', () => {
+    const source = readProjectFile('app/components/AppHeader.vue')
+
+    expect(source).toContain('class="border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-gray-800 dark:bg-gray-950/85"')
+    expect(source).not.toContain('shadow-md hover:shadow-lg')
+  })
+
+  it('stops decorative hero motion when reduced motion is preferred', () => {
+    const homepage = readProjectFile('app/pages/index.vue')
+    const typewriter = readProjectFile('app/components/TypewriterText.vue')
+
+    expect(homepage).toContain('motion-reduce:animate-none')
+    expect(typewriter).toContain('usePreferredReducedMotion()')
+    expect(typewriter).toContain('preferredMotion.value === \'reduce\'')
+    expect(typewriter).toContain('motion-reduce:animate-none')
+  })
 })

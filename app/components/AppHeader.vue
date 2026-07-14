@@ -36,7 +36,7 @@ const items = computed(() => [{
 </script>
 
 <template>
-  <UHeader>
+  <UHeader class="border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-gray-800 dark:bg-gray-950/85">
     <template #left>
       <NuxtLink
         to="/"
@@ -47,7 +47,7 @@ const items = computed(() => [{
           alt="qibmz logo"
           width="40"
           height="40"
-          class="rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+          class="rounded-lg shadow-sm transition-opacity duration-200 hover:opacity-90"
         />
         <span class="text-xl font-bold text-gray-800 dark:text-white">qibmz</span>
       </NuxtLink>
