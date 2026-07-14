@@ -15,6 +15,9 @@
 - Only one `<video>` is rendered and only the current theme video is loaded.
 - Reduced-motion mode loads no video and shows the active theme poster.
 - Hero copy, layout, dimensions, and article sections remain unchanged.
+- Light mode has no dark full-screen mask; it uses dark high-contrast Hero copy and only a transparent bottom fade into `#F6F8FB`.
+- Dark mode keeps the existing dark gradient mask and white Hero copy.
+- The Hero extends upward by Nuxt UI's `--ui-header-height`, while its content keeps the same safe offset, so video and poster sit behind the translucent navbar without overlap.
 
 ---
 
@@ -171,6 +174,14 @@ pnpm typecheck
 ```
 
 Expected: all homepage contracts pass and Nuxt type checking exits 0.
+
+- [ ] **Step 6: Remove the dark mask from light mode with a failing contract first**
+
+Add a contract requiring `from-transparent via-transparent to-[#F6F8FB]`, rejecting the old light `from-slate-950/70 via-slate-900/45` mask, and requiring theme-aware title/description/action colors. Run it once to observe RED, then implement the light-only dark text and transparent bottom fade while retaining all `dark:` styles.
+
+- [ ] **Step 7: Extend the Hero behind Nuxt UI Header with a failing contract first**
+
+Use the documented `--ui-header-height` variable for the negative Hero offset, increase its minimum height by the same value, and add that value back to the wrapper's top padding. This keeps the content position stable while the media reaches the viewport top behind the navbar.
 
 ---
 

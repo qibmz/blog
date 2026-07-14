@@ -62,7 +62,7 @@ describe('homepage UI contracts', () => {
   it('uses a quiet translucent header without a jumping logo shadow', () => {
     const source = readProjectFile('app/components/AppHeader.vue')
 
-    expect(source).toContain('class="border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-gray-800 dark:bg-gray-950/85"')
+    expect(source).toContain('<UHeader')
     expect(source).not.toContain('shadow-md hover:shadow-lg')
   })
 
@@ -74,5 +74,38 @@ describe('homepage UI contracts', () => {
     expect(typewriter).toContain('usePreferredReducedMotion()')
     expect(typewriter).toContain('preferredMotion.value === \'reduce\'')
     expect(typewriter).toContain('motion-reduce:animate-none')
+  })
+
+  it('loads matching light and dark hero media through one video element', () => {
+    const source = readProjectFile('app/pages/index.vue')
+
+    expect(source).toContain('video: \'/video/hero-bg-light.mp4\'')
+    expect(source).toContain('poster: \'/video/hero-bg-light-poster.webp\'')
+    expect(source).toContain('posterSm: \'/video/hero-bg-light-poster-sm.webp\'')
+    expect(source).toContain('video: \'/video/hero-bg-dark.mp4\'')
+    expect(source).toContain('poster: \'/video/hero-bg-dark-poster.webp\'')
+    expect(source).toContain('posterSm: \'/video/hero-bg-dark-poster-sm.webp\'')
+    expect(source.match(/<video/g)).toHaveLength(1)
+    expect(source).toContain('watch(currentHeroTheme')
+    expect(source).toContain('source.getAttribute(\'src\') !== currentHeroMedia.value.video')
+  })
+
+  it('uses the light video without a dark full-screen mask', () => {
+    const source = readProjectFile('app/pages/index.vue')
+
+    expect(source).toContain('from-transparent via-transparent to-[#F6F8FB]')
+    expect(source).not.toContain('from-slate-950/70 via-slate-900/45')
+    expect(source).toContain('text-slate-950 dark:text-white dark:drop-shadow-sm')
+    expect(source).toContain('text-slate-700 dark:text-slate-100')
+    expect(source).toContain('text-slate-800 hover:bg-white/70 dark:text-white')
+  })
+
+  it('extends the hero media behind the header without moving its content upward', () => {
+    const source = readProjectFile('app/pages/index.vue')
+
+    expect(source).toContain('-mt-(--ui-header-height)')
+    expect(source).toContain('min-h-[calc(560px+var(--ui-header-height))]')
+    expect(source).toContain('md:min-h-[calc(600px+var(--ui-header-height))]')
+    expect(source).toContain('pt-[calc(var(--ui-header-height)+2.5rem)]')
   })
 })

@@ -12,33 +12,67 @@ useSeoMeta({
   ogDescription: description
 })
 
-// Hero 视频延迟加载
+// Hero 视频延迟加载与主题资源切换
+const colorMode = useColorMode()
+const heroMedia = {
+  light: {
+    video: '/video/hero-bg-light.mp4',
+    poster: '/video/hero-bg-light-poster.webp',
+    posterSm: '/video/hero-bg-light-poster-sm.webp'
+  },
+  dark: {
+    video: '/video/hero-bg-dark.mp4',
+    poster: '/video/hero-bg-dark-poster.webp',
+    posterSm: '/video/hero-bg-dark-poster-sm.webp'
+  }
+} as const
+
+const currentHeroTheme = computed(() => colorMode.value === 'dark' ? 'dark' : 'light')
+const currentHeroMedia = computed(() => heroMedia[currentHeroTheme.value])
 const videoRef = ref<HTMLVideoElement | null>(null)
 const videoReady = ref(false)
+const reduceMotion = ref(false)
+
+function loadHeroVideo() {
+  if (reduceMotion.value || !videoRef.value) return
+
+  const source = videoRef.value.querySelector('source')
+  const nextVideo = currentHeroMedia.value.video
+
+  if (!source || source.getAttribute('src') === nextVideo) return
+
+  videoReady.value = false
+  source.src = nextVideo
+  videoRef.value.load()
+}
 
 onMounted(() => {
   const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+  reduceMotion.value = motionQuery.matches
 
   if (!motionQuery.matches) {
-    const loadVideo = () => {
-      if (videoRef.value) {
-        const source = videoRef.value.querySelector('source')
-        if (source && !source.src) {
-          source.src = '/video/hero-bg.mp4'
-          videoRef.value.load()
-        }
-      }
-    }
-
     if (typeof requestIdleCallback !== 'undefined') {
-      requestIdleCallback(loadVideo, { timeout: 2000 })
+      requestIdleCallback(loadHeroVideo, { timeout: 2000 })
     } else {
-      setTimeout(loadVideo, 200)
+      setTimeout(loadHeroVideo, 200)
     }
   }
 })
 
+watch(currentHeroTheme, () => {
+  videoReady.value = false
+  loadHeroVideo()
+})
+
 function onVideoReady() {
+  const source = videoRef.value?.querySelector('source')
+  if (!source) return
+
+  if (
+    source.getAttribute('src') !== currentHeroMedia.value.video
+    || !videoRef.value?.currentSrc.endsWith(currentHeroMedia.value.video)
+  ) return
+
   videoReady.value = true
   videoRef.value?.play().catch(() => {
     // Autoplay was blocked or interrupted; poster remains visible
@@ -83,25 +117,25 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
   >
     <UPageHero
       data-home-hero
-      class="relative isolate min-h-[560px] overflow-hidden md:min-h-[600px]"
+      class="relative isolate -mt-(--ui-header-height) min-h-[calc(560px+var(--ui-header-height))] overflow-hidden md:min-h-[calc(600px+var(--ui-header-height))]"
       :ui="{
-        container: 'min-h-[560px] md:min-h-[600px] py-0 sm:py-0 lg:py-0',
-        wrapper: 'max-w-3xl mx-auto px-6 py-10 flex flex-col justify-center'
+        container: 'min-h-[calc(560px+var(--ui-header-height))] md:min-h-[calc(600px+var(--ui-header-height))] py-0 sm:py-0 lg:py-0',
+        wrapper: 'max-w-3xl mx-auto px-6 pt-[calc(var(--ui-header-height)+2.5rem)] pb-10 flex flex-col justify-center'
       }"
     >
       <template #top>
         <div class="absolute inset-0 -z-1 overflow-hidden">
           <img
             v-if="!videoReady"
-            src="/video/hero-bg-poster.webp"
-            srcset="/video/hero-bg-poster-sm.webp 640w, /video/hero-bg-poster.webp 1280w"
+            :src="currentHeroMedia.poster"
+            :srcset="`${currentHeroMedia.posterSm} 640w, ${currentHeroMedia.poster} 1280w`"
             sizes="100vw"
             width="1280"
             height="720"
             loading="eager"
             fetchpriority="high"
             alt=""
-            class="absolute inset-0 h-full w-full object-cover brightness-90 contrast-105 saturate-90 dark:brightness-90 dark:contrast-100 dark:saturate-100"
+            class="absolute inset-0 h-full w-full object-cover brightness-100 contrast-100 saturate-100 dark:brightness-90 dark:contrast-100 dark:saturate-100"
           >
           <video
             v-show="videoReady"
@@ -111,12 +145,12 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
             muted
             playsinline
             preload="none"
-            class="absolute inset-0 h-full w-full object-cover brightness-90 contrast-105 saturate-90 dark:brightness-90 dark:contrast-100 dark:saturate-100"
+            class="absolute inset-0 h-full w-full object-cover brightness-100 contrast-100 saturate-100 dark:brightness-90 dark:contrast-100 dark:saturate-100"
             @loadeddata="onVideoReady"
           >
             <source type="video/mp4">
           </video>
-          <div class="absolute inset-0 bg-linear-to-b from-slate-950/70 via-slate-900/45 to-[#F6F8FB] dark:from-gray-950/55 dark:via-gray-950/35 dark:to-gray-950" />
+          <div class="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-[#F6F8FB] dark:from-gray-950/55 dark:via-gray-950/35 dark:to-gray-950" />
         </div>
       </template>
 
@@ -125,18 +159,18 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
           :initial="{ opacity: 0, y: 10 }"
           :animate="{ opacity: 1, y: 0 }"
           :transition="{ duration: 0.35 }"
-          class="inline-flex items-center gap-2 rounded-full bg-slate-950/45 px-4 py-1.5 text-white ring-1 ring-white/20 backdrop-blur-md"
+          class="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1.5 ring-1 ring-slate-900/10 backdrop-blur-md dark:bg-slate-950/45 dark:ring-white/20"
         >
           <span class="relative flex size-2">
             <span class="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-70 motion-reduce:animate-none" />
             <span class="relative inline-flex size-2 rounded-full bg-emerald-400" />
           </span>
-          <span class="text-xs font-medium text-slate-100">持续更新中 · 开放技术合作</span>
+          <span class="text-xs font-medium text-slate-700 dark:text-slate-100">持续更新中 · 开放技术合作</span>
         </Motion>
       </template>
 
       <template #title>
-        <span class="block text-4xl font-bold text-white drop-shadow-sm md:text-6xl">
+        <span class="block text-4xl font-bold text-slate-950 dark:text-white dark:drop-shadow-sm md:text-6xl">
           {{ page.title }}
         </span>
         <span class="mt-3 block text-2xl font-medium text-primary-300 md:text-4xl">
@@ -145,7 +179,7 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
       </template>
 
       <template #description>
-        <p class="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-100 md:text-lg">
+        <p class="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-700 dark:text-slate-100 md:text-lg">
           {{ page.description }}
         </p>
       </template>
@@ -179,7 +213,7 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
               color="neutral"
               variant="outline"
               icon="i-lucide-user-round"
-              class="min-h-11 rounded-xl border-white/35 bg-slate-950/25 px-7 text-base text-white hover:bg-slate-950/40"
+              class="min-h-11 rounded-xl border-slate-300 bg-white/65 px-7 text-base text-slate-900 hover:bg-white/90 dark:border-white/35 dark:bg-slate-950/25 dark:text-white dark:hover:bg-slate-950/40"
             >
               关于我
             </UButton>
@@ -200,7 +234,7 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
             variant="ghost"
             icon="i-simple-icons-github"
             aria-label="GitHub"
-            class="min-h-11 min-w-11 rounded-xl text-white hover:bg-white/10"
+            class="min-h-11 min-w-11 rounded-xl text-slate-800 hover:bg-white/70 dark:text-white dark:hover:bg-white/10"
           />
           <UButton
             :to="`mailto:${contactEmail}`"
@@ -209,7 +243,7 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
             variant="ghost"
             icon="i-lucide-mail"
             aria-label="发送邮件"
-            class="min-h-11 min-w-11 rounded-xl text-white hover:bg-white/10"
+            class="min-h-11 min-w-11 rounded-xl text-slate-800 hover:bg-white/70 dark:text-white dark:hover:bg-white/10"
           />
         </Motion>
       </template>

@@ -36,7 +36,7 @@ const items = computed(() => [{
 </script>
 
 <template>
-  <UHeader class="border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:border-gray-800 dark:bg-gray-950/85">
+  <UHeader>
     <template #left>
       <NuxtLink
         to="/"
