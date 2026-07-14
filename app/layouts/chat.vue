@@ -216,6 +216,18 @@ async function logout() {
   await clear()
   await navigateTo('/chat')
 }
+
+function goToLogin() {
+  navigateTo('/login')
+}
+
+function closeRename() {
+  renameOpen.value = false
+}
+
+function closeDelete() {
+  deleteOpen.value = false
+}
 </script>
 
 <template>
@@ -424,7 +436,7 @@ async function logout() {
             size="sm"
             class="w-full"
             aria-label="登录"
-            @click="navigateTo('/login')"
+            @click="goToLogin"
           />
           <div
             v-else
@@ -432,7 +444,7 @@ async function logout() {
           >
             <button
               class="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm text-muted hover:text-highlighted hover:bg-accented/60 transition-all duration-200 group"
-              @click="navigateTo('/login')"
+              @click="goToLogin"
             >
               <span class="flex items-center justify-center w-7 h-7 rounded-full bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors shrink-0">
                 <UIcon
@@ -478,7 +490,7 @@ async function logout() {
             label="取消"
             color="neutral"
             variant="ghost"
-            @click="renameOpen = false"
+            @click="closeRename"
           />
           <UButton
             label="确认"
@@ -503,7 +515,7 @@ async function logout() {
             label="取消"
             color="neutral"
             variant="ghost"
-            @click="deleteOpen = false"
+            @click="closeDelete"
           />
           <UButton
             label="删除"
