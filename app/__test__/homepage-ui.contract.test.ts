@@ -23,4 +23,39 @@ describe('homepage UI contracts', () => {
     expect(source).toContain('\'Viem\'')
     expect(source).toContain('v-if="!compact"')
   })
+
+  it('places five recent articles directly after a compact hero', () => {
+    const source = readProjectFile('app/pages/index.vue')
+    const heroEnd = source.indexOf('</UPageHero>')
+    const recent = source.indexOf('id="recent-articles"')
+    const topics = source.indexOf('id="writing-topics"')
+    const stack = source.indexOf('<TechStack compact')
+
+    expect(source).toContain('min-h-[560px]')
+    expect(source).toContain('md:min-h-[600px]')
+    expect(source).toContain('to="#recent-articles"')
+    expect(source).toContain('.slice(0, 5)')
+    expect(heroEnd).toBeGreaterThan(-1)
+    expect(recent).toBeGreaterThan(heroEnd)
+    expect(topics).toBeGreaterThan(recent)
+    expect(stack).toBeGreaterThan(topics)
+  })
+
+  it('removes portfolio-template sections and the fake RSS action', () => {
+    const source = readProjectFile('app/pages/index.vue')
+
+    expect(source).not.toContain('const stats =')
+    expect(source).not.toContain('const highlights =')
+    expect(source).not.toContain('<CountUp')
+    expect(source).not.toContain('i-lucide-rss')
+    expect(source).not.toContain('技术专长')
+  })
+
+  it('uses the approved content-first introduction', () => {
+    const content = readProjectFile('content/0.index.yml')
+
+    expect(content).toContain(
+      'description: 记录前端开发、UniApp、Web3 与工程化实践中的问题和解决方案。'
+    )
+  })
 })
