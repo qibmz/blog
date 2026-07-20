@@ -121,9 +121,9 @@ const displayedStack = computed(() => {
 
     <!-- 技术 Token 网格 -->
     <div
-      class="grid gap-2.5"
+      class="grid"
       :class="compact
-        ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5'
+        ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5'
         : 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5'"
     >
       <Motion
@@ -133,7 +133,7 @@ const displayedStack = computed(() => {
         :initial="{ opacity: 0, y: 8 }"
         :while-in-view="{ opacity: 1, y: 0 }"
         :transition="{ duration: 0.25, delay: index * 0.025 }"
-        :viewport="{ once: true, margin: '-20px' }"
+        :viewport="{ once: true, margin: '-80px' }"
       >
         <a
           :href="item.url"

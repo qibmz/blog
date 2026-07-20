@@ -81,7 +81,7 @@ function onVideoReady() {
 
 const typingTexts = ['前端开发者', 'Web3 Builder', 'UniApp 跨平台']
 
-const { data: posts } = await useAsyncData('posts', () => queryCollection('posts').all())
+const { data: posts } = await useAsyncData('posts', () => queryCollection('posts').all(), { default: () => [] })
 
 const recentUpdates = computed(() =>
   [...(posts.value || [])]
@@ -91,7 +91,7 @@ const recentUpdates = computed(() =>
       title: post.title,
       description: post.description || '',
       date: new Date(post.date).toISOString().split('T')[0],
-      category: post.badge.label || '文章',
+      category: post.badge?.label || '文章',
       to: `${post.path}`
     }))
 )
@@ -300,7 +300,7 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
             :initial="{ opacity: 0, y: 16 }"
             :while-in-view="{ opacity: 1, y: 0 }"
             :transition="{ duration: 0.3 }"
-            :viewport="{ once: true, margin: '-60px' }"
+            :viewport="{ once: true, margin: '-80px' }"
             class="lg:col-span-7"
           >
             <NuxtLink
