@@ -350,7 +350,7 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
               :initial="{ opacity: 0, y: 12 }"
               :while-in-view="{ opacity: 1, y: 0 }"
               :transition="{ duration: 0.25, delay: index * 0.05 }"
-              :viewport="{ once: true, margin: '-40px' }"
+              :viewport="{ once: true, margin: '-80px' }"
             >
               <NuxtLink
                 :to="update.to"
