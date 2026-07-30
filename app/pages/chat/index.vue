@@ -1,17 +1,11 @@
 <script setup lang="ts">
+import type { UIMessage } from 'ai'
+
 definePageMeta({ layout: 'chat' })
 
 useSeoMeta({ title: 'AI Chat' })
 
 const input = ref('')
-const chatBody = ref<Record<string, unknown> | null>(null)
-
-const { data, pending, error, execute } = useAPI<{ id: string }>('/api/chats', {
-  method: 'POST',
-  body: chatBody,
-  immediate: false,
-  watch: false
-})
 
 const hour = new Date().getHours()
 const greeting = hour < 12 ? '早上好，Master' : hour < 18 ? '下午好，Master' : '晚上好，Master'
@@ -20,6 +14,7 @@ const { loggedIn } = useUserSession()
 
 const { model: selectedModel, models: modelOptions } = useModels()
 const { thinkingMode } = useChatOptions()
+const pendingChat = usePendingChat()
 
 // ─── 图片上传 ────────────────────────────────
 const {
@@ -72,38 +67,59 @@ const currentModel = computed(() =>
   modelOptions.value.find(m => m.value === selectedModel.value)
 )
 
-async function createChat(text: string) {
+function createChat(text: string) {
   if (!loggedIn.value) {
-    await navigateTo('/login')
+    navigateTo('/login')
     return
   }
   const trimmed = text.trim()
   const hasFiles = readyParts.value.length > 0
   if (!trimmed && !hasFiles) return
 
-  chatBody.value = {
-    message: {
-      id: crypto.randomUUID(),
-      role: 'user',
-      parts: [
-        ...readyParts.value,
-        ...(trimmed ? [{ type: 'text', text: trimmed }] : [])
-      ]
-    },
+  const chatId = crypto.randomUUID()
+  const message: UIMessage = {
+    id: crypto.randomUUID(),
+    role: 'user',
+    parts: [
+      ...readyParts.value,
+      ...(trimmed ? [{ type: 'text' as const, text: trimmed }] : [])
+    ]
+  }
+
+  pendingChat.value = {
+    id: chatId,
+    message,
     model: selectedModel.value,
     options: { thinkingMode: thinkingMode.value }
   }
-  await execute()
-  if (error.value) return
-  if (data.value) {
-    clearFiles()
-    refreshNuxtData('sidebar-chats')
-    await navigateTo(`/chat/${data.value.id}`)
+
+  // 乐观更新侧边栏，立即出现新对话
+  const sidebar = useNuxtData<{ chats: Array<Record<string, unknown>>, remainingToday: number }>('sidebar-chats')
+  if (sidebar.data.value) {
+    sidebar.data.value = {
+      chats: [
+        {
+          id: chatId,
+          title: null,
+          model: selectedModel.value,
+          userId: null,
+          pinned: false,
+          createdAt: new Date().toISOString(),
+          deletedAt: null
+        },
+        ...sidebar.data.value.chats
+      ],
+      remainingToday: Math.max(0, (sidebar.data.value.remainingToday ?? 1) - 1)
+    }
   }
+
+  clearFiles()
+  input.value = ''
+  navigateTo(`/chat/${chatId}`)
 }
 
-async function onSubmit() {
-  await createChat(input.value)
+function onSubmit() {
+  createChat(input.value)
 }
 </script>
 
@@ -145,20 +161,7 @@ async function onSubmit() {
               {{ greeting }}
             </h1>
 
-            <!-- POST 请求期间显示加载状态，避免漫长等待中用户感知不到反馈 -->
-            <div
-              v-if="pending"
-              class="flex flex-col items-center justify-center gap-4 py-20"
-            >
-              <UIcon
-                name="i-lucide-loader-circle"
-                class="w-12 h-12 animate-spin text-primary"
-              />
-              <span class="text-sm text-muted">正在创建对话...</span>
-            </div>
-
             <UChatPrompt
-              v-else
               v-model="input"
               placeholder="有什么可以帮你的？"
               :rows="3"

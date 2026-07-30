@@ -6,7 +6,9 @@ import { z } from 'zod'
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
 
-  const { message, model, options: _options } = await readValidatedBody(event, z.object({
+  const { id, message, model, options: _options } = await readValidatedBody(event, z.object({
+    // 客户端生成 UUID，用于乐观跳转
+    id: z.string().uuid().optional(),
     message: UIMessageSchema,
     model: z.string().optional(),
     options: z.object({ thinkingMode: z.boolean().optional() }).optional()
@@ -23,6 +25,7 @@ export default defineEventHandler(async (event) => {
   await checkDailyLimit(user.id)
 
   const [chat] = await db.insert(schema.chats).values({
+    ...(id ? { id } : {}),
     userId: user.id,
     model: model ?? DEFAULT_MODEL
   }).returning()

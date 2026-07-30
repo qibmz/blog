@@ -63,4 +63,29 @@ describe('POST /api/chats', () => {
 
     expect(result).toHaveProperty('id', 'new-chat-3')
   })
+
+  it('should accept client-provided chat id for optimistic navigation', async () => {
+    const clientId = '550e8400-e29b-41d4-a716-446655440000'
+    const chatRow = { id: clientId, userId: mockUser.id, model: 'deepseek-v4-pro' }
+    mockDbInsertReturning.mockResolvedValue([chatRow])
+
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
+        const body = {
+          id: clientId,
+          model: 'deepseek-v4-pro',
+          message: { id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] }
+        }
+        return typeof validateFn === 'function' ? validateFn(body) : body
+      }
+    )
+
+    const { default: handler } = await import('../chats.post')
+
+    const event = { context: {}, path: '/api/chats' } as any
+    const result = await handler(event)
+
+    expect(result).toHaveProperty('id', clientId)
+    expect(mockCheckDailyLimit).toHaveBeenCalledWith(mockUser.id)
+  })
 })
