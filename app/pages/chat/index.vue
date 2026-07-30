@@ -151,7 +151,7 @@ function onSubmit() {
 
       <template #body>
         <div class="flex flex-1 overflow-y-auto items-center justify-center">
-          <UContainer class="w-full max-w-2xl py-10 flex flex-col gap-6">
+          <UContainer class="w-full max-w-3xl py-10 flex flex-col gap-6">
             <h1 class="text-3xl sm:text-4xl font-bold text-highlighted flex items-center justify-center gap-3">
               <NuxtImg
                 src="/image/logo.png"
