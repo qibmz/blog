@@ -8,6 +8,12 @@ interface TechItem {
 
 type CategoryKey = 'framework' | 'language' | 'styling' | 'ui-library' | 'cross-platform' | 'build-tools' | 'blockchain' | 'visualization'
 
+interface Props {
+  compact?: boolean
+}
+
+const { compact = false } = defineProps<Props>()
+
 const categoryMeta: Record<CategoryKey, { label: string, color: string }> = {
   'framework': { label: '框架', color: 'text-green-500' },
   'language': { label: '语言', color: 'text-blue-500' },
@@ -49,10 +55,28 @@ const techStack: TechItem[] = [
   { name: 'KLineCharts', icon: 'i-lucide-trending-up', url: 'https://klinecharts.com', category: 'visualization' }
 ]
 
+const compactTechNames = [
+  'Vue 3',
+  'Nuxt 4',
+  'TypeScript',
+  'Tailwind CSS',
+  'Nuxt UI',
+  'UniApp',
+  'Vite',
+  'Git',
+  'Wagmi',
+  'Viem'
+] as const
+
+const compactStack = techStack.filter(item =>
+  compactTechNames.includes(item.name as typeof compactTechNames[number])
+)
+
 const categoryKeys: CategoryKey[] = ['framework', 'language', 'styling', 'ui-library', 'cross-platform', 'build-tools', 'blockchain', 'visualization']
 const selectedCategory = ref<CategoryKey | 'all'>('all')
 
-const filteredStack = computed(() => {
+const displayedStack = computed(() => {
+  if (compact) return compactStack
   if (selectedCategory.value === 'all') return techStack
   return techStack.filter(item => item.category === selectedCategory.value)
 })
@@ -61,7 +85,10 @@ const filteredStack = computed(() => {
 <template>
   <div class="w-full">
     <!-- 分类筛选 -->
-    <div class="flex gap-0.5 mb-6 overflow-x-auto no-scrollbar border-b border-gray-200 dark:border-gray-800">
+    <div
+      v-if="!compact"
+      class="flex gap-0.5 mb-6 overflow-x-auto no-scrollbar border-b border-gray-200 dark:border-gray-800"
+    >
       <button
         class="relative shrink-0 px-3 py-2 text-xs font-medium transition-colors duration-200"
         :class="selectedCategory === 'all'
@@ -93,34 +120,43 @@ const filteredStack = computed(() => {
     </div>
 
     <!-- 技术 Token 网格 -->
-    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5">
+    <div
+      class="grid"
+      :class="compact
+        ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5'
+        : 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1.5'"
+    >
       <Motion
-        v-for="(item, index) in filteredStack"
+        v-for="(item, index) in displayedStack"
         :key="item.name"
         tag="div"
         :initial="{ opacity: 0, y: 8 }"
         :while-in-view="{ opacity: 1, y: 0 }"
-        :transition="{ type: 'spring', stiffness: 300, damping: 25, delay: index * 0.03 }"
-        :viewport="{ once: true, margin: '-20px' }"
+        :transition="{ duration: 0.25, delay: index * 0.025 }"
+        :viewport="{ once: true, margin: '-80px' }"
       >
         <a
           :href="item.url"
           target="_blank"
           rel="noopener noreferrer"
-          class="group flex items-center gap-1.5 px-2.5 py-2 rounded-lg
-                 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-colors duration-200"
+          class="group flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2.5 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+          :class="compact
+            ? 'border border-slate-200 bg-white hover:border-primary-300 hover:bg-primary-50/40 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-primary-800'
+            : 'hover:bg-gray-100 dark:hover:bg-gray-800/60'"
         >
           <UIcon
             :name="item.icon"
-            class="w-4 h-4 shrink-0"
-            :class="item.icon.startsWith('i-lucide') ? categoryMeta[item.category].color : ''"
+            class="size-4 shrink-0"
+            :class="item.icon.startsWith('i-lucide')
+              ? (compact ? 'text-primary-500' : categoryMeta[item.category].color)
+              : ''"
           />
-          <span class="text-xs text-highlighted/80 group-hover:text-highlighted truncate transition-colors duration-200">
+          <span class="truncate text-xs text-slate-700 transition-colors duration-200 group-hover:text-slate-950 dark:text-gray-300 dark:group-hover:text-white">
             {{ item.name }}
           </span>
           <UIcon
             name="i-lucide-arrow-up-right"
-            class="w-3 h-3 shrink-0 text-muted/40 group-hover:text-primary-500 opacity-0 group-hover:opacity-100 transition-all duration-200"
+            class="ml-auto size-3 shrink-0 text-slate-400 opacity-0 transition-opacity duration-200 group-hover:opacity-100 dark:text-gray-500"
           />
         </a>
       </Motion>

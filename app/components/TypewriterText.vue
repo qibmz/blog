@@ -15,6 +15,7 @@ const displayText = ref(props.texts[0]?.charAt(0) ?? '')
 const currentIndex = ref(0)
 const isDeleting = ref(false)
 const isBlinking = ref(true)
+const preferredMotion = usePreferredReducedMotion()
 
 function scheduleTick(delay: number) {
   useTimeoutFn(tick, delay)
@@ -65,6 +66,12 @@ function tick() {
 }
 
 onMounted(() => {
+  if (preferredMotion.value === 'reduce') {
+    displayText.value = props.texts[0] ?? ''
+    isBlinking.value = false
+    return
+  }
+
   // 首字符已展示，短暂延迟后开始打第二个字符
   scheduleTick(props.typingSpeed)
 })
@@ -74,7 +81,7 @@ onMounted(() => {
   <span class="inline-flex items-center">
     <span class="text-primary">{{ displayText }}</span>
     <span
-      class="ml-0.5 inline-block w-0.5 h-[1em] bg-primary align-middle"
+      class="ml-0.5 inline-block h-[1em] w-0.5 bg-primary align-middle motion-reduce:animate-none"
       :class="isBlinking ? 'animate-pulse' : 'opacity-100'"
     />
   </span>
