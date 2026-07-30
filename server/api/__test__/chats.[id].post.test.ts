@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mockDbFindFirst, mockUser, mockReadValidatedBody } from '../../utils/__test__/setup'
+import { mockDbFindFirst, mockDbUpdate, mockUser, mockReadValidatedBody } from '../../utils/__test__/setup'
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 const mockCheckDailyLimit = vi.fn()
 const mockGetModel = vi.fn(() => ({ provider: 'mock', modelId: 'mock' }))
+const mockModelSupportsImages = vi.fn(async () => true)
 const mockStreamText = vi.fn()
 const mockGenerateText = vi.fn()
 const mockConvertToModelMessages = vi.fn((msgs: unknown[]) => msgs)
@@ -25,7 +26,8 @@ vi.mock('../../utils/rateLimiter', () => ({
 vi.mock('../../utils/models', () => ({
   getModel: mockGetModel,
   DEFAULT_MODEL: 'deepseek-v4-pro',
-  MODEL_OPTIONS: []
+  MODEL_OPTIONS: [],
+  modelSupportsImages: (...args: unknown[]) => mockModelSupportsImages(...args)
 }))
 
 vi.mock('ai', () => ({
@@ -241,5 +243,79 @@ describe('POST /api/chats/:id', () => {
 
     // Follow-up messages (messages.length > 1) should trigger rate limit check
     expect(mockCheckDailyLimit).toHaveBeenCalledWith(mockUser.id)
+  })
+
+  it('should set provisional title for image-only first message without calling vision generateText', async () => {
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: null,
+      model: 'mimo-v2.5'
+    })
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
+        const body = {
+          model: 'mimo-v2.5',
+          messages: [{
+            id: 'msg-1',
+            role: 'user',
+            parts: [{ type: 'file', url: 'data:image/png;base64,xxx', mediaType: 'image/png' }]
+          }]
+        }
+        return typeof validateFn === 'function' ? validateFn(body) : body
+      }
+    )
+
+    const { default: handler } = await import('../chats/[id].post')
+    const event = { context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any
+    await handler(event)
+
+    expect(mockDbUpdate).toHaveBeenCalled()
+    const setFn = mockDbUpdate.mock.results[0]?.value?.set
+    expect(setFn).toHaveBeenCalledWith(expect.objectContaining({ title: '图片对话' }))
+    expect(mockGenerateText).not.toHaveBeenCalled()
+  })
+
+  it('should refine title with text prompt when first message has text', async () => {
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: null,
+      model: 'deepseek-v4-pro'
+    })
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+    mockGenerateText.mockResolvedValue({ text: '精炼标题' })
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
+        const body = {
+          model: 'deepseek-v4-pro',
+          messages: [{
+            id: 'msg-1',
+            role: 'user',
+            parts: [
+              { type: 'file', url: 'data:image/png;base64,xxx', mediaType: 'image/png' },
+              { type: 'text', text: '这是什么图' }
+            ]
+          }]
+        }
+        return typeof validateFn === 'function' ? validateFn(body) : body
+      }
+    )
+
+    const { default: handler } = await import('../chats/[id].post')
+    const event = { context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any
+    await handler(event)
+
+    expect(mockGenerateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: '这是什么图'
+      })
+    )
+    expect(event.waitUntil).toHaveBeenCalled()
   })
 })

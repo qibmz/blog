@@ -20,9 +20,15 @@ const { data: chatData, refresh: refreshChat } = await useAPI(`/api/chats/${id}`
 })
 
 if (optimistic) {
+  const text = optimistic.message.parts
+    ?.filter((p): p is { type: 'text', text: string } => p.type === 'text')
+    .map(p => p.text)
+    .join(' ')
+    .trim() ?? ''
+  const hasFiles = optimistic.message.parts?.some(p => p.type === 'file')
   chatData.value = {
     id: optimistic.id,
-    title: null,
+    title: text.slice(0, 15) || (hasFiles ? '图片对话' : null),
     model: optimistic.model,
     userId: null,
     pinned: false,

@@ -48,37 +48,32 @@ export default defineEventHandler(async (event) => {
     const firstParts = messages[0]!.parts ?? []
     const textParts = firstParts.filter(p => p.type === 'text') as { type: 'text', text: string }[]
     const fileParts = firstParts.filter(p => p.type === 'file') as { type: 'file', url: string, mediaType: string }[]
-    const userText = textParts.map(p => p.text).join(' ') || ''
+    const userText = textParts.map(p => p.text).join(' ').trim()
 
-    // 纯文字用 prompt 快速生成标题；有图片时用 messages 传图给模型
-    const titlePromise = (fileParts.length > 0
-      ? generateText({
-          model,
-          system: '根据用户的消息生成一个简短标题（最多15个字，不加标点和引号）。',
-          messages: [{
-            role: 'user' as const,
-            content: [
-              { type: 'text' as const, text: userText || '根据图片内容生成一个简短标题（最多15个字）' },
-              { type: 'image' as const, image: fileParts[0]!.url, mediaType: fileParts[0]!.mediaType }
-            ]
-          }]
-        })
-      : generateText({
-          model,
-          system: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。',
-          prompt: (userText || '新对话').substring(0, 500)
-        })
-    ).then(async ({ text: title }) => {
-      const safeTitle = title.length > 20 ? title.slice(0, 20) : title
-      await db.update(schema.chats)
-        .set({ title: safeTitle, model: modelValue })
-        .where(eq(schema.chats.id, id))
-      return title
-    }).catch((err) => {
-      console.error('Failed to generate chat title:', err)
-      return null
-    })
-    event.waitUntil?.(titlePromise)
+    // 先同步写入临时标题，避免带图时视觉标题与流式回复并发失败后侧边栏一直无标题
+    const provisionalTitle = (userText.slice(0, 15) || (fileParts.length > 0 ? '图片对话' : '新对话'))
+    await db.update(schema.chats)
+      .set({ title: provisionalTitle, model: modelValue })
+      .where(eq(schema.chats.id, id))
+
+    // 有文字时再异步精炼；纯图只用临时标题，不再并发传大图给视觉模型（易超时/失败）
+    if (userText) {
+      const titlePromise = generateText({
+        model,
+        system: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。',
+        prompt: userText.substring(0, 500)
+      }).then(async ({ text: title }) => {
+        const safeTitle = title.length > 20 ? title.slice(0, 20) : title
+        await db.update(schema.chats)
+          .set({ title: safeTitle, model: modelValue })
+          .where(eq(schema.chats.id, id))
+        return title
+      }).catch((err) => {
+        console.error('Failed to generate chat title:', err)
+        return null
+      })
+      event.waitUntil?.(titlePromise)
+    }
   }
 
   // 后续对话才检查限制（首次消息已在 chats.post.ts 中计数）并保存用户消息
