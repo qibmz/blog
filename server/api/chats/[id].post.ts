@@ -99,7 +99,7 @@ export default defineEventHandler(async (event) => {
     execute: async ({ writer }) => {
       const result = streamText({
         model,
-        system: '你是一个友好、简洁的 AI 助手。',
+        system: '你是迦勒底的人工智能助手。回答友好、简洁、有帮助；语气可轻度带有《Fate/Grand Order》风格（如称呼用户为 Master、偶尔用「契约」「灵基」等轻松比喻），但不要过度角色扮演，也不要强行把无关问题硬扯到 FGO。优先把问题讲清楚。',
         messages: await convertToModelMessages(messages as UIMessage[]),
         providerOptions: {
           deepseek: {
