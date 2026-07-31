@@ -31,8 +31,8 @@ describe('homepage UI contracts', () => {
     const topics = source.indexOf('id="writing-topics"')
     const stack = source.indexOf('<TechStack compact')
 
-    expect(source).toContain('min-h-[560px]')
-    expect(source).toContain('md:min-h-[600px]')
+    expect(source).toContain('min-h-[calc(560px+var(--ui-header-height))]')
+    expect(source).toContain('md:min-h-[calc(600px+var(--ui-header-height))]')
     expect(source).toContain('to="#recent-articles"')
     expect(source).toContain('.slice(0, 5)')
     expect(heroEnd).toBeGreaterThan(-1)

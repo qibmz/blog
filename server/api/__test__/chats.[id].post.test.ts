@@ -313,7 +313,14 @@ describe('POST /api/chats/:id', () => {
 
     expect(mockGenerateText).toHaveBeenCalledWith(
       expect.objectContaining({
-        prompt: '这是什么图'
+        prompt: JSON.stringify({
+          id: 'msg-1',
+          role: 'user',
+          parts: [
+            { type: 'file', url: 'data:image/png;base64,xxx', mediaType: 'image/png' },
+            { type: 'text', text: '这是什么图' }
+          ]
+        })
       })
     )
     expect(event.waitUntil).toHaveBeenCalled()

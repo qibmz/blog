@@ -56,12 +56,12 @@ export default defineEventHandler(async (event) => {
       .set({ title: provisionalTitle, model: modelValue })
       .where(eq(schema.chats.id, id))
 
-    // 有文字时再异步精炼；纯图只用临时标题，不再并发传大图给视觉模型（易超时/失败）
+    // 有文字时再异步精炼；纯图只用临时标题
     if (userText) {
       const titlePromise = generateText({
         model,
         system: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。',
-        prompt: userText.substring(0, 500)
+        prompt: JSON.stringify(messages[0])
       }).then(async ({ text: title }) => {
         const safeTitle = title.length > 20 ? title.slice(0, 20) : title
         await db.update(schema.chats)
