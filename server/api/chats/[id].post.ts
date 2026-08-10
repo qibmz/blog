@@ -2,8 +2,10 @@ import { defineEventHandler, getValidatedRouterParams, readValidatedBody } from 
 import { and, eq } from 'drizzle-orm'
 import { getModel, DEFAULT_MODEL, modelSupportsImages } from '../../utils/models'
 import { checkDailyLimit } from '../../utils/rateLimiter'
+import { getRequestAbortSignal } from '../../utils/requestAbort'
 import { z } from 'zod'
 import {
+  consumeStream,
   convertToModelMessages,
   createUIMessageStream,
   createUIMessageStreamResponse,
@@ -11,6 +13,16 @@ import {
   streamText,
   type UIMessage
 } from 'ai'
+
+function hasPersistableParts(parts: UIMessage['parts'] | undefined) {
+  if (!Array.isArray(parts) || parts.length === 0) return false
+  return parts.some((part) => {
+    if (part.type === 'text' || part.type === 'reasoning') {
+      return Boolean(part.text?.trim())
+    }
+    return part.type !== 'step-start'
+  })
+}
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
@@ -89,6 +101,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const thinkingType = options?.thinkingMode !== false ? 'enabled' as const : 'disabled' as const
+  const abortSignal = getRequestAbortSignal(event)
 
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
@@ -96,6 +109,7 @@ export default defineEventHandler(async (event) => {
         model,
         system: '你是迦勒底的人工智能助手。回答友好、简洁、有帮助；语气可轻度带有《Fate/Grand Order》风格（如称呼用户为 Master、偶尔用「契约」「灵基」等轻松比喻），但不要过度角色扮演，也不要强行把无关问题硬扯到 FGO。优先把问题讲清楚。',
         messages: await convertToModelMessages(messages as UIMessage[]),
+        abortSignal,
         providerOptions: {
           deepseek: {
             thinking: { type: thinkingType }
@@ -108,16 +122,22 @@ export default defineEventHandler(async (event) => {
 
       writer.merge(result.toUIMessageStream())
     },
-    onFinish: async ({ messages: finishedMessages }) => {
-      await db.insert(schema.messages).values(
-        finishedMessages.map(msg => ({
-          chatId: chat.id,
-          role: msg.role as 'user' | 'assistant',
-          parts: Array.isArray(msg.parts) ? msg.parts : []
-        }))
-      )
+    onFinish: async ({ responseMessage, isAborted }) => {
+      const parts = Array.isArray(responseMessage.parts) ? responseMessage.parts : []
+      // 中断且无实质内容时不落库，避免空助手消息；有半截内容则保留
+      if (isAborted && !hasPersistableParts(parts)) return
+
+      await db.insert(schema.messages).values({
+        chatId: chat.id,
+        role: responseMessage.role as 'user' | 'assistant',
+        parts
+      })
     }
   })
 
-  return createUIMessageStreamResponse({ stream })
+  return createUIMessageStreamResponse({
+    stream,
+    // 确保客户端 abort 时 onFinish 仍会执行（含 isAborted）
+    consumeSseStream: consumeStream
+  })
 })

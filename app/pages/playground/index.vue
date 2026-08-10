@@ -117,6 +117,49 @@ useSeoMeta({
           </div>
         </NuxtLink>
 
+        <!-- 海报设计器卡片 -->
+        <NuxtLink
+          to="/playground/poster-designer"
+          class="group block overflow-hidden rounded-2xl border border-slate-200/60 bg-white dark:border-slate-800/60 dark:bg-slate-950 transition-shadow hover:shadow-md"
+        >
+          <div class="px-6 pt-8 pb-6 bg-slate-50/50 dark:bg-slate-900/30">
+            <div class="relative h-16 rounded-lg bg-gradient-to-br from-violet-200/80 to-amber-100 dark:from-violet-900/40 dark:to-slate-800 overflow-hidden">
+              <div class="absolute left-[14%] top-[22%] w-[42%] h-[18%] rounded-sm bg-slate-900/80" />
+              <div class="absolute right-[16%] bottom-[16%] w-[28%] h-[36%] rounded border border-violet-400/70 bg-violet-300/30" />
+              <div class="absolute left-[14%] bottom-[20%] w-[34%] h-[2px] bg-amber-500/80" />
+            </div>
+            <div class="mt-3 flex items-center gap-1.5">
+              <span class="h-1.5 w-1.5 rounded-full bg-violet-400" />
+              <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                Text · Image · Canvas
+              </span>
+            </div>
+          </div>
+
+          <div class="px-6 py-5 border-t border-slate-100 dark:border-slate-800/80">
+            <div class="flex items-center gap-3">
+              <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-violet-100 dark:bg-violet-900/30 shrink-0 group-hover:scale-110 transition-transform duration-300">
+                <UIcon
+                  name="i-lucide-layout-template"
+                  class="w-4.5 h-4.5 text-violet-600 dark:text-violet-400"
+                />
+              </div>
+              <div class="min-w-0">
+                <h3 class="text-sm font-black text-slate-900 dark:text-white">
+                  海报设计器
+                </h3>
+                <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+                  文字/图片图层，C 端 Canvas 渲染
+                </p>
+              </div>
+              <UIcon
+                name="i-lucide-arrow-right"
+                class="w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0 group-hover:translate-x-1 transition-transform"
+              />
+            </div>
+          </div>
+        </NuxtLink>
+
         <!-- K线图表卡片 -->
         <NuxtLink
           to="/playground/kline-chart-binance"

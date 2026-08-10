@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mockDbFindFirst, mockDbUpdate, mockUser, mockReadValidatedBody } from '../../utils/__test__/setup'
+import { mockDbFindFirst, mockDbUpdate, mockDb, mockUser, mockReadValidatedBody } from '../../utils/__test__/setup'
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 const mockCheckDailyLimit = vi.fn()
@@ -9,6 +9,9 @@ const mockStreamText = vi.fn()
 const mockGenerateText = vi.fn()
 const mockConvertToModelMessages = vi.fn((msgs: unknown[]) => msgs)
 const mockSmoothStream = vi.fn(() => ({ _type: 'smoothStream' }))
+const mockConsumeStream = vi.fn()
+const mockAbortSignal = new AbortController().signal
+const mockGetRequestAbortSignal = vi.fn(() => mockAbortSignal)
 
 const mockToUIMessageStream = vi.fn(() => ({ _type: 'ui-message-stream' }))
 const mockCreateUIMessageStream = vi.fn((opts: any) => ({
@@ -16,6 +19,11 @@ const mockCreateUIMessageStream = vi.fn((opts: any) => ({
   _execute: opts.execute,
   _onFinish: opts.onFinish
 }))
+const mockCreateUIMessageStreamResponse = vi.fn(({ stream }: any) =>
+  new Response(JSON.stringify({ stream }), {
+    headers: { 'content-type': 'application/json' }
+  })
+)
 
 vi.mock('../../utils/rateLimiter', () => ({
   getTodayCount: vi.fn(),
@@ -30,14 +38,15 @@ vi.mock('../../utils/models', () => ({
   modelSupportsImages: (...args: unknown[]) => mockModelSupportsImages(...args)
 }))
 
+vi.mock('../../utils/requestAbort', () => ({
+  getRequestAbortSignal: (...args: unknown[]) => mockGetRequestAbortSignal(...args)
+}))
+
 vi.mock('ai', () => ({
   convertToModelMessages: (msgs: any) => mockConvertToModelMessages(msgs),
   createUIMessageStream: mockCreateUIMessageStream,
-  createUIMessageStreamResponse: vi.fn(({ stream }: any) =>
-    new Response(JSON.stringify({ stream }), {
-      headers: { 'content-type': 'application/json' }
-    })
-  ),
+  createUIMessageStreamResponse: mockCreateUIMessageStreamResponse,
+  consumeStream: mockConsumeStream,
   generateText: (args: any) => mockGenerateText(args),
   smoothStream: () => mockSmoothStream(),
   streamText: (args: any) => mockStreamText(args)
@@ -45,6 +54,7 @@ vi.mock('ai', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockGetRequestAbortSignal.mockReturnValue(mockAbortSignal)
 })
 
 describe('POST /api/chats/:id', () => {
@@ -73,6 +83,9 @@ describe('POST /api/chats/:id', () => {
 
     // Should return a Response (from createUIMessageStreamResponse)
     expect(result).toBeInstanceOf(Response)
+    expect(mockCreateUIMessageStreamResponse).toHaveBeenCalledWith(
+      expect.objectContaining({ consumeSseStream: mockConsumeStream })
+    )
   })
 
   it('should throw 404 when chat not found', async () => {
@@ -147,6 +160,7 @@ describe('POST /api/chats/:id', () => {
 
     expect(mockStreamText).toHaveBeenCalledWith(
       expect.objectContaining({
+        abortSignal: mockAbortSignal,
         providerOptions: {
           deepseek: { thinking: { type: 'enabled' } },
           mimo: { thinking: { type: 'enabled' } }
@@ -324,5 +338,92 @@ describe('POST /api/chats/:id', () => {
       })
     )
     expect(event.waitUntil).toHaveBeenCalled()
+  })
+
+  it('should persist assistant message when stream finishes normally', async () => {
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: 'Existing Chat',
+      model: 'deepseek-v4-pro'
+    })
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+
+    const { default: handler } = await import('../chats/[id].post')
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+
+    const onFinish = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onFinish
+    await onFinish({
+      isAborted: false,
+      responseMessage: {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [{ type: 'text', text: '完整回复' }]
+      }
+    })
+
+    expect(mockDb.insert).toHaveBeenCalled()
+    const valuesFn = mockDb.insert.mock.results[0]?.value?.values
+    expect(valuesFn).toHaveBeenCalledWith({
+      chatId: 'chat-1',
+      role: 'assistant',
+      parts: [{ type: 'text', text: '完整回复' }]
+    })
+  })
+
+  it('should persist partial assistant message when stream is aborted with content', async () => {
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: 'Existing Chat',
+      model: 'deepseek-v4-pro'
+    })
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+
+    const { default: handler } = await import('../chats/[id].post')
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+
+    const onFinish = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onFinish
+    await onFinish({
+      isAborted: true,
+      responseMessage: {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [{ type: 'text', text: '半截回复' }]
+      }
+    })
+
+    expect(mockDb.insert).toHaveBeenCalled()
+  })
+
+  it('should skip persistence when stream is aborted without content', async () => {
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: 'Existing Chat',
+      model: 'deepseek-v4-pro'
+    })
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+
+    const { default: handler } = await import('../chats/[id].post')
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+
+    const onFinish = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onFinish
+    await onFinish({
+      isAborted: true,
+      responseMessage: {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [{ type: 'text', text: '   ' }]
+      }
+    })
+
+    expect(mockDb.insert).not.toHaveBeenCalled()
   })
 })
