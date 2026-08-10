@@ -18,16 +18,7 @@ const items = computed(() => [{
 }, {
   label: 'Demos',
   to: '/playground',
-  active: route.path.startsWith('/playground'),
-  children: [{
-    label: '数字滚动动画',
-    to: '/playground/number-scroll',
-    icon: 'i-lucide-bar-chart-3'
-  }, {
-    label: 'K线图表',
-    to: '/playground/kline-chart-binance',
-    icon: 'i-lucide-trending-up'
-  }]
+  active: route.path.startsWith('/playground')
 }, {
   label: '关于我',
   to: '/about-us'
