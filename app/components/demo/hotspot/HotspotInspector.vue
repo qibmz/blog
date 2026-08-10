@@ -107,9 +107,12 @@ function remove(id: string) {
 
       <UFormField
         label="标题"
-        size="sm"
+        size="md"
+        class="w-full"
       >
         <UInput
+          class="w-full"
+          size="md"
           :model-value="selected.title"
           placeholder="如：购买按钮"
           @update:model-value="patchSelected({ title: String($event ?? '') })"
@@ -118,9 +121,12 @@ function remove(id: string) {
 
       <UFormField
         label="动作类型"
-        size="sm"
+        size="md"
+        class="w-full"
       >
         <USelect
+          class="w-full"
+          size="md"
           :model-value="selected.action.type"
           :items="actionItems"
           @update:model-value="patchAction({ type: $event as HotspotAction['type'] })"
@@ -133,11 +139,16 @@ function remove(id: string) {
           : selected.action.type === 'download'
             ? '下载链接'
             : '弹窗内容'"
-        size="sm"
+        size="md"
+        class="w-full"
       >
         <UTextarea
+          class="w-full"
+          size="md"
           :model-value="selected.action.value"
-          :rows="2"
+          :rows="3"
+          autoresize
+          :maxrows="8"
           :placeholder="selected.action.type === 'popup'
             ? '弹窗文案或链接'
             : '/product/detail?id=123'"

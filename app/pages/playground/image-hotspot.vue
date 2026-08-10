@@ -235,13 +235,13 @@ onBeforeUnmount(() => {
             <DemoHotspotEditor
               v-model:drafts="drafts"
               v-model:selected-id="selectedId"
-              :tool="tool"
+              v-model:tool="tool"
               :bg-image="bgImage"
               @image-loaded="onImageLoaded"
             />
           </div>
 
-          <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden min-h-[320px] xl:min-h-[480px]">
+          <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden xl:max-h-[calc(56vh+4.5rem)] xl:min-h-0">
             <DemoHotspotInspector
               v-model:drafts="drafts"
               v-model:selected-id="selectedId"
