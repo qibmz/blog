@@ -280,22 +280,33 @@ onBeforeUnmount(() => {
         </div>
 
         <!-- 导入 -->
-        <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 space-y-3">
-          <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100">
-            导入 JSON
-          </h3>
-          <UTextarea
-            v-model="importText"
-            :rows="4"
-            placeholder="粘贴热区配置 JSON…"
-          />
-          <UButton
-            size="sm"
-            icon="i-lucide-import"
-            @click="importJson"
-          >
-            导入并回填编辑器
-          </UButton>
+        <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden">
+          <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-100">
+              导入 JSON
+            </h3>
+            <div class="flex-1" />
+            <UButton
+              size="sm"
+              icon="i-lucide-file-input"
+              color="primary"
+              variant="soft"
+              @click="importJson"
+            >
+              导入并回填编辑器
+            </UButton>
+          </div>
+          <div class="p-4">
+            <UTextarea
+              v-model="importText"
+              class="w-full"
+              :rows="6"
+              size="md"
+              autoresize
+              :maxrows="12"
+              placeholder="粘贴热区配置 JSON…"
+            />
+          </div>
         </div>
       </div>
 
