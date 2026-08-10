@@ -1,8 +1,35 @@
 import { z } from 'zod'
 
+/**
+ * navigate：允许 http(s) 或无 scheme 的相对路径；拒绝 javascript: / data: 等。
+ * download：仅允许 http(s)。
+ * popup：任意文案。
+ */
+export function isSafeHotspotActionValue(
+  type: 'navigate' | 'download' | 'popup',
+  value: string
+): boolean {
+  const trimmed = value.trim()
+  if (!trimmed) return true
+  if (type === 'popup') return true
+  if (type === 'download') return /^https?:\/\//i.test(trimmed)
+  if (/^https?:\/\//i.test(trimmed)) return true
+  return !/^[a-z][a-z0-9+.-]*:/i.test(trimmed)
+}
+
 export const HotspotActionSchema = z.object({
   type: z.enum(['navigate', 'download', 'popup']),
   value: z.string()
+}).superRefine((action, ctx) => {
+  if (!isSafeHotspotActionValue(action.type, action.value)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: action.type === 'download'
+        ? 'download 仅支持 http(s) 链接'
+        : 'navigate 仅支持 http(s) 或相对路径',
+      path: ['value']
+    })
+  }
 })
 
 export const HotspotShapeSchema = z.enum(['rect', 'circle', 'polygon'])

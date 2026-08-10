@@ -426,4 +426,36 @@ describe('POST /api/chats/:id', () => {
 
     expect(mockDb.insert).not.toHaveBeenCalled()
   })
+
+  it('should swallow assistant persistence errors in onFinish', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: 'Existing Chat',
+      model: 'deepseek-v4-pro'
+    })
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+    mockDb.insert.mockImplementationOnce(() => ({
+      values: vi.fn(() => Promise.reject(new Error('db down')))
+    }))
+
+    const { default: handler } = await import('../chats/[id].post')
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+
+    const onFinish = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onFinish
+    await expect(onFinish({
+      isAborted: false,
+      responseMessage: {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [{ type: 'text', text: '完整回复' }]
+      }
+    })).resolves.toBeUndefined()
+
+    expect(consoleError).toHaveBeenCalled()
+    consoleError.mockRestore()
+  })
 })

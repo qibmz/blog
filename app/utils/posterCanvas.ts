@@ -5,6 +5,13 @@ const imageCache = new Map<string, Promise<HTMLImageElement>>()
 
 export type PosterRenderData = Record<string, unknown>
 
+function throwIfAborted(signal?: AbortSignal) {
+  if (!signal?.aborted) return
+  const err = new Error('Aborted')
+  err.name = 'AbortError'
+  throw err
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   if (!src) {
     return Promise.reject(new Error('empty image src'))
@@ -204,13 +211,17 @@ async function drawLayer(
  * 将 PosterConfig 绘制到 canvas（C 端展示入口）。
  * @param displayWidth 展示宽度（CSS 像素）；高度按设计稿比例推算。不传则用设计稿尺寸。
  * @param data 可选业务数据；文字图层配置了 field 时从此取值。
+ * @param signal 可选；中止进行中的渲染，避免并发绘制撕画布。
  */
 export async function renderPosterToCanvas(
   canvas: HTMLCanvasElement,
   config: PosterConfig,
   displayWidth?: number,
-  data?: PosterRenderData | null
+  data?: PosterRenderData | null,
+  signal?: AbortSignal
 ): Promise<{ width: number, height: number }> {
+  throwIfAborted(signal)
+
   const aspect = config.height / config.width
   const cssW = displayWidth && displayWidth > 0 ? displayWidth : config.width
   const cssH = cssW * aspect
@@ -233,18 +244,23 @@ export async function renderPosterToCanvas(
 
   // 背景图
   if (config.bgImage) {
+    throwIfAborted(signal)
     try {
       const bg = await loadImage(config.bgImage)
+      throwIfAborted(signal)
       ctx.drawImage(bg, 0, 0, cssW, cssH)
-    } catch {
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') throw e
       // 保持底色
     }
   }
 
   for (const layer of config.layers) {
+    throwIfAborted(signal)
     await drawLayer(ctx, layer, cssW, cssH, data)
   }
 
+  throwIfAborted(signal)
   return { width: cssW, height: cssH }
 }
 

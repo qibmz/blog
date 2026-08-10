@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Hotspot, HotspotConfig } from '#shared/types/hotspot'
+import { isSafeHotspotActionValue } from '#shared/types/hotspot'
 import { parsePct, parsePoints, toSvgPoints } from '~/utils/hotspot'
 
 defineProps<{
@@ -57,6 +58,11 @@ function onHotspotClick(h: Hotspot) {
   const { type, value } = h.action
   if (!value) {
     toast.add({ title: '未配置动作值', color: 'warning' })
+    return
+  }
+
+  if (!isSafeHotspotActionValue(type, value)) {
+    toast.add({ title: '不安全的链接，已拦截', color: 'error' })
     return
   }
 

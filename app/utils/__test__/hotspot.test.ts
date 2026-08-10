@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { isSafeHotspotActionValue } from '#shared/types/hotspot'
 import {
   draftsToConfig,
   hotspotToDraft,
@@ -79,5 +80,38 @@ describe('hotspot utils', () => {
   it('rejects invalid import json', () => {
     const bad = tryParseHotspotConfig('{ "bgImage": 1 }')
     expect(bad.ok).toBe(false)
+  })
+
+  it('rejects unsafe navigate/download schemes on import', () => {
+    const bad = tryParseHotspotConfig(JSON.stringify({
+      bgImage: 'https://example.com/bg.jpg',
+      width: 100,
+      height: 100,
+      hotspots: [{
+        id: 'a1',
+        shape: 'rect',
+        x: '0%',
+        y: '0%',
+        width: '10%',
+        height: '10%',
+        action: { type: 'navigate', value: 'javascript:alert(1)' }
+      }]
+    }))
+    expect(bad.ok).toBe(false)
+  })
+})
+
+describe('isSafeHotspotActionValue', () => {
+  it('allows relative navigate and https download', () => {
+    expect(isSafeHotspotActionValue('navigate', '/chat')).toBe(true)
+    expect(isSafeHotspotActionValue('navigate', 'https://example.com')).toBe(true)
+    expect(isSafeHotspotActionValue('download', 'https://example.com/a.pdf')).toBe(true)
+    expect(isSafeHotspotActionValue('popup', 'anything')).toBe(true)
+  })
+
+  it('blocks dangerous schemes', () => {
+    expect(isSafeHotspotActionValue('navigate', 'javascript:alert(1)')).toBe(false)
+    expect(isSafeHotspotActionValue('download', 'data:text/html,hi')).toBe(false)
+    expect(isSafeHotspotActionValue('download', '/relative.pdf')).toBe(false)
   })
 })

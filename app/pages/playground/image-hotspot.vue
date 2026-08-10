@@ -30,6 +30,8 @@ const importText = ref('')
 const previewWidth = ref<'full' | 'mobile'>('full')
 const objectUrl = ref<string | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+/** 导入 JSON 后跳过一次 image-loaded，避免自然尺寸覆盖设计稿尺寸 */
+const preserveDesignSizeOnce = ref(false)
 
 const tools: { id: EditorTool, label: string, icon: string }[] = [
   { id: 'select', label: '选择', icon: 'i-lucide-mouse-pointer-2' },
@@ -85,6 +87,10 @@ function applyImageUrl() {
 }
 
 function onImageLoaded(payload: { width: number, height: number }) {
+  if (preserveDesignSizeOnce.value) {
+    preserveDesignSizeOnce.value = false
+    return
+  }
   designSize.width = payload.width
   designSize.height = payload.height
 }
@@ -115,6 +121,7 @@ function importJson() {
     return
   }
   revokeObjectUrl()
+  preserveDesignSizeOnce.value = true
   bgImage.value = result.data.bgImage
   designSize.width = result.data.width
   designSize.height = result.data.height

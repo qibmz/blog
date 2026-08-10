@@ -31,6 +31,8 @@ const importText = ref('')
 const previewWidth = ref<'full' | 'mobile'>('mobile')
 const objectUrl = ref<string | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+/** 导入 JSON 后跳过一次 image-loaded，避免自然尺寸覆盖设计稿尺寸 */
+const preserveDesignSizeOnce = ref(false)
 const mockDataText = ref(JSON.stringify({
   nickname: 'Master',
   product: { title: '春季限定礼包' }
@@ -72,8 +74,6 @@ function revokeObjectUrl() {
 function setBgImage(url: string) {
   revokeObjectUrl()
   bgImage.value = url
-  drafts.value = []
-  selectedId.value = null
 }
 
 async function onFileChange(event: Event) {
@@ -84,8 +84,6 @@ async function onFileChange(event: Event) {
   const url = URL.createObjectURL(file)
   objectUrl.value = url
   bgImage.value = url
-  drafts.value = []
-  selectedId.value = null
   input.value = ''
 }
 
@@ -99,6 +97,10 @@ function applyImageUrl() {
 }
 
 function onImageLoaded(payload: { width: number, height: number }) {
+  if (preserveDesignSizeOnce.value) {
+    preserveDesignSizeOnce.value = false
+    return
+  }
   designSize.width = payload.width
   designSize.height = payload.height
 }
@@ -129,6 +131,7 @@ function importJson() {
     return
   }
   revokeObjectUrl()
+  preserveDesignSizeOnce.value = true
   bgImage.value = result.data.bgImage
   bgColor.value = result.data.bgColor || '#ffffff'
   designSize.width = result.data.width

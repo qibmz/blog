@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { PosterLayerDraft, PosterObjectFit, PosterTextAlign } from '#shared/types/poster'
-import { moveLayer } from '~/utils/poster'
+import { clamp, moveLayer } from '~/utils/poster'
 
 const props = defineProps<{
   drafts: PosterLayerDraft[]
@@ -42,6 +42,17 @@ function patchSelected(patch: Partial<PosterLayerDraft>) {
   )
 }
 
+function patchClamped(
+  key: 'x' | 'y' | 'width' | 'height' | 'opacity' | 'fontSize',
+  raw: unknown,
+  min: number,
+  max: number
+) {
+  const n = Number(raw)
+  const value = Number.isFinite(n) ? clamp(n, min, max) : min
+  patchSelected({ [key]: value })
+}
+
 function select(id: string) {
   emit('update:selectedId', id)
 }
@@ -70,35 +81,40 @@ function layerLabel(d: PosterLayerDraft) {
     </div>
 
     <div class="flex-1 min-h-0 overflow-y-auto">
-      <button
+      <div
         v-for="d in [...drafts].reverse()"
         :key="d.id"
-        type="button"
-        class="w-full flex items-center gap-2 px-3 py-2.5 text-left border-b border-slate-100 dark:border-slate-800/80 transition-colors"
+        class="w-full flex items-center gap-2 px-3 py-2.5 border-b border-slate-100 dark:border-slate-800/80 transition-colors"
         :class="d.id === selectedId
           ? 'bg-violet-50 dark:bg-violet-500/10'
           : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'"
-        @click="select(d.id)"
       >
-        <span
-          class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded"
-          :class="d.id === selectedId
-            ? 'bg-violet-500 text-white'
-            : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300'"
+        <button
+          type="button"
+          class="min-w-0 flex-1 flex items-center gap-2 text-left"
+          @click="select(d.id)"
         >
-          {{ typeLabel[d.type] }}
-        </span>
-        <span class="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-200">
-          {{ layerLabel(d) }}
-        </span>
+          <span
+            class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded"
+            :class="d.id === selectedId
+              ? 'bg-violet-500 text-white'
+              : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300'"
+          >
+            {{ typeLabel[d.type] }}
+          </span>
+          <span class="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-200">
+            {{ layerLabel(d) }}
+          </span>
+        </button>
         <UButton
           icon="i-lucide-trash-2"
           size="xs"
           color="neutral"
           variant="ghost"
-          @click.stop="remove(d.id)"
+          aria-label="删除图层"
+          @click="remove(d.id)"
         />
-      </button>
+      </div>
 
       <p
         v-if="drafts.length === 0"
@@ -145,7 +161,7 @@ function layerLabel(d: PosterLayerDraft) {
             type="number"
             size="md"
             :model-value="selected.x"
-            @update:model-value="patchSelected({ x: Number($event) || 0 })"
+            @update:model-value="patchClamped('x', $event, 0, 100)"
           />
         </UFormField>
         <UFormField
@@ -158,7 +174,7 @@ function layerLabel(d: PosterLayerDraft) {
             type="number"
             size="md"
             :model-value="selected.y"
-            @update:model-value="patchSelected({ y: Number($event) || 0 })"
+            @update:model-value="patchClamped('y', $event, 0, 100)"
           />
         </UFormField>
         <UFormField
@@ -171,7 +187,7 @@ function layerLabel(d: PosterLayerDraft) {
             type="number"
             size="md"
             :model-value="selected.width"
-            @update:model-value="patchSelected({ width: Number($event) || 0 })"
+            @update:model-value="patchClamped('width', $event, 0.5, 100)"
           />
         </UFormField>
         <UFormField
@@ -184,7 +200,7 @@ function layerLabel(d: PosterLayerDraft) {
             type="number"
             size="md"
             :model-value="selected.height"
-            @update:model-value="patchSelected({ height: Number($event) || 0 })"
+            @update:model-value="patchClamped('height', $event, 0.5, 100)"
           />
         </UFormField>
       </div>
@@ -202,7 +218,7 @@ function layerLabel(d: PosterLayerDraft) {
           min="0"
           max="1"
           :model-value="selected.opacity"
-          @update:model-value="patchSelected({ opacity: Number($event) || 0 })"
+          @update:model-value="patchClamped('opacity', $event, 0, 1)"
         />
       </UFormField>
 
@@ -247,7 +263,7 @@ function layerLabel(d: PosterLayerDraft) {
             size="md"
             step="0.1"
             :model-value="selected.fontSize"
-            @update:model-value="patchSelected({ fontSize: Number($event) || 0 })"
+            @update:model-value="patchClamped('fontSize', $event, 0.1, 50)"
           />
         </UFormField>
         <UFormField

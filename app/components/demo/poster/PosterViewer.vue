@@ -15,7 +15,11 @@ const pending = ref(false)
 const errorMsg = ref('')
 const displayWidth = ref(0)
 
-let renderToken = 0
+let abortController: AbortController | null = null
+
+function isAbortError(e: unknown) {
+  return e instanceof Error && e.name === 'AbortError'
+}
 
 async function paint() {
   const canvas = canvasRef.value
@@ -26,19 +30,22 @@ async function paint() {
   if (width <= 0) return
   displayWidth.value = width
 
-  const token = ++renderToken
+  abortController?.abort()
+  abortController = new AbortController()
+  const { signal } = abortController
+
   pending.value = true
   errorMsg.value = ''
 
   try {
     await preloadPosterImages(props.config)
-    if (token !== renderToken) return
-    await renderPosterToCanvas(canvas, props.config, width, props.data)
+    if (signal.aborted) return
+    await renderPosterToCanvas(canvas, props.config, width, props.data, signal)
   } catch (e) {
-    if (token !== renderToken) return
+    if (signal.aborted || isAbortError(e)) return
     errorMsg.value = e instanceof Error ? e.message : '渲染失败'
   } finally {
-    if (token === renderToken) pending.value = false
+    if (!signal.aborted) pending.value = false
   }
 }
 
@@ -52,6 +59,11 @@ watch(() => [props.config, props.data], () => {
 
 onMounted(() => {
   paint()
+})
+
+onBeforeUnmount(() => {
+  abortController?.abort()
+  abortController = null
 })
 </script>
 

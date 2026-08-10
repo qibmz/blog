@@ -1,6 +1,7 @@
-import { defineEventHandler, readValidatedBody } from 'h3'
+import { defineEventHandler, readValidatedBody, createError } from 'h3'
 import { DEFAULT_MODEL, modelSupportsImages } from '../utils/models'
 import { checkDailyLimit } from '../utils/rateLimiter'
+import { isUniqueViolation, raiseConflict } from '../utils/errors'
 import { z } from 'zod'
 
 export default defineEventHandler(async (event) => {
@@ -24,17 +25,24 @@ export default defineEventHandler(async (event) => {
   // Note: check-then-insert 非事务性，并发请求可能绕过限制
   await checkDailyLimit(user.id)
 
-  const [chat] = await db.insert(schema.chats).values({
-    ...(id ? { id } : {}),
-    userId: user.id,
-    model: model ?? DEFAULT_MODEL
-  }).returning()
+  try {
+    const [chat] = await db.insert(schema.chats).values({
+      ...(id ? { id } : {}),
+      userId: user.id,
+      model: model ?? DEFAULT_MODEL
+    }).returning()
 
-  await db.insert(schema.messages).values({
-    chatId: chat!.id,
-    role: 'user',
-    parts: Array.isArray(message.parts) ? message.parts : []
-  })
+    await db.insert(schema.messages).values({
+      chatId: chat!.id,
+      role: 'user',
+      parts: Array.isArray(message.parts) ? message.parts : []
+    })
 
-  return chat
+    return chat
+  } catch (err) {
+    if (id && isUniqueViolation(err)) {
+      throw raiseConflict('Chat already exists')
+    }
+    throw err
+  }
 })

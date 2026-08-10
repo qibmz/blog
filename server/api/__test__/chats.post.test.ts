@@ -88,4 +88,27 @@ describe('POST /api/chats', () => {
     expect(result).toHaveProperty('id', clientId)
     expect(mockCheckDailyLimit).toHaveBeenCalledWith(mockUser.id)
   })
+
+  it('should return 409 when client-provided chat id already exists', async () => {
+    const clientId = '550e8400-e29b-41d4-a716-446655440000'
+    mockDbInsertReturning.mockRejectedValueOnce({ code: '23505' })
+
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
+        const body = {
+          id: clientId,
+          model: 'deepseek-v4-pro',
+          message: { id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] }
+        }
+        return typeof validateFn === 'function' ? validateFn(body) : body
+      }
+    )
+
+    const { default: handler } = await import('../chats.post')
+
+    await expect(handler({ context: {}, path: '/api/chats' } as any)).rejects.toMatchObject({
+      statusCode: 409,
+      statusMessage: 'Chat already exists'
+    })
+  })
 })

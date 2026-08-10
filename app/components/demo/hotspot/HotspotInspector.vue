@@ -59,35 +59,40 @@ function remove(id: string) {
     </div>
 
     <div class="flex-1 min-h-0 overflow-y-auto">
-      <button
+      <div
         v-for="d in drafts"
         :key="d.id"
-        type="button"
-        class="w-full flex items-center gap-2 px-3 py-2.5 text-left border-b border-slate-100 dark:border-slate-800/80 transition-colors"
+        class="w-full flex items-center gap-2 px-3 py-2.5 border-b border-slate-100 dark:border-slate-800/80 transition-colors"
         :class="d.id === selectedId
           ? 'bg-sky-50 dark:bg-sky-500/10'
           : 'hover:bg-slate-50 dark:hover:bg-slate-900/50'"
-        @click="select(d.id)"
       >
-        <span
-          class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded"
-          :class="d.id === selectedId
-            ? 'bg-sky-500 text-white'
-            : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300'"
+        <button
+          type="button"
+          class="min-w-0 flex-1 flex items-center gap-2 text-left"
+          @click="select(d.id)"
         >
-          {{ shapeLabel[d.shape] }}
-        </span>
-        <span class="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-200">
-          {{ d.title || d.id }}
-        </span>
+          <span
+            class="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded"
+            :class="d.id === selectedId
+              ? 'bg-sky-500 text-white'
+              : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-300'"
+          >
+            {{ shapeLabel[d.shape] }}
+          </span>
+          <span class="min-w-0 flex-1 truncate text-sm text-slate-700 dark:text-slate-200">
+            {{ d.title || d.id }}
+          </span>
+        </button>
         <UButton
           icon="i-lucide-trash-2"
           size="xs"
           color="neutral"
           variant="ghost"
-          @click.stop="remove(d.id)"
+          aria-label="删除热区"
+          @click="remove(d.id)"
         />
-      </button>
+      </div>
 
       <p
         v-if="drafts.length === 0"

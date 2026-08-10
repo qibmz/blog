@@ -127,11 +127,16 @@ export default defineEventHandler(async (event) => {
       // 中断且无实质内容时不落库，避免空助手消息；有半截内容则保留
       if (isAborted && !hasPersistableParts(parts)) return
 
-      await db.insert(schema.messages).values({
-        chatId: chat.id,
-        role: responseMessage.role as 'user' | 'assistant',
-        parts
-      })
+      try {
+        await db.insert(schema.messages).values({
+          chatId: chat.id,
+          role: responseMessage.role as 'user' | 'assistant',
+          parts
+        })
+      } catch (err) {
+        // 流已开始，落库失败不能变成未处理 rejection
+        console.error('Failed to persist assistant message:', err)
+      }
     }
   })
 

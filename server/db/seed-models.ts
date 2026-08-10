@@ -3,8 +3,9 @@
  *
  * 全量初始化 models 表的能力数据，INSERT ... ON CONFLICT DO NOTHING 保证幂等。
  * Preview (develop): prebuild-migrate.js 自动执行
- * Production (main): schema 用 `npx neonctl sql` 执行 migration；seed 手动
- *   `DATABASE_URL=<正式库> npx tsx server/db/seed-models.ts`
+ * Production (main): schema 用 `npx neonctl psql -- -f server/db/migrations/xxx.sql`；
+ *   seed 先在环境中设置 DATABASE_URL（勿把凭据写进命令行），再执行：
+ *   `npx tsx server/db/seed-models.ts`
  */
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'

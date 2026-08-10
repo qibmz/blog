@@ -13,9 +13,9 @@
   - **测试服（develop / Vercel Preview）：** `scripts/prebuild-migrate.js` 在部署时自动执行 `drizzle-kit push --force` + seed，无需手动干预
   - **正式服（main / Production）：** 用 Neon CLI 执行 migration SQL（不自动 push）
     ```bash
-    npx neonctl sql --sql "$(cat server/db/migrations/xxx.sql)"
+    npx neonctl psql -- -f server/db/migrations/xxx.sql
     ```
-    Seed（如有）：`DATABASE_URL` 指向正式库后执行 `npx tsx server/db/seed-models.ts`
+    Seed（如有）：先在环境中设置 `DATABASE_URL`（勿把凭据写进命令行），再执行 `npx tsx server/db/seed-models.ts`
 - **提交前检查**：`pnpm lint && pnpm test` 全部通过再提交
 - **提交消息使用中文**
 - **改 API/utils 必须补测试**：修改 `server/api/` 或 `server/utils/` 的逻辑时，必须在对应的 `__test__/` 目录下补充或更新测试用例。新增功能至少覆盖核心路径（正常 + 边界/错误）
@@ -69,8 +69,8 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 - 配置：`drizzle.config.ts`（使用 `DATABASE_URL` 环境变量）
 - **迁移流程：**
   - develop / Preview：prebuild 自动 `drizzle-kit push --force` + seed
-  - main / Production：手动 `npx neonctl sql --sql "$(cat server/db/migrations/xxx.sql)"`（正式库禁止自动 push）
-- **Seed 脚本：** `server/db/seed-models.ts` — 幂等；Preview 由 prebuild 自动执行，Production 手动跑一次
+  - main / Production：手动 `npx neonctl psql -- -f server/db/migrations/xxx.sql`（正式库禁止自动 push）
+- **Seed 脚本：** `server/db/seed-models.ts` — 幂等；Preview 由 prebuild 自动执行，Production 在环境中设置 `DATABASE_URL` 后手动跑一次（勿把凭据写进命令行）
 
 **API 接口**（除 `GET /api/chats` 使用 `getUserSession` 做未登录优雅降级外，均需通过 `requireUserSession(event)` 认证）：
 

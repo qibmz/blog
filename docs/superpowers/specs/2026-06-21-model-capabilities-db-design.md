@@ -152,10 +152,10 @@ Prebuild 跳过 production，需手动操作一次。使用 Neon 提供的方式
 **建表：** 在 Neon SQL Editor（Web 控制台）粘贴 `drizzle-kit generate` 生成的 migration SQL 执行，或使用 CLI：
 
 ```bash
-npx neonctl sql --sql "$(cat server/db/migrations/XXXX_xxx.sql)"
+npx neonctl psql -- -f server/db/migrations/XXXX_xxx.sql
 ```
 
-**填充数据：** 本地跑一次 seed 脚本（`DATABASE_URL` 指向正式服）。
+**填充数据：** 本地跑一次 seed 脚本（先在环境中设置 `DATABASE_URL` 指向正式服，勿把凭据写进命令行）。
 
 之后日常运维只需在 Neon SQL Editor 中执行 SQL（见下方），无需再跑 seed。
 
@@ -175,7 +175,7 @@ UPDATE models SET supports_images = false, updated_at = NOW() WHERE id = 'some-m
 无需进入 Neon SQL Editor 的也可以用 CLI：
 
 ```bash
-npx neonctl sql --sql "INSERT INTO models ... ON CONFLICT ..."
+npx neonctl psql -- -c "INSERT INTO models ... ON CONFLICT ..."
 ```
 
 无需重新部署代码。
