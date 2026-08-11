@@ -16,7 +16,7 @@ const { data: chatsData, pending: sidebarLoading, refresh: refreshSidebar } = us
   skipAuthRedirect: true,
   key: 'sidebar-chats',
   watch: [loggedIn],
-  default: () => ({ chats: [], remainingToday: 0 }),
+  default: () => ({ chats: [], remainingToday: 0 as number | null, dailyLimit: 5 as number | null }),
   ignoreResponseError: true
 })
 
@@ -401,10 +401,18 @@ function closeDelete() {
                   <USkeleton class="h-3 w-8" />
                 </div>
               </template>
+              <template v-else-if="chatsData?.dailyLimit == null">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] text-muted">剩余次数</span>
+                  <span class="text-[11px] font-semibold text-primary">
+                    不限
+                  </span>
+                </div>
+              </template>
               <template v-else>
                 <div class="flex gap-1">
                   <div
-                    v-for="i in 5"
+                    v-for="i in chatsData.dailyLimit"
                     :key="i"
                     class="h-1 flex-1 rounded-full transition-all duration-500"
                     :class="i <= (chatsData?.remainingToday ?? 0)
@@ -418,7 +426,7 @@ function closeDelete() {
                     class="text-[11px] tabular-nums font-semibold"
                     :class="(chatsData?.remainingToday ?? 0) === 0 ? 'text-error' : 'text-primary'"
                   >
-                    {{ chatsData?.remainingToday ?? 0 }} / 5
+                    {{ chatsData?.remainingToday ?? 0 }} / {{ chatsData.dailyLimit }}
                   </span>
                 </div>
               </template>

@@ -105,7 +105,11 @@ function createChat(text: string) {
 
   // 乐观更新侧边栏，立即出现新对话
   const provisionalTitle = getProvisionalChatTitle(message.parts)
-  const sidebar = useNuxtData<{ chats: Array<Record<string, unknown>>, remainingToday: number }>('sidebar-chats')
+  const sidebar = useNuxtData<{
+    chats: Array<Record<string, unknown>>
+    remainingToday: number | null
+    dailyLimit?: number | null
+  }>('sidebar-chats')
   if (sidebar.data.value) {
     sidebar.data.value = {
       chats: [
@@ -120,7 +124,10 @@ function createChat(text: string) {
         },
         ...sidebar.data.value.chats
       ],
-      remainingToday: Math.max(0, (sidebar.data.value.remainingToday ?? 1) - 1)
+      remainingToday: sidebar.data.value.remainingToday == null
+        ? null
+        : Math.max(0, (sidebar.data.value.remainingToday ?? 1) - 1),
+      dailyLimit: sidebar.data.value.dailyLimit
     }
   }
 

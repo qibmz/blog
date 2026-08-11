@@ -271,11 +271,18 @@ onMounted(async () => {
     await executeCreate()
     if (createChatError.value) {
       // 回滚侧边栏乐观条目
-      const sidebar = useNuxtData<{ chats: Array<{ id: string }>, remainingToday: number }>('sidebar-chats')
+      const sidebar = useNuxtData<{
+        chats: Array<{ id: string }>
+        remainingToday: number | null
+        dailyLimit?: number | null
+      }>('sidebar-chats')
       if (sidebar.data.value) {
         sidebar.data.value = {
           chats: sidebar.data.value.chats.filter(c => c.id !== optimistic.id),
-          remainingToday: sidebar.data.value.remainingToday + 1
+          remainingToday: sidebar.data.value.remainingToday == null
+            ? null
+            : sidebar.data.value.remainingToday + 1,
+          dailyLimit: sidebar.data.value.dailyLimit
         }
       }
       await navigateTo('/chat')
