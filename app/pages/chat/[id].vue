@@ -322,6 +322,7 @@ onMounted(async () => {
                     <ChatComark
                       :markdown="part.text"
                       :streaming="isPartStreaming(part)"
+                      caret
                     />
                   </UChatReasoning>
                   <template v-else-if="isTextUIPart(part)">
@@ -329,6 +330,7 @@ onMounted(async () => {
                       v-if="(message as UIMessage).role === 'assistant'"
                       :markdown="part.text"
                       :streaming="isPartStreaming(part)"
+                      caret
                     />
                     <p
                       v-else-if="(message as UIMessage).role === 'user'"
