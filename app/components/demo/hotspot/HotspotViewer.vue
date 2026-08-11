@@ -11,7 +11,7 @@ const toast = useToast()
 const popupOpen = ref(false)
 const popupContent = ref('')
 
-const containerRef = ref<HTMLElement | null>(null)
+const containerRef = useTemplateRef('containerRef')
 const displaySize = reactive({ width: 0, height: 0 })
 
 useResizeObserver(containerRef, (entries) => {

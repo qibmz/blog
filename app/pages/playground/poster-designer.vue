@@ -35,7 +35,7 @@ const imageUrlInput = ref('')
 const importText = ref('')
 const previewWidth = ref<'full' | 'mobile'>('mobile')
 const objectUrl = ref<string | null>(null)
-const fileInputRef = ref<HTMLInputElement | null>(null)
+const fileInputRef = useTemplateRef('fileInputRef')
 /** 导入 JSON 后跳过一次 image-loaded，避免自然尺寸覆盖设计稿尺寸 */
 const preserveDesignSizeOnce = ref(false)
 const mockDataText = ref(JSON.stringify({

@@ -27,9 +27,9 @@ const emit = defineEmits<{
   'image-loaded': [payload: { width: number, height: number }]
 }>()
 
-const viewportRef = ref<HTMLElement | null>(null)
-const stageRef = ref<HTMLElement | null>(null)
-const imgRef = ref<HTMLImageElement | null>(null)
+const viewportRef = useTemplateRef('viewportRef')
+const stageRef = useTemplateRef('stageRef')
+const imgRef = useTemplateRef('imgRef')
 const displaySize = reactive({ width: 0, height: 0 })
 const viewportSize = reactive({ width: 0, height: 0 })
 

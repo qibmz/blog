@@ -29,7 +29,7 @@ const heroMedia = {
 
 const currentHeroTheme = computed(() => colorMode.value === 'dark' ? 'dark' : 'light')
 const currentHeroMedia = computed(() => heroMedia[currentHeroTheme.value])
-const videoRef = ref<HTMLVideoElement | null>(null)
+const videoRef = useTemplateRef('videoRef')
 const videoReady = ref(false)
 const reduceMotion = ref(false)
 
