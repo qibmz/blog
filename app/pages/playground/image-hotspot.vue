@@ -70,6 +70,7 @@ function confirmDiscardHotspots() {
 function setBgImage(url: string) {
   if (!confirmDiscardHotspots()) return
   revokeObjectUrl()
+  preserveDesignSizeOnce.value = false
   bgImage.value = url
   drafts.value = []
   selectedId.value = null
@@ -84,6 +85,7 @@ async function onFileChange(event: Event) {
     return
   }
   revokeObjectUrl()
+  preserveDesignSizeOnce.value = false
   const url = URL.createObjectURL(file)
   objectUrl.value = url
   bgImage.value = url

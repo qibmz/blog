@@ -49,6 +49,7 @@ export const mockDbFindFirst = vi.fn()
 export const mockDbFindMany = vi.fn()
 export const mockDbFindFirstModel = vi.fn()
 export const mockDbInsertReturning = vi.fn()
+export const mockDbInsertValues = vi.fn(async () => undefined)
 export const mockDbUpdate = vi.fn(() => ({
   set: vi.fn(() => ({
     where: vi.fn(() => Promise.resolve())
@@ -79,6 +80,10 @@ export const mockDb = {
   },
   insert: vi.fn(() => ({
     values: vi.fn(() => ({
+      // 仅在 await values()（无 returning）时触发；.returning() 走另一条路径
+      then(onFulfilled: (v: unknown) => unknown, onRejected?: (e: unknown) => unknown) {
+        return Promise.resolve().then(() => mockDbInsertValues()).then(onFulfilled, onRejected)
+      },
       returning: () => mockDbInsertReturning()
     }))
   })),

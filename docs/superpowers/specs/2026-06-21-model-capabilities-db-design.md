@@ -149,13 +149,17 @@ Prebuild 自动完成全部操作，无需手动干预：
 
 Prebuild 跳过 production，需手动操作一次。使用 Neon 提供的方式执行：
 
-**建表：** 在 Neon SQL Editor（Web 控制台）粘贴 `drizzle-kit generate` 生成的 migration SQL 执行，或使用 CLI：
+**建表：** 在 Neon SQL Editor（Web 控制台）粘贴 `drizzle-kit generate` 生成的 migration SQL 执行，或使用 CLI（固定正式服 project + main 分支，失败即停并整文件回滚）：
 
 ```bash
-npx neonctl psql -- -f server/db/migrations/XXXX_xxx.sql
+npx neonctl psql main --project-id <NEON_PROJECT_ID> -- --set ON_ERROR_STOP=on --single-transaction -f server/db/migrations/XXXX_xxx.sql
 ```
 
-**填充数据：** seed 数据变更后，本地执行 seed 脚本（先在环境中设置 `DATABASE_URL` 指向正式服，勿把凭据写进命令行）。脚本幂等，可重复执行。
+**填充数据：** seed 数据变更后，本地执行 seed 脚本（先在环境中设置 `DATABASE_URL` 指向正式服，勿把凭据写进命令行）。必须带上 `SEED_TARGET=production`，以启用 3 秒取消窗口；脚本幂等，可重复执行。
+
+```bash
+SEED_TARGET=production npx tsx server/db/seed-models.ts
+```
 
 之后日常运维也可在 Neon SQL Editor 中执行 SQL（见下方）。
 
@@ -175,7 +179,7 @@ UPDATE models SET supports_images = false, updated_at = NOW() WHERE id = 'some-m
 无需进入 Neon SQL Editor 的也可以用 CLI：
 
 ```bash
-npx neonctl psql -- -c "INSERT INTO models ... ON CONFLICT ..."
+npx neonctl psql main --project-id <NEON_PROJECT_ID> -- -c "INSERT INTO models ... ON CONFLICT ..."
 ```
 
 无需重新部署代码。

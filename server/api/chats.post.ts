@@ -1,4 +1,5 @@
 import { defineEventHandler, readValidatedBody, createError } from 'h3'
+import { eq } from 'drizzle-orm'
 import { DEFAULT_MODEL, modelSupportsImages } from '../utils/models'
 import { checkDailyLimit } from '../utils/rateLimiter'
 import { isUniqueViolation, raiseConflict } from '../utils/errors'
@@ -31,12 +32,25 @@ export default defineEventHandler(async (event) => {
       userId: user.id,
       model: model ?? DEFAULT_MODEL
     }).returning()
+    if (!chat) {
+      throw createError({ statusCode: 500, statusMessage: 'Failed to create chat' })
+    }
 
-    await db.insert(schema.messages).values({
-      chatId: chat!.id,
-      role: 'user',
-      parts: Array.isArray(message.parts) ? message.parts : []
-    })
+    // neon-http 不支持 db.transaction；消息写入失败时补偿删除，避免留下空会话
+    try {
+      await db.insert(schema.messages).values({
+        chatId: chat.id,
+        role: 'user',
+        parts: Array.isArray(message.parts) ? message.parts : []
+      })
+    } catch (err) {
+      try {
+        await db.delete(schema.chats).where(eq(schema.chats.id, chat.id))
+      } catch (cleanupErr) {
+        console.error('[chats.post] failed to cleanup orphan chat', chat.id, cleanupErr)
+      }
+      throw err
+    }
 
     return chat
   } catch (err) {

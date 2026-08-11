@@ -35,6 +35,12 @@ describe('raiseConflict', () => {
     expect(err.statusCode).toBe(409)
     expect(err.statusMessage).toBe('Chat already exists')
   })
+
+  it('should create a 409 error with default message', () => {
+    const err = raiseConflict()
+    expect(err.statusCode).toBe(409)
+    expect(err.statusMessage).toBe('Conflict')
+  })
 })
 
 describe('isUniqueViolation', () => {

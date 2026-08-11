@@ -3,16 +3,18 @@
  *
  * 全量初始化 models 表的能力数据，INSERT ... ON CONFLICT DO NOTHING 保证幂等。
  * Preview (develop): prebuild-migrate.js 自动执行
- * Production (main): schema 用 `npx neonctl psql -- -f server/db/migrations/xxx.sql`；
+ * Production (main): schema 用
+ *   `npx neonctl psql main --project-id <NEON_PROJECT_ID> -- --set ON_ERROR_STOP=on --single-transaction -f server/db/migrations/xxx.sql`
  *   seed 先在环境中设置 DATABASE_URL（勿把凭据写进命令行），再执行：
- *   `npx tsx server/db/seed-models.ts`
+ *   `SEED_TARGET=production npx tsx server/db/seed-models.ts`
  */
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
 import * as schema from './schema'
 
 // ─── 生产环境安全保护 ────────────────────────────────────────────────────────
-if (process.env.NODE_ENV === 'production') {
+// 本地默认 NODE_ENV=development，因此正式服 seed 需显式 SEED_TARGET=production
+if (process.env.NODE_ENV === 'production' || process.env.SEED_TARGET === 'production') {
   console.warn('⚠️  About to seed PRODUCTION database in 3s... Press Ctrl+C to cancel.')
   await new Promise(resolve => setTimeout(resolve, 3000))
 }

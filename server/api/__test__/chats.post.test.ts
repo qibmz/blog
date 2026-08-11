@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mockDbInsertReturning, mockUser, mockReadValidatedBody } from '../../utils/__test__/setup'
+import { mockDbInsertReturning, mockDbInsertValues, mockDbDelete, mockUser, mockReadValidatedBody } from '../../utils/__test__/setup'
 
 const mockCheckDailyLimit = vi.fn()
 
@@ -11,6 +11,8 @@ vi.mock('../../utils/rateLimiter', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockDbInsertValues.mockResolvedValue(undefined)
+  mockDbDelete.mockResolvedValue(undefined)
 })
 
 describe('POST /api/chats', () => {
@@ -110,5 +112,16 @@ describe('POST /api/chats', () => {
       statusCode: 409,
       statusMessage: 'Chat already exists'
     })
+  })
+
+  it('should delete the chat when the first message insert fails', async () => {
+    const chatRow = { id: 'orphan-chat', userId: mockUser.id, model: 'deepseek-v4-pro' }
+    mockDbInsertReturning.mockResolvedValueOnce([chatRow])
+    mockDbInsertValues.mockRejectedValueOnce(new Error('message insert failed'))
+
+    const { default: handler } = await import('../chats.post')
+
+    await expect(handler({ context: {}, path: '/api/chats' } as any)).rejects.toThrow('message insert failed')
+    expect(mockDbDelete).toHaveBeenCalled()
   })
 })

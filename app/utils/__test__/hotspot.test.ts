@@ -111,6 +111,7 @@ describe('isSafeHotspotActionValue', () => {
 
   it('blocks dangerous schemes', () => {
     expect(isSafeHotspotActionValue('navigate', 'javascript:alert(1)')).toBe(false)
+    expect(isSafeHotspotActionValue('navigate', '//attacker.example')).toBe(false)
     expect(isSafeHotspotActionValue('download', 'data:text/html,hi')).toBe(false)
     expect(isSafeHotspotActionValue('download', '/relative.pdf')).toBe(false)
   })

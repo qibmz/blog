@@ -78,6 +78,7 @@ function revokeObjectUrl() {
 
 function setBgImage(url: string) {
   revokeObjectUrl()
+  preserveDesignSizeOnce.value = false
   bgImage.value = url
 }
 
@@ -86,6 +87,7 @@ async function onFileChange(event: Event) {
   const file = input.files?.[0]
   if (!file) return
   revokeObjectUrl()
+  preserveDesignSizeOnce.value = false
   const url = URL.createObjectURL(file)
   objectUrl.value = url
   bgImage.value = url

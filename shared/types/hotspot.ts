@@ -13,6 +13,8 @@ export function isSafeHotspotActionValue(
   if (!trimmed) return true
   if (type === 'popup') return true
   if (type === 'download') return /^https?:\/\//i.test(trimmed)
+  // 协议相对 URL（//evil.com）会被浏览器解析成外链，不能当相对路径
+  if (trimmed.startsWith('//')) return false
   if (/^https?:\/\//i.test(trimmed)) return true
   return !/^[a-z][a-z0-9+.-]*:/i.test(trimmed)
 }
