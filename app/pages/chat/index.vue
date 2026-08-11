@@ -232,6 +232,7 @@ function goToLogin() {
                   <div class="flex-1" />
 
                   <UButton
+                    v-if="showWebSearch"
                     label="联网搜索"
                     :icon="webSearch ? 'i-lucide-globe' : 'i-lucide-globe-off'"
                     :variant="webSearch ? 'soft' : 'ghost'"
