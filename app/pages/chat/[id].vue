@@ -210,7 +210,7 @@ async function syncSourcesFromServer() {
     const parts = (lastLive.parts ?? []).filter(p => (p as { type: string }).type !== 'data-sources')
     lastLive.parts = [
       ...parts,
-      { type: 'sources', sources } as UIMessage['parts'][number]
+      { type: 'sources', sources } as unknown as UIMessage['parts'][number]
     ]
     return
   }

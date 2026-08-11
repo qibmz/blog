@@ -76,7 +76,11 @@ describe('createMimoFetch', () => {
 
     const fetchFn = createMimoFetch(baseFetch)
     const signal = new AbortController().signal
-    const ctx = { webSearch: true, sources: [] as { url: string }[] }
+    const ctx: {
+      webSearch: boolean
+      sources: { url: string }[]
+      sourcesReady?: Promise<void>
+    } = { webSearch: true, sources: [] }
     bindMimoRequestContext(signal, ctx)
 
     const res = await fetchFn('https://api.xiaomimimo.com/v1/chat/completions', {
@@ -103,7 +107,7 @@ describe('createMimoFetch', () => {
 
 describe('withWebSearchSources', () => {
   it('should inject data-sources before finish', async () => {
-    const input = new ReadableStream<{ type: string }>({
+    const input = new ReadableStream<{ type: string, delta?: string }>({
       start(controller) {
         controller.enqueue({ type: 'text-delta', delta: 'hi' })
         controller.enqueue({ type: 'finish' })
