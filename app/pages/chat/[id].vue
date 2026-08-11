@@ -110,6 +110,10 @@ useSeoMeta({ title: computed(() => `${chatTitle.value} — AI Chat`) })
 
 const input = ref('')
 
+function toggleThinkingMode() {
+  thinkingMode.value = !thinkingMode.value
+}
+
 const chat = new Chat({
   id,
   messages: chatData.value!.messages as unknown as UIMessage[],
@@ -448,7 +452,7 @@ onMounted(async () => {
                     :variant="thinkingMode ? 'soft' : 'ghost'"
                     :color="thinkingMode ? 'primary' : 'neutral'"
                     size="sm"
-                    @click="thinkingMode = !thinkingMode"
+                    @click="toggleThinkingMode"
                   />
                   <UChatPromptSubmit
                     :status="chat.status"

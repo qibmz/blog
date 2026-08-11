@@ -123,6 +123,14 @@ function createChat(text: string) {
 function onSubmit() {
   createChat(input.value)
 }
+
+function toggleThinkingMode() {
+  thinkingMode.value = !thinkingMode.value
+}
+
+function goToLogin() {
+  navigateTo('/login')
+}
 </script>
 
 <template>
@@ -209,7 +217,7 @@ function onSubmit() {
                     :variant="thinkingMode ? 'soft' : 'ghost'"
                     :color="thinkingMode ? 'primary' : 'neutral'"
                     size="sm"
-                    @click="thinkingMode = !thinkingMode"
+                    @click="toggleThinkingMode"
                   />
                   <USelectMenu
                     v-model="selectedModel"
@@ -246,7 +254,7 @@ function onSubmit() {
                 color="primary"
                 size="sm"
                 class="p-0"
-                @click="navigateTo('/login')"
+                @click="goToLogin"
               />
             </div>
           </UContainer>

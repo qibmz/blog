@@ -119,6 +119,19 @@ function setZoom(next: number, origin?: { x: number, y: number }) {
   }
 }
 
+function zoomIn() {
+  setZoom(zoom.value + ZOOM_STEP)
+}
+
+function zoomOut() {
+  setZoom(zoom.value - ZOOM_STEP)
+}
+
+function zoomReset() {
+  setZoom(1)
+  centerContent()
+}
+
 function pointerToPct(clientX: number, clientY: number) {
   const stage = stageRef.value
   if (!stage || displaySize.width <= 0) return { x: 0, y: 0 }
@@ -369,14 +382,14 @@ watch(() => props.bgImage, async () => {
         variant="soft"
         icon="i-lucide-zoom-out"
         :disabled="zoom <= ZOOM_MIN"
-        @click="setZoom(zoom - ZOOM_STEP)"
+        @click="zoomOut"
       />
       <UButton
         size="xs"
         color="neutral"
         variant="soft"
         class="min-w-14 justify-center font-mono"
-        @click="setZoom(1); centerContent()"
+        @click="zoomReset"
       >
         {{ zoomLabel }}
       </UButton>
@@ -386,7 +399,7 @@ watch(() => props.bgImage, async () => {
         variant="soft"
         icon="i-lucide-zoom-in"
         :disabled="zoom >= ZOOM_MAX"
-        @click="setZoom(zoom + ZOOM_STEP)"
+        @click="zoomIn"
       />
       <span class="text-[11px] text-slate-400 ml-1">
         滚轮缩放 · 空格/Alt 平移 · 文案在右侧属性修改

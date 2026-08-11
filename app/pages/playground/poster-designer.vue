@@ -152,6 +152,23 @@ function importJson() {
 onBeforeUnmount(() => {
   revokeObjectUrl()
 })
+
+function openFilePicker() {
+  fileInputRef.value?.click()
+}
+
+function setTool(next: PosterEditorTool) {
+  tool.value = next
+}
+
+function removeSelectedLayer() {
+  if (!selectedId.value) return
+  deleteLayer(selectedId.value)
+}
+
+function setPreviewWidth(next: 'full' | 'mobile') {
+  previewWidth.value = next
+}
 </script>
 
 <template>
@@ -204,7 +221,7 @@ onBeforeUnmount(() => {
             size="sm"
             color="neutral"
             variant="soft"
-            @click="fileInputRef?.click()"
+            @click="openFilePicker"
           >
             上传背景
           </UButton>
@@ -243,7 +260,7 @@ onBeforeUnmount(() => {
                 :icon="t.icon"
                 :color="tool === t.id ? 'primary' : 'neutral'"
                 :variant="tool === t.id ? 'solid' : 'soft'"
-                @click="tool = t.id"
+                @click="setTool(t.id)"
               >
                 {{ t.label }}
               </UButton>
@@ -254,7 +271,7 @@ onBeforeUnmount(() => {
                 color="neutral"
                 variant="ghost"
                 :disabled="!selectedId"
-                @click="selectedId && deleteLayer(selectedId)"
+                @click="removeSelectedLayer"
               >
                 删除选中
               </UButton>
@@ -347,7 +364,7 @@ onBeforeUnmount(() => {
             :color="previewWidth === 'full' ? 'primary' : 'neutral'"
             :variant="previewWidth === 'full' ? 'solid' : 'soft'"
             icon="i-lucide-monitor"
-            @click="previewWidth = 'full'"
+            @click="setPreviewWidth('full')"
           >
             桌面
           </UButton>
@@ -356,7 +373,7 @@ onBeforeUnmount(() => {
             :color="previewWidth === 'mobile' ? 'primary' : 'neutral'"
             :variant="previewWidth === 'mobile' ? 'solid' : 'soft'"
             icon="i-lucide-smartphone"
-            @click="previewWidth = 'mobile'"
+            @click="setPreviewWidth('mobile')"
           >
             手机
           </UButton>
