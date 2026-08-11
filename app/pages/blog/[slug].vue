@@ -103,6 +103,8 @@ async function copyMarkdown() {
       >
         <UContentToc
           :links="post.body.toc.links"
+          highlight
+          highlight-color="primary"
           highlight-variant="circuit"
         />
       </template>

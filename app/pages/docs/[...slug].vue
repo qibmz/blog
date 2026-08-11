@@ -51,6 +51,8 @@ useSeoMeta({
     >
       <UContentToc
         :links="page.body.toc.links"
+        highlight
+        highlight-color="primary"
         highlight-variant="circuit"
       />
     </template>
