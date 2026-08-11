@@ -80,13 +80,13 @@ export const PROVIDER_REGISTRY: ProviderConfig[] = [
     icon: 'i-simple-icons-xiaomi',
     modelsUrl: 'https://api.xiaomimimo.com/v1/models',
     headers: () => ({ 'api-key': process.env.MIMO_API_KEY ?? '' }),
-    exclude: ['tts', 'embedding', 'whisper', 'dall-e'],
+    // asr/tts 等非 Chat 模型不应出现在对话下拉框
+    exclude: ['tts', 'asr', 'embedding', 'whisper', 'dall-e'],
     getInstance: id => mimo(id),
-    // 仅 mimo-v2.5（除 pro/flash）和 mimo-v2-omni（除 pro/flash）支持视觉
-    // 参考：https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/multimodal-understanding/image-understanding
+    // 仅全模态理解模型支持视觉；pro / flash / asr / tts 均不支持
+    // 参考：https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
     supportsImages: (id) => {
-      if (id.startsWith('mimo-v2.5') && !id.includes('-pro') && !id.includes('-flash')) return true
-      if (id.startsWith('mimo-v2-omni') && !id.includes('-pro') && !id.includes('-flash')) return true
+      if (id === 'mimo-v2.5' || id === 'mimo-v2-omni') return true
       return false
     }
   }

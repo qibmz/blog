@@ -107,7 +107,7 @@ describe('modelSupportsImages', () => {
   it('should return true for a MiMo model that supports images (provider fallback)', async () => {
     const { modelSupportsImages } = await import('../models')
     // DB 未命中 → fallback 到 Provider 规则
-    // mimo-v2.5 支持图片（非 pro/flash）
+    // 仅 mimo-v2.5 / mimo-v2-omni 支持图片
     const result = await modelSupportsImages('mimo-v2.5')
     expect(result).toBe(true)
   })
@@ -117,6 +117,19 @@ describe('modelSupportsImages', () => {
     // mimo-v2.5-pro 不支持图片
     const result = await modelSupportsImages('mimo-v2.5-pro')
     expect(result).toBe(false)
+  })
+
+  it('should return false for MiMo ASR (provider fallback)', async () => {
+    const { modelSupportsImages } = await import('../models')
+    // mimo-v2.5-asr 仅语音识别，不能传图
+    const result = await modelSupportsImages('mimo-v2.5-asr')
+    expect(result).toBe(false)
+  })
+
+  it('should exclude ASR from MiMo chat model filters', async () => {
+    const { PROVIDER_REGISTRY } = await import('../models')
+    const mimo = PROVIDER_REGISTRY.find(p => p.name === 'MiMo')!
+    expect(mimo.exclude.some(ex => ex.toLowerCase() === 'asr')).toBe(true)
   })
 
   it('should return false for DeepSeek models (provider fallback)', async () => {

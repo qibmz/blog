@@ -34,11 +34,12 @@ const seedData: { id: string, supportsImages: boolean }[] = [
   // DeepSeek — 无视觉模型
   { id: 'deepseek-v4-pro', supportsImages: false },
   { id: 'deepseek-v4-flash', supportsImages: false },
-  // MiMo v2.5 系列
+  // MiMo v2.5 系列（仅 mimo-v2.5 支持全模态/传图；asr 仅语音识别）
   { id: 'mimo-v2.5-pro', supportsImages: false },
   { id: 'mimo-v2.5-flash', supportsImages: false },
   { id: 'mimo-v2.5', supportsImages: true },
-  // MiMo v2-omni 系列
+  { id: 'mimo-v2.5-asr', supportsImages: false },
+  // MiMo v2-omni 系列（已下线，保留 seed 兼容）
   { id: 'mimo-v2-omni', supportsImages: true },
   { id: 'mimo-v2-omni-pro', supportsImages: false },
   { id: 'mimo-v2-omni-flash', supportsImages: false }
