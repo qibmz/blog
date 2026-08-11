@@ -344,7 +344,7 @@ function onKeyUp(event: KeyboardEvent) {
   if (event.code === 'Space') spacePressed.value = false
 }
 
-useResizeObserver(viewportRef, () => {
+useResizeObserver(viewportRef as never, () => {
   syncViewportSize()
   syncDisplaySize()
 })

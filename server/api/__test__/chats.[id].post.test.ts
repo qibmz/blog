@@ -35,11 +35,11 @@ vi.mock('../../utils/models', () => ({
   getModel: mockGetModel,
   DEFAULT_MODEL: 'deepseek-v4-pro',
   MODEL_OPTIONS: [],
-  modelSupportsImages: (...args: unknown[]) => mockModelSupportsImages(...args)
+  modelSupportsImages: mockModelSupportsImages
 }))
 
 vi.mock('../../utils/requestAbort', () => ({
-  getRequestAbortSignal: (...args: unknown[]) => mockGetRequestAbortSignal(...args)
+  getRequestAbortSignal: mockGetRequestAbortSignal
 }))
 
 vi.mock('ai', () => ({
@@ -503,7 +503,12 @@ describe('POST /api/chats/:id', () => {
       toUIMessageStream: mockToUIMessageStream
     })
     mockDb.insert.mockImplementationOnce(() => ({
-      values: vi.fn(() => Promise.reject(new Error('db down')))
+      values: vi.fn(() => {
+        const pending = Promise.reject(new Error('db down'))
+        return Object.assign(pending, {
+          returning: () => Promise.reject(new Error('db down'))
+        })
+      })
     }))
 
     const { default: handler } = await import('../chats/[id].post')

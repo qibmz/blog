@@ -40,7 +40,7 @@ async function paint() {
   try {
     await preloadPosterImages(props.config)
     if (signal.aborted) return
-    await renderPosterToCanvas(canvas, props.config, width, props.data, signal)
+    await renderPosterToCanvas(canvas as HTMLCanvasElement, props.config, width, props.data, signal)
   } catch (e) {
     if (signal.aborted || isAbortError(e)) return
     errorMsg.value = e instanceof Error ? e.message : '渲染失败'
@@ -49,7 +49,7 @@ async function paint() {
   }
 }
 
-useResizeObserver(rootRef, () => {
+useResizeObserver(rootRef as never, () => {
   paint()
 })
 

@@ -14,7 +14,7 @@ const popupContent = ref('')
 const containerRef = ref<HTMLElement | null>(null)
 const displaySize = reactive({ width: 0, height: 0 })
 
-useResizeObserver(containerRef, (entries) => {
+useResizeObserver(containerRef as never, (entries) => {
   const entry = entries[0]
   if (!entry) return
   displaySize.width = entry.contentRect.width
