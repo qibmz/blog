@@ -163,7 +163,7 @@ function onImageLoad() {
   })
 }
 
-useResizeObserver(viewportRef as never, () => {
+useResizeObserver(viewportRef, () => {
   syncViewportSize()
   syncDisplaySize()
 })

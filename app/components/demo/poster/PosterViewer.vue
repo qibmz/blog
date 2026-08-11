@@ -49,7 +49,7 @@ async function paint() {
   }
 }
 
-useResizeObserver(rootRef as never, () => {
+useResizeObserver(rootRef, () => {
   paint()
 })
 

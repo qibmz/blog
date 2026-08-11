@@ -45,7 +45,7 @@ const animateCount = () => {
 }
 
 const { stop } = useIntersectionObserver(
-  el as never,
+  el,
   ([entry]) => {
     if (entry?.isIntersecting) {
       animateCount()
