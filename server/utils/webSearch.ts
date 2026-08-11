@@ -175,3 +175,38 @@ export function createMimoFetch(baseFetch: typeof globalThis.fetch = globalThis.
     return response
   }
 }
+
+/** 等待 tee 解析完成，返回去重后的 sources */
+export async function awaitMimoSources(ctx: MimoRequestContext): Promise<ChatSource[]> {
+  if (ctx.sourcesReady) {
+    await ctx.sourcesReady.catch(() => undefined)
+  }
+  return ctx.sources ?? []
+}
+
+/**
+ * 在 UI message stream 的 finish 之前插入 data-sources，
+ * 让客户端即时渲染，而不必等 refresh 后才能看到。
+ */
+export function withWebSearchSources<T extends { type: string }>(
+  stream: ReadableStream<T>,
+  getSources: () => Promise<ChatSource[]>
+): ReadableStream<T | { type: 'data-sources', id: string, data: ChatSource[] }> {
+  return stream.pipeThrough(
+    new TransformStream<T, T | { type: 'data-sources', id: string, data: ChatSource[] }>({
+      async transform(chunk, controller) {
+        if (chunk.type === 'finish') {
+          const sources = await getSources()
+          if (sources.length > 0) {
+            controller.enqueue({
+              type: 'data-sources',
+              id: 'web-search-sources',
+              data: sources
+            })
+          }
+        }
+        controller.enqueue(chunk)
+      }
+    })
+  )
+}

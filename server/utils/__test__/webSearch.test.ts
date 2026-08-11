@@ -5,7 +5,9 @@ import {
   MIMO_WEB_SEARCH_FLAG,
   applyMimoWebSearchToRequestBody,
   createMimoFetch,
-  bindMimoRequestContext
+  bindMimoRequestContext,
+  withWebSearchSources,
+  awaitMimoSources
 } from '../webSearch'
 
 describe('extractUrlCitations', () => {
@@ -96,5 +98,72 @@ describe('createMimoFetch', () => {
       publishTime: undefined,
       logoUrl: undefined
     }])
+  })
+})
+
+describe('withWebSearchSources', () => {
+  it('should inject data-sources before finish', async () => {
+    const input = new ReadableStream<{ type: string }>({
+      start(controller) {
+        controller.enqueue({ type: 'text-delta', delta: 'hi' })
+        controller.enqueue({ type: 'finish' })
+        controller.close()
+      }
+    })
+
+    const out = withWebSearchSources(input, async () => [
+      { url: 'https://example.com', title: 'Example' }
+    ])
+
+    const chunks: unknown[] = []
+    const reader = out.getReader()
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+    }
+
+    expect(chunks).toEqual([
+      { type: 'text-delta', delta: 'hi' },
+      {
+        type: 'data-sources',
+        id: 'web-search-sources',
+        data: [{ url: 'https://example.com', title: 'Example' }]
+      },
+      { type: 'finish' }
+    ])
+  })
+
+  it('should not inject when sources empty', async () => {
+    const input = new ReadableStream<{ type: string }>({
+      start(controller) {
+        controller.enqueue({ type: 'finish' })
+        controller.close()
+      }
+    })
+
+    const out = withWebSearchSources(input, async () => [])
+    const chunks: unknown[] = []
+    const reader = out.getReader()
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+    }
+
+    expect(chunks).toEqual([{ type: 'finish' }])
+  })
+})
+
+describe('awaitMimoSources', () => {
+  it('should wait sourcesReady then return sources', async () => {
+    const ctx = {
+      sources: [] as { url: string }[],
+      sourcesReady: Promise.resolve().then(() => {
+        ctx.sources = [{ url: 'https://x.com' }]
+      })
+    }
+    const sources = await awaitMimoSources(ctx)
+    expect(sources).toEqual([{ url: 'https://x.com' }])
   })
 })

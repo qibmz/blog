@@ -13,7 +13,11 @@ const mockConsumeStream = vi.fn()
 const mockAbortSignal = new AbortController().signal
 const mockGetRequestAbortSignal = vi.fn(() => mockAbortSignal)
 
-const mockToUIMessageStream = vi.fn(() => ({ _type: 'ui-message-stream' }))
+const mockToUIMessageStream = vi.fn(() => new ReadableStream({
+  start(controller) {
+    controller.close()
+  }
+}))
 const mockCreateUIMessageStream = vi.fn((opts: any) => ({
   _type: 'ui-message-stream',
   _execute: opts.execute,

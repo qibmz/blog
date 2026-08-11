@@ -126,8 +126,10 @@ function toggleWebSearch() {
 }
 
 function getMessageSources(message: UIMessage) {
-  const part = message.parts?.find(p => (p as { type: string }).type === 'sources') as
-    | { type: 'sources'
+  const parts = message.parts ?? []
+  for (const part of parts) {
+    const p = part as {
+      type: string
       sources?: Array<{
         url: string
         title?: string
@@ -135,9 +137,26 @@ function getMessageSources(message: UIMessage) {
         siteName?: string
         publishTime?: string
         logoUrl?: string
-      }> }
-      | undefined
-  return part?.sources ?? []
+      }>
+      data?: Array<{
+        url: string
+        title?: string
+        summary?: string
+        siteName?: string
+        publishTime?: string
+        logoUrl?: string
+      }>
+    }
+    // 落库格式
+    if (p.type === 'sources' && Array.isArray(p.sources) && p.sources.length > 0) {
+      return p.sources
+    }
+    // 流式 data-* 格式（结束前注入，刷新前即可显示）
+    if (p.type === 'data-sources' && Array.isArray(p.data) && p.data.length > 0) {
+      return p.data
+    }
+  }
+  return []
 }
 
 const chat = new Chat({
@@ -163,13 +182,39 @@ const chat = new Chat({
       duration: 6000
     })
   },
-  onFinish: ({ isError }) => {
-    if (!isError) {
-      refreshNuxtData('sidebar-chats')
-      refreshChat()
-    }
+  onFinish: async ({ isError }) => {
+    if (isError) return
+    refreshNuxtData('sidebar-chats')
+    // 流已带 data-sources 时无需依赖 refresh；此处兜底同步落库后的 sources
+    await syncSourcesFromServer()
   }
 })
+
+/** 按序把服务端最后一条助手消息的 sources 合并进本地 chat.messages（id 可能不一致） */
+async function syncSourcesFromServer() {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await refreshChat()
+    const dbAssistants = (chatData.value?.messages ?? []).filter(m => m.role === 'assistant')
+    const lastDb = dbAssistants.at(-1) as UIMessage | undefined
+    const lastLive = chat.messages.filter(m => m.role === 'assistant').at(-1)
+    if (!lastDb || !lastLive) {
+      await new Promise(r => setTimeout(r, 150 * (attempt + 1)))
+      continue
+    }
+    const sources = getMessageSources(lastDb)
+    if (sources.length === 0) {
+      await new Promise(r => setTimeout(r, 150 * (attempt + 1)))
+      continue
+    }
+    if (getMessageSources(lastLive).length > 0) return
+    const parts = (lastLive.parts ?? []).filter(p => (p as { type: string }).type !== 'data-sources')
+    lastLive.parts = [
+      ...parts,
+      { type: 'sources', sources } as UIMessage['parts'][number]
+    ]
+    return
+  }
+}
 
 const { copy, copied } = useClipboard()
 const toast = useToast()

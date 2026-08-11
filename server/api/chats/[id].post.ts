@@ -9,7 +9,13 @@ import {
 } from '../../utils/models'
 import { checkDailyLimit } from '../../utils/rateLimiter'
 import { getRequestAbortSignal } from '../../utils/requestAbort'
-import { bindMimoRequestContext, MIMO_WEB_SEARCH_FLAG, type ChatSource } from '../../utils/webSearch'
+import {
+  awaitMimoSources,
+  bindMimoRequestContext,
+  MIMO_WEB_SEARCH_FLAG,
+  withWebSearchSources,
+  type ChatSource
+} from '../../utils/webSearch'
 import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
 import { z } from 'zod'
 import {
@@ -145,22 +151,28 @@ export default defineEventHandler(async (event) => {
         }
       })
 
-      writer.merge(result.toUIMessageStream())
+      // finish 前注入 data-sources，客户端即时可见（勿只靠落库后 refresh）
+      writer.merge(withWebSearchSources(
+        result.toUIMessageStream(),
+        () => awaitMimoSources(mimoCtx)
+      ))
     },
     onFinish: async ({ responseMessage, isAborted }) => {
       let parts = Array.isArray(responseMessage.parts) ? [...responseMessage.parts] : []
       // 中断且无实质内容时不落库，避免空助手消息；有半截内容则保留
       if (isAborted && !hasPersistableParts(parts)) return
 
-      if (mimoCtx.sourcesReady) {
-        await mimoCtx.sourcesReady.catch(() => undefined)
-      }
+      const sources = await awaitMimoSources(mimoCtx)
 
-      if (mimoCtx.sources.length > 0) {
+      // 流里已是 data-sources；落库统一成 type: 'sources'，兼容刷新后读取
+      const withoutStreamSources = parts.filter(p => (p as { type: string }).type !== 'data-sources')
+      if (sources.length > 0) {
         parts = [
-          ...parts,
-          { type: 'sources', sources: mimoCtx.sources } as unknown as UIMessage['parts'][number]
+          ...withoutStreamSources,
+          { type: 'sources', sources } as unknown as UIMessage['parts'][number]
         ]
+      } else {
+        parts = withoutStreamSources
       }
 
       try {
