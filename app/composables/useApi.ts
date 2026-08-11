@@ -9,8 +9,6 @@ function getApi() {
 
   _api = $fetch.create({
     async onResponseError({ response, options }) {
-      const skipAuthRedirect = (options as unknown as Record<string, unknown>).skipAuthRedirect
-
       if (import.meta.server) {
         throw Object.assign(new Error(normalizeError(response._data)), {
           statusCode: response.status
@@ -19,7 +17,7 @@ function getApi() {
 
       // 401 → 跳转登录（skipAuthRedirect 可跳过）
       if (response.status === 401) {
-        if (skipAuthRedirect) {
+        if (options.skipAuthRedirect) {
           throw Object.assign(new Error(normalizeError(response._data)), {
             statusCode: 401
           })
@@ -51,12 +49,10 @@ function getApi() {
  * 带统一错误拦截的 API composable，签名和 useFetch 一致。
  * - 401 自动跳转 /login（传 skipAuthRedirect: true 可跳过，仅透传错误）
  * - 其他 4xx/5xx 弹出 toast 并透传错误
+ *
+ * 工厂函数返回值会与调用方 options 合并；skipAuthRedirect 会留在 fetchOptions
+ * 并传给 $fetch，无需在这里解构再回填。
  */
-export const useAPI = createUseFetch((callerOptions) => {
-  const { skipAuthRedirect, ...rest } = callerOptions
-  return {
-    ...rest,
-    skipAuthRedirect,
-    $fetch: getApi() as typeof $fetch
-  }
-})
+export const useAPI = createUseFetch(() => ({
+  $fetch: getApi() as typeof $fetch
+}))
