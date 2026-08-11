@@ -12,7 +12,8 @@ export default defineConfig({
     globals: true,
     include: [
       'server/**/__test__/*.test.ts',
-      'app/**/__test__/*.test.ts'
+      'app/**/__test__/*.test.ts',
+      'shared/**/__test__/*.test.ts'
     ],
     setupFiles: ['server/utils/__test__/setup.ts'],
     coverage: {

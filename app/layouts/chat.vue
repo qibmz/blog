@@ -164,7 +164,7 @@ const chatItems = computed(() => {
     pinned.forEach((item) => {
       result.push({
         id: item.id,
-        label: item.title || '加载中...',
+        label: item.title || '新对话',
         type: 'link',
         to: `/chat/${item.id}`,
         slot: 'chat',
@@ -180,7 +180,7 @@ const chatItems = computed(() => {
     group.items.forEach((item) => {
       result.push({
         id: item.id,
-        label: item.title || '加载中...',
+        label: item.title || '新对话',
         type: 'link',
         to: `/chat/${item.id}`,
         slot: 'chat',
@@ -247,10 +247,10 @@ function closeDelete() {
         >
           <NuxtImg
             src="/image/logo.png"
-            alt="AI Chat"
+            alt="迦勒底"
             class="w-6 h-6 shrink-0"
           />
-          <span class="text-base font-bold text-highlighted">AI Chat</span>
+          <span class="text-base font-bold text-highlighted">迦勒底</span>
         </NuxtLink>
 
         <UDashboardSidebarCollapse class="ms-auto" />

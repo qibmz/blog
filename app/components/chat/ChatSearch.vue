@@ -25,7 +25,7 @@ const groups = computed<CommandPaletteGroup[]>(() => {
       label: '置顶',
       items: pinned.map(c => ({
         id: c.id,
-        label: c.title || '加载中...',
+        label: c.title || '新对话',
         to: `/chat/${c.id}`,
         icon: 'i-lucide-pin',
         onSelect() { model.value = false }
@@ -40,7 +40,7 @@ const groups = computed<CommandPaletteGroup[]>(() => {
       label: group.label,
       items: group.items.map(c => ({
         id: c.id,
-        label: c.title || '加载中...',
+        label: c.title || '新对话',
         to: `/chat/${c.id}`,
         icon: 'i-lucide-message-square',
         onSelect() { model.value = false }

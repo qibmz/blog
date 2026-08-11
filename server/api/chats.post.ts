@@ -1,12 +1,17 @@
-import { defineEventHandler, readValidatedBody } from 'h3'
+import { defineEventHandler, readValidatedBody, createError } from 'h3'
+import { eq } from 'drizzle-orm'
 import { DEFAULT_MODEL, modelSupportsImages } from '../utils/models'
 import { checkDailyLimit } from '../utils/rateLimiter'
+import { isUniqueViolation, raiseConflict } from '../utils/errors'
+import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
 import { z } from 'zod'
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
 
-  const { message, model, options: _options } = await readValidatedBody(event, z.object({
+  const { id, message, model, options: _options } = await readValidatedBody(event, z.object({
+    // 客户端生成 UUID，用于乐观跳转
+    id: z.string().uuid().optional(),
     message: UIMessageSchema,
     model: z.string().optional(),
     options: z.object({ thinkingMode: z.boolean().optional() }).optional()
@@ -22,16 +27,42 @@ export default defineEventHandler(async (event) => {
   // Note: check-then-insert 非事务性，并发请求可能绕过限制
   await checkDailyLimit(user.id)
 
-  const [chat] = await db.insert(schema.chats).values({
-    userId: user.id,
-    model: model ?? DEFAULT_MODEL
-  }).returning()
+  const provisionalTitle = getProvisionalChatTitle(
+    (message.parts ?? []) as Array<{ type: string, text?: string }>
+  )
 
-  await db.insert(schema.messages).values({
-    chatId: chat!.id,
-    role: 'user',
-    parts: Array.isArray(message.parts) ? message.parts : []
-  })
+  try {
+    const [chat] = await db.insert(schema.chats).values({
+      ...(id ? { id } : {}),
+      userId: user.id,
+      title: provisionalTitle,
+      model: model ?? DEFAULT_MODEL
+    }).returning()
+    if (!chat) {
+      throw createError({ statusCode: 500, statusMessage: 'Failed to create chat' })
+    }
 
-  return chat
+    // neon-http 不支持 db.transaction；消息写入失败时补偿删除，避免留下空会话
+    try {
+      await db.insert(schema.messages).values({
+        chatId: chat.id,
+        role: 'user',
+        parts: Array.isArray(message.parts) ? message.parts : []
+      })
+    } catch (err) {
+      try {
+        await db.delete(schema.chats).where(eq(schema.chats.id, chat.id))
+      } catch (cleanupErr) {
+        console.error('[chats.post] failed to cleanup orphan chat', chat.id, cleanupErr)
+      }
+      throw err
+    }
+
+    return chat
+  } catch (err) {
+    if (id && isUniqueViolation(err)) {
+      throw raiseConflict('Chat already exists')
+    }
+    throw err
+  }
 })

@@ -9,3 +9,14 @@ export function raiseNotFound(message = 'Not found') {
 export function raiseRateLimit(message: string) {
   return createError({ statusCode: 429, statusMessage: message })
 }
+
+/** 资源冲突（如主键重复） */
+export function raiseConflict(message = 'Conflict') {
+  return createError({ statusCode: 409, statusMessage: message })
+}
+
+/** PostgreSQL unique_violation */
+export function isUniqueViolation(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false
+  return (err as { code?: unknown }).code === '23505'
+}

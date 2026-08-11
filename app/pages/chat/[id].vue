@@ -3,14 +3,44 @@ import { Chat } from '@ai-sdk/vue'
 import { DefaultChatTransport, isReasoningUIPart, isTextUIPart } from 'ai'
 import { isPartStreaming } from '@nuxt/ui/utils/ai'
 import type { UIMessage, FileUIPart } from 'ai'
+import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
 
 definePageMeta({ layout: 'chat' })
 
 const route = useRoute()
 const id = route.params.id as string
 
-const { data: chatData, refresh: refreshChat } = await useAPI(`/api/chats/${id}`)
-if (!chatData.value) throw createError({ statusCode: 404 })
+const pendingChat = usePendingChat()
+const optimistic = pendingChat.value?.id === id ? { ...pendingChat.value } : null
+if (optimistic) pendingChat.value = null
+
+const { data: chatData, refresh: refreshChat } = await useAPI(`/api/chats/${id}`, {
+  key: `chat-${id}`,
+  immediate: !optimistic,
+  lazy: !!optimistic
+})
+
+if (optimistic) {
+  chatData.value = {
+    id: optimistic.id,
+    title: getProvisionalChatTitle(optimistic.message.parts),
+    model: optimistic.model,
+    userId: null,
+    pinned: false,
+    createdAt: new Date().toISOString(),
+    deletedAt: null,
+    messages: [{
+      id: optimistic.message.id,
+      chatId: optimistic.id,
+      role: 'user',
+      parts: optimistic.message.parts as Record<string, unknown>[],
+      createdAt: new Date().toISOString()
+    }]
+  } as typeof chatData.value
+} else if (!chatData.value) {
+  throw createError({ statusCode: 404 })
+}
+
 const { model: selectedModel, models: modelOptions } = useModels()
 const { thinkingMode } = useChatOptions()
 
@@ -68,10 +98,10 @@ const currentModel = computed(() =>
 
 // 仅在没有 cookie 偏好时回退到聊天记录中的模型
 if (!selectedModel.value) {
-  selectedModel.value = chatData.value.model ?? modelOptions.value[0]?.value ?? ''
+  selectedModel.value = chatData.value!.model ?? modelOptions.value[0]?.value ?? ''
 }
 
-const chatTitle = ref(chatData.value.title ?? '新对话')
+const chatTitle = ref(chatData.value!.title ?? '新对话')
 // 服务器异步生成标题后，刷新数据时同步更新本地 title
 watch(() => chatData.value?.title, (newTitle) => {
   if (newTitle) chatTitle.value = newTitle
@@ -80,9 +110,13 @@ useSeoMeta({ title: computed(() => `${chatTitle.value} — AI Chat`) })
 
 const input = ref('')
 
+function toggleThinkingMode() {
+  thinkingMode.value = !thinkingMode.value
+}
+
 const chat = new Chat({
   id,
-  messages: chatData.value.messages as unknown as UIMessage[],
+  messages: chatData.value!.messages as unknown as UIMessage[],
   transport: new DefaultChatTransport({
     api: `/api/chats/${id}`,
     body: () => ({ model: selectedModel.value, options: { thinkingMode: thinkingMode.value } })
@@ -109,58 +143,71 @@ const { copy, copied } = useClipboard()
 const toast = useToast()
 
 const feedbackState = ref<Record<string, { liked?: boolean, disliked?: boolean }>>({})
+const feedbackPulse = ref<Record<string, { like?: number, dislike?: number }>>({})
 
 function getTextContent(parts: UIMessage['parts']) {
   return parts?.filter(p => p.type === 'text').map(p => (p as { type: 'text', text: string }).text).join('') ?? ''
+}
+
+function isLiked(messageId: string) {
+  return !!feedbackState.value[messageId]?.liked
+}
+
+function isDisliked(messageId: string) {
+  return !!feedbackState.value[messageId]?.disliked
+}
+
+async function onCopy(message: UIMessage) {
+  await copy(getTextContent(message.parts))
+  toast.add({
+    title: copied.value ? '已复制到剪贴板' : '复制失败，请重试',
+    icon: copied.value ? 'i-lucide-check' : 'i-lucide-x',
+    color: copied.value ? 'success' : 'error',
+    duration: 2000
+  })
+}
+
+function toggleLike(message: UIMessage) {
+  const fb = (feedbackState.value[message.id] ??= {})
+  fb.liked = !fb.liked
+  if (fb.liked) {
+    fb.disliked = false
+    const pulse = (feedbackPulse.value[message.id] ??= {})
+    pulse.like = (pulse.like ?? 0) + 1
+  }
+}
+
+function toggleDislike(message: UIMessage) {
+  const fb = (feedbackState.value[message.id] ??= {})
+  fb.disliked = !fb.disliked
+  if (fb.disliked) {
+    fb.liked = false
+    const pulse = (feedbackPulse.value[message.id] ??= {})
+    pulse.dislike = (pulse.dislike ?? 0) + 1
+  }
 }
 
 const assistantConfig = {
   avatar: { src: '/image/logo.png' },
   variant: undefined,
   side: undefined,
-  ui: undefined,
-  actions: [
-    {
-      label: '复制',
-      icon: 'i-lucide-copy',
-      onClick: async (_e: MouseEvent, message: UIMessage) => {
-        await copy(getTextContent(message.parts))
-        toast.add({
-          title: copied.value ? '已复制到剪贴板' : '复制失败，请重试',
-          icon: copied.value ? 'i-lucide-check' : 'i-lucide-x',
-          color: copied.value ? 'success' : 'error',
-          duration: 2000
-        })
-      }
-    },
-    {
-      label: '赞',
-      icon: 'i-lucide-thumbs-up',
-      onClick: (_e: MouseEvent, message: UIMessage) => {
-        const fb = (feedbackState.value[message.id] ??= {})
-        fb.liked = !fb.liked
-        if (fb.liked) fb.disliked = false
-        toast.add({
-          title: fb.liked ? '已点赞' : '已取消点赞',
-          duration: 1500
-        })
-      }
-    },
-    {
-      label: '踩',
-      icon: 'i-lucide-thumbs-down',
-      onClick: (_e: MouseEvent, message: UIMessage) => {
-        const fb = (feedbackState.value[message.id] ??= {})
-        fb.disliked = !fb.disliked
-        if (fb.disliked) fb.liked = false
-        toast.add({
-          title: fb.disliked ? '已点踩' : '已取消点踩',
-          duration: 1500
-        })
-      }
-    }
-  ]
+  ui: undefined
 }
+
+// 乐观跳转：先落库再触发流式回复
+const createBody = ref<{
+  id: string
+  message: UIMessage
+  model: string
+  options: { thinkingMode: boolean }
+} | null>(null)
+
+const { execute: executeCreate, error: createChatError } = useAPI('/api/chats', {
+  method: 'POST',
+  body: createBody,
+  immediate: false,
+  watch: false
+})
 
 function onSubmit() {
   const hasFiles = readyParts.value.length > 0
@@ -181,7 +228,32 @@ function onSubmit() {
   clearFiles()
 }
 
-onMounted(() => {
+onMounted(async () => {
+  if (optimistic) {
+    createBody.value = {
+      id: optimistic.id,
+      message: optimistic.message,
+      model: optimistic.model,
+      options: optimistic.options
+    }
+    await executeCreate()
+    if (createChatError.value) {
+      // 回滚侧边栏乐观条目
+      const sidebar = useNuxtData<{ chats: Array<{ id: string }>, remainingToday: number }>('sidebar-chats')
+      if (sidebar.data.value) {
+        sidebar.data.value = {
+          chats: sidebar.data.value.chats.filter(c => c.id !== optimistic.id),
+          remainingToday: sidebar.data.value.remainingToday + 1
+        }
+      }
+      await navigateTo('/chat')
+      return
+    }
+    refreshNuxtData('sidebar-chats')
+    nextTick(() => chat.sendMessage())
+    return
+  }
+
   const messages = chatData.value?.messages ?? []
   if (messages.at(-1)?.role === 'user') {
     nextTick(() => chat.sendMessage())
@@ -229,6 +301,7 @@ onMounted(() => {
             <UChatMessages
               :messages="chat.messages"
               :assistant="assistantConfig"
+              :user="{ ui: { container: '!pb-0' } }"
               :status="chat.status"
               :spacing-offset="160"
               auto-scroll-icon="i-lucide-chevron-down"
@@ -249,6 +322,7 @@ onMounted(() => {
                     <ChatComark
                       :markdown="part.text"
                       :streaming="isPartStreaming(part)"
+                      caret
                     />
                   </UChatReasoning>
                   <template v-else-if="isTextUIPart(part)">
@@ -256,6 +330,7 @@ onMounted(() => {
                       v-if="(message as UIMessage).role === 'assistant'"
                       :markdown="part.text"
                       :streaming="isPartStreaming(part)"
+                      caret
                     />
                     <p
                       v-else-if="(message as UIMessage).role === 'user'"
@@ -264,6 +339,63 @@ onMounted(() => {
                       {{ part.text }}
                     </p>
                   </template>
+                </template>
+              </template>
+
+              <template #actions="{ message }">
+                <template v-if="(message as UIMessage).role === 'assistant'">
+                  <UTooltip text="复制">
+                    <UButton
+                      icon="i-lucide-copy"
+                      size="sm"
+                      color="neutral"
+                      variant="ghost"
+                      aria-label="复制"
+                      @click="onCopy(message as UIMessage)"
+                    />
+                  </UTooltip>
+
+                  <UTooltip :text="isLiked((message as UIMessage).id) ? '取消点赞' : '点赞'">
+                    <Motion
+                      :key="`like-${(message as UIMessage).id}-${feedbackPulse[(message as UIMessage).id]?.like ?? 0}`"
+                      :initial="{ scale: 1 }"
+                      :animate="isLiked((message as UIMessage).id)
+                        ? { scale: [1, 1.4, 1] }
+                        : { scale: 1 }"
+                      :transition="{ duration: 0.35, ease: 'easeOut' }"
+                    >
+                      <UButton
+                        icon="i-lucide-thumbs-up"
+                        size="sm"
+                        :color="isLiked((message as UIMessage).id) ? 'primary' : 'neutral'"
+                        :variant="isLiked((message as UIMessage).id) ? 'soft' : 'ghost'"
+                        aria-label="点赞"
+                        :aria-pressed="isLiked((message as UIMessage).id)"
+                        @click="toggleLike(message as UIMessage)"
+                      />
+                    </Motion>
+                  </UTooltip>
+
+                  <UTooltip :text="isDisliked((message as UIMessage).id) ? '取消点踩' : '点踩'">
+                    <Motion
+                      :key="`dislike-${(message as UIMessage).id}-${feedbackPulse[(message as UIMessage).id]?.dislike ?? 0}`"
+                      :initial="{ scale: 1 }"
+                      :animate="isDisliked((message as UIMessage).id)
+                        ? { scale: [1, 1.4, 1] }
+                        : { scale: 1 }"
+                      :transition="{ duration: 0.35, ease: 'easeOut' }"
+                    >
+                      <UButton
+                        icon="i-lucide-thumbs-down"
+                        size="sm"
+                        :color="isDisliked((message as UIMessage).id) ? 'error' : 'neutral'"
+                        :variant="isDisliked((message as UIMessage).id) ? 'soft' : 'ghost'"
+                        aria-label="点踩"
+                        :aria-pressed="isDisliked((message as UIMessage).id)"
+                        @click="toggleDislike(message as UIMessage)"
+                      />
+                    </Motion>
+                  </UTooltip>
                 </template>
               </template>
 
@@ -322,7 +454,7 @@ onMounted(() => {
                     :variant="thinkingMode ? 'soft' : 'ghost'"
                     :color="thinkingMode ? 'primary' : 'neutral'"
                     size="sm"
-                    @click="thinkingMode = !thinkingMode"
+                    @click="toggleThinkingMode"
                   />
                   <UChatPromptSubmit
                     :status="chat.status"

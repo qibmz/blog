@@ -37,6 +37,14 @@ const simulateUpdate = () => {
   pageviews.value += Math.floor(Math.random() * 2000)
   conversion.value = +(Math.random() * 10).toFixed(2)
 }
+
+function addCounter(delta: number) {
+  counter1.value += delta
+}
+
+function resetCounter() {
+  counter1.value = 0
+}
 </script>
 
 <template>
@@ -92,7 +100,7 @@ const simulateUpdate = () => {
                   color="neutral"
                   variant="outline"
                   size="sm"
-                  @click="counter1 += 100"
+                  @click="addCounter(100)"
                 >
                   +100
                 </UButton>
@@ -100,7 +108,7 @@ const simulateUpdate = () => {
                   color="neutral"
                   variant="outline"
                   size="sm"
-                  @click="counter1 += 1000"
+                  @click="addCounter(1000)"
                 >
                   +1,000
                 </UButton>
@@ -109,7 +117,7 @@ const simulateUpdate = () => {
                   color="neutral"
                   variant="ghost"
                   size="sm"
-                  @click="counter1 = 0"
+                  @click="resetCounter"
                 >
                   重置
                 </UButton>

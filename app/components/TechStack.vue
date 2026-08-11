@@ -75,6 +75,10 @@ const compactStack = techStack.filter(item =>
 const categoryKeys: CategoryKey[] = ['framework', 'language', 'styling', 'ui-library', 'cross-platform', 'build-tools', 'blockchain', 'visualization']
 const selectedCategory = ref<CategoryKey | 'all'>('all')
 
+function selectCategory(key: CategoryKey | 'all') {
+  selectedCategory.value = key
+}
+
 const displayedStack = computed(() => {
   if (compact) return compactStack
   if (selectedCategory.value === 'all') return techStack
@@ -94,7 +98,7 @@ const displayedStack = computed(() => {
         :class="selectedCategory === 'all'
           ? 'text-primary-500'
           : 'text-muted hover:text-highlighted'"
-        @click="selectedCategory = 'all'"
+        @click="selectCategory('all')"
       >
         全部
         <span
@@ -109,7 +113,7 @@ const displayedStack = computed(() => {
         :class="selectedCategory === key
           ? 'text-primary-500'
           : 'text-muted hover:text-highlighted'"
-        @click="selectedCategory = key"
+        @click="selectCategory(key)"
       >
         {{ categoryMeta[key].label }}
         <span
