@@ -164,7 +164,7 @@ const chatItems = computed(() => {
     pinned.forEach((item) => {
       result.push({
         id: item.id,
-        label: item.title || '加载中...',
+        label: item.title || '新对话',
         type: 'link',
         to: `/chat/${item.id}`,
         slot: 'chat',
@@ -180,7 +180,7 @@ const chatItems = computed(() => {
     group.items.forEach((item) => {
       result.push({
         id: item.id,
-        label: item.title || '加载中...',
+        label: item.title || '新对话',
         type: 'link',
         to: `/chat/${item.id}`,
         slot: 'chat',

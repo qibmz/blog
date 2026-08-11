@@ -340,6 +340,70 @@ describe('POST /api/chats/:id', () => {
     expect(event.waitUntil).toHaveBeenCalled()
   })
 
+  it('should still refine when chat already has provisional title from create', async () => {
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: '这是什么图',
+      model: 'deepseek-v4-pro'
+    })
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+    mockGenerateText.mockResolvedValue({ text: '图片问答' })
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
+        const body = {
+          model: 'deepseek-v4-pro',
+          messages: [{
+            id: 'msg-1',
+            role: 'user',
+            parts: [{ type: 'text', text: '这是什么图' }]
+          }]
+        }
+        return typeof validateFn === 'function' ? validateFn(body) : body
+      }
+    )
+
+    const { default: handler } = await import('../chats/[id].post')
+    const event = { context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any
+    await handler(event)
+
+    expect(mockGenerateText).toHaveBeenCalled()
+    expect(event.waitUntil).toHaveBeenCalled()
+  })
+
+  it('should not refine again when title was already AI-refined', async () => {
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: '图片内容问答',
+      model: 'deepseek-v4-pro'
+    })
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
+        const body = {
+          model: 'deepseek-v4-pro',
+          messages: [{
+            id: 'msg-1',
+            role: 'user',
+            parts: [{ type: 'text', text: '这是什么图' }]
+          }]
+        }
+        return typeof validateFn === 'function' ? validateFn(body) : body
+      }
+    )
+
+    const { default: handler } = await import('../chats/[id].post')
+    const event = { context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any
+    await handler(event)
+
+    expect(mockGenerateText).not.toHaveBeenCalled()
+  })
+
   it('should persist assistant message when stream finishes normally', async () => {
     mockDbFindFirst.mockResolvedValue({
       id: 'chat-1',

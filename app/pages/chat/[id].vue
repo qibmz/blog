@@ -3,6 +3,7 @@ import { Chat } from '@ai-sdk/vue'
 import { DefaultChatTransport, isReasoningUIPart, isTextUIPart } from 'ai'
 import { isPartStreaming } from '@nuxt/ui/utils/ai'
 import type { UIMessage, FileUIPart } from 'ai'
+import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
 
 definePageMeta({ layout: 'chat' })
 
@@ -20,15 +21,9 @@ const { data: chatData, refresh: refreshChat } = await useAPI(`/api/chats/${id}`
 })
 
 if (optimistic) {
-  const text = optimistic.message.parts
-    ?.filter((p): p is { type: 'text', text: string } => p.type === 'text')
-    .map(p => p.text)
-    .join(' ')
-    .trim() ?? ''
-  const hasFiles = optimistic.message.parts?.some(p => p.type === 'file')
   chatData.value = {
     id: optimistic.id,
-    title: text.slice(0, 15) || (hasFiles ? '图片对话' : null),
+    title: getProvisionalChatTitle(optimistic.message.parts),
     model: optimistic.model,
     userId: null,
     pinned: false,

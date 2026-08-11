@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { DEFAULT_MODEL, modelSupportsImages } from '../utils/models'
 import { checkDailyLimit } from '../utils/rateLimiter'
 import { isUniqueViolation, raiseConflict } from '../utils/errors'
+import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
 import { z } from 'zod'
 
 export default defineEventHandler(async (event) => {
@@ -26,10 +27,15 @@ export default defineEventHandler(async (event) => {
   // Note: check-then-insert 非事务性，并发请求可能绕过限制
   await checkDailyLimit(user.id)
 
+  const provisionalTitle = getProvisionalChatTitle(
+    (message.parts ?? []) as Array<{ type: string, text?: string }>
+  )
+
   try {
     const [chat] = await db.insert(schema.chats).values({
       ...(id ? { id } : {}),
       userId: user.id,
+      title: provisionalTitle,
       model: model ?? DEFAULT_MODEL
     }).returning()
     if (!chat) {

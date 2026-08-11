@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { UIMessage } from 'ai'
+import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
 
 definePageMeta({ layout: 'chat' })
 
@@ -94,7 +95,7 @@ function createChat(text: string) {
   }
 
   // 乐观更新侧边栏，立即出现新对话
-  const provisionalTitle = trimmed.slice(0, 15) || (hasFiles ? '图片对话' : null)
+  const provisionalTitle = getProvisionalChatTitle(message.parts)
   const sidebar = useNuxtData<{ chats: Array<Record<string, unknown>>, remainingToday: number }>('sidebar-chats')
   if (sidebar.data.value) {
     sidebar.data.value = {

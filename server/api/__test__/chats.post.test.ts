@@ -17,16 +17,19 @@ beforeEach(() => {
 
 describe('POST /api/chats', () => {
   it('should create a chat with first message', async () => {
-    const chatRow = { id: 'new-chat-1', userId: mockUser.id, model: 'deepseek-v4-pro' }
+    const chatRow = { id: 'new-chat-1', userId: mockUser.id, model: 'deepseek-v4-pro', title: 'Hello' }
     mockDbInsertReturning.mockResolvedValue([chatRow])
 
     const { default: handler } = await import('../chats.post')
+    const { mockDb } = await import('../../utils/__test__/setup')
 
     const event = { context: {}, path: '/api/chats' } as any
     const result = await handler(event)
 
     expect(result).toHaveProperty('id', 'new-chat-1')
     expect(mockCheckDailyLimit).toHaveBeenCalledWith(mockUser.id)
+    const valuesFn = mockDb.insert.mock.results[0]?.value?.values
+    expect(valuesFn).toHaveBeenCalledWith(expect.objectContaining({ title: 'Hello' }))
   })
 
   it('should create chat with custom model', async () => {

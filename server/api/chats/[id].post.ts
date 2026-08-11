@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm'
 import { getModel, DEFAULT_MODEL, modelSupportsImages } from '../../utils/models'
 import { checkDailyLimit } from '../../utils/rateLimiter'
 import { getRequestAbortSignal } from '../../utils/requestAbort'
+import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
 import { z } from 'zod'
 import {
   consumeStream,
@@ -55,31 +56,35 @@ export default defineEventHandler(async (event) => {
 
   const model = getModel(modelValue)
 
-  // 首次对话自动生成标题（不阻塞数据流，通过 waitUntil 确保在 serverless 环境完整执行）
-  if (!chat.title && messages.length > 0) {
+  // 首轮对话：确保有临时标题，并在有文字时异步精炼（不阻塞流式）
+  if (messages.length === 1) {
     const firstParts = messages[0]!.parts ?? []
     const textParts = firstParts.filter(p => p.type === 'text') as { type: 'text', text: string }[]
-    const fileParts = firstParts.filter(p => p.type === 'file') as { type: 'file', url: string, mediaType: string }[]
     const userText = textParts.map(p => p.text).join(' ').trim()
+    const provisionalTitle = getProvisionalChatTitle(firstParts as Array<{ type: string, text?: string }>)
 
-    // 先同步写入临时标题，避免带图时视觉标题与流式回复并发失败后侧边栏一直无标题
-    const provisionalTitle = (userText.slice(0, 15) || (fileParts.length > 0 ? '图片对话' : '新对话'))
-    await db.update(schema.chats)
-      .set({ title: provisionalTitle, model: modelValue })
-      .where(eq(schema.chats.id, id))
+    // 创建接口若未写入 title（或旧数据），这里补上临时标题
+    if (!chat.title) {
+      await db.update(schema.chats)
+        .set({ title: provisionalTitle, model: modelValue })
+        .where(eq(schema.chats.id, id))
+    }
 
-    // 有文字时再异步精炼；纯图只用临时标题
-    if (userText) {
+    // 有文字且尚未精炼过（title 仍为空或仍是临时截取）时异步精炼
+    const alreadyRefined = Boolean(chat.title && chat.title !== provisionalTitle)
+    if (userText && !alreadyRefined) {
       const titlePromise = generateText({
         model,
         system: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。',
         prompt: JSON.stringify(messages[0])
       }).then(async ({ text: title }) => {
-        const safeTitle = title.length > 20 ? title.slice(0, 20) : title
+        const safeTitle = title.trim()
+          ? (title.length > 20 ? title.slice(0, 20) : title)
+          : provisionalTitle
         await db.update(schema.chats)
           .set({ title: safeTitle, model: modelValue })
           .where(eq(schema.chats.id, id))
-        return title
+        return safeTitle
       }).catch((err) => {
         console.error('Failed to generate chat title:', err)
         return null
