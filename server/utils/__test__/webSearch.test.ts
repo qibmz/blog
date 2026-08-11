@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest'
 import {
   extractUrlCitations,
   MIMO_WEB_SEARCH_TOOL,
+  MIMO_WEB_SEARCH_FLAG,
+  applyMimoWebSearchToRequestBody,
   createMimoFetch,
   bindMimoRequestContext
 } from '../webSearch'
@@ -38,44 +40,61 @@ describe('extractUrlCitations', () => {
   })
 })
 
+describe('applyMimoWebSearchToRequestBody', () => {
+  it('should inject web_search tools when flag is set', () => {
+    const result = applyMimoWebSearchToRequestBody({
+      model: 'mimo-v2.5-pro',
+      [MIMO_WEB_SEARCH_FLAG]: true
+    })
+
+    expect(result.tools).toEqual([MIMO_WEB_SEARCH_TOOL])
+    expect(result.tool_choice).toBe('auto')
+    expect(result[MIMO_WEB_SEARCH_FLAG]).toBeUndefined()
+  })
+
+  it('should not inject tools when flag is absent', () => {
+    const result = applyMimoWebSearchToRequestBody({
+      model: 'mimo-v2.5-pro'
+    })
+
+    expect(result.tools).toBeUndefined()
+  })
+})
+
 describe('createMimoFetch', () => {
-  it('should inject web_search tools when context is bound to AbortSignal', async () => {
-    let capturedBody: string | undefined
-    const baseFetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
-      capturedBody = typeof init?.body === 'string' ? init.body : undefined
-      return new Response('{}', { status: 200 })
-    }) as unknown as typeof globalThis.fetch
+  it('should capture sources when web search context is bound', async () => {
+    const sse = [
+      'data: {"choices":[{"delta":{"annotations":[{"type":"url_citation","url":"https://a.com","title":"A","site_name":"Site"}]}}]}\n\n',
+      'data: [DONE]\n\n'
+    ].join('')
+
+    const baseFetch = vi.fn(async () =>
+      new Response(sse, { status: 200, headers: { 'content-type': 'text/event-stream' } })
+    ) as unknown as typeof globalThis.fetch
 
     const fetchFn = createMimoFetch(baseFetch)
     const signal = new AbortController().signal
-    bindMimoRequestContext(signal, { webSearch: true, sources: [] })
+    const ctx = { webSearch: true, sources: [] as { url: string }[] }
+    bindMimoRequestContext(signal, ctx)
 
-    await fetchFn('https://api.xiaomimimo.com/v1/chat/completions', {
+    const res = await fetchFn('https://api.xiaomimimo.com/v1/chat/completions', {
       method: 'POST',
       signal,
-      body: JSON.stringify({ model: 'mimo-v2.5-pro', messages: [] })
+      body: JSON.stringify({
+        model: 'mimo-v2.5-pro',
+        tools: [MIMO_WEB_SEARCH_TOOL]
+      })
     })
+    await res.text()
+    await ctx.sourcesReady
 
-    expect(capturedBody).toBeDefined()
-    const parsed = JSON.parse(capturedBody!)
-    expect(parsed.tools).toEqual([MIMO_WEB_SEARCH_TOOL])
-    expect(parsed.tool_choice).toBe('auto')
-  })
-
-  it('should not inject tools when webSearch is off', async () => {
-    let capturedBody: string | undefined
-    const baseFetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
-      capturedBody = typeof init?.body === 'string' ? init.body : undefined
-      return new Response('{}', { status: 200 })
-    }) as unknown as typeof globalThis.fetch
-
-    const fetchFn = createMimoFetch(baseFetch)
-    await fetchFn('https://api.xiaomimimo.com/v1/chat/completions', {
-      method: 'POST',
-      body: JSON.stringify({ model: 'mimo-v2.5-pro', messages: [] })
-    })
-
-    const parsed = JSON.parse(capturedBody!)
-    expect(parsed.tools).toBeUndefined()
+    expect(ctx.sources).toEqual([{
+      url: 'https://a.com',
+      title: 'A',
+      summary: undefined,
+      siteName: 'Site',
+      publishTime: undefined,
+      logoUrl: undefined
+    }])
   })
 })

@@ -98,8 +98,8 @@ function createChat(text: string) {
     message,
     model: selectedModel.value,
     options: {
-      thinkingMode: currentModel.value?.supportsThinking === false ? false : thinkingMode.value,
-      webSearch: showWebSearch.value ? webSearch.value : false
+      thinkingMode: currentModel.value?.supportsThinking === false ? false : Boolean(thinkingMode.value),
+      webSearch: showWebSearch.value ? Boolean(webSearch.value) : false
     }
   }
 

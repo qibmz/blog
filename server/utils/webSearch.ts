@@ -1,5 +1,6 @@
 /**
- * MiMo 联网搜索：通过自定义 fetch 注入 tools（openai-compatible 会用 undefined 覆盖顶层 tools）。
+ * MiMo 联网搜索：通过 transformRequestBody / 自定义 fetch 注入 tools。
+ * （openai-compatible 会把顶层 tools 写成 undefined，不能只靠 streamText tools）
  * @see https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/text-generation/tool-calling/web-search
  */
 
@@ -22,20 +23,43 @@ export interface MimoRequestContext {
 /** 按 AbortSignal 绑定请求上下文（streamText 会把 signal 传到 fetch） */
 const mimoContextBySignal = new WeakMap<AbortSignal, MimoRequestContext>()
 
+/** 并发兜底：同一 isolate 内最近一次请求上下文（transformRequestBody 用） */
+let activeMimoCtx: MimoRequestContext | null = null
+
 export function bindMimoRequestContext(signal: AbortSignal | undefined, ctx: MimoRequestContext) {
+  activeMimoCtx = ctx
   if (signal) mimoContextBySignal.set(signal, ctx)
 }
 
 export function getMimoRequestContext(signal?: AbortSignal | null): MimoRequestContext | undefined {
-  if (signal) return mimoContextBySignal.get(signal)
-  return undefined
+  if (signal) {
+    const bySignal = mimoContextBySignal.get(signal)
+    if (bySignal) return bySignal
+  }
+  return activeMimoCtx ?? undefined
 }
 
 export const MIMO_WEB_SEARCH_TOOL = {
   type: 'web_search' as const,
-  force_search: false,
+  // 用户主动打开开关时强制搜索，避免意图识别判定「无需联网」导致无 annotations
+  force_search: true,
   max_keyword: 3,
   limit: 5
+}
+
+/** 写入 providerOptions.mimo，供 transformRequestBody 转成 tools */
+export const MIMO_WEB_SEARCH_FLAG = 'x_web_search' as const
+
+export function applyMimoWebSearchToRequestBody(args: Record<string, unknown>): Record<string, unknown> {
+  const enabled = Boolean(args[MIMO_WEB_SEARCH_FLAG])
+  const { [MIMO_WEB_SEARCH_FLAG]: _flag, ...rest } = args
+  if (!enabled) return rest
+
+  return {
+    ...rest,
+    tools: [MIMO_WEB_SEARCH_TOOL],
+    tool_choice: 'auto'
+  }
 }
 
 export function extractUrlCitations(annotations: unknown): ChatSource[] {
@@ -69,6 +93,16 @@ function collectAnnotationsFromPayload(payload: unknown, out: ChatSource[]) {
     const delta = choice.delta as Record<string, unknown> | undefined
     if (message?.annotations) out.push(...extractUrlCitations(message.annotations))
     if (delta?.annotations) out.push(...extractUrlCitations(delta.annotations))
+  }
+}
+
+function requestBodyHasWebSearch(init?: RequestInit): boolean {
+  if (!init?.body || typeof init.body !== 'string') return false
+  try {
+    const body = JSON.parse(init.body) as { tools?: Array<{ type?: string }> }
+    return Array.isArray(body.tools) && body.tools.some(t => t?.type === 'web_search')
+  } catch {
+    return false
   }
 }
 
@@ -124,22 +158,11 @@ async function captureSourcesFromBody(body: ReadableStream<Uint8Array>, ctx: Mim
 export function createMimoFetch(baseFetch: typeof globalThis.fetch = globalThis.fetch): typeof globalThis.fetch {
   return async (input, init) => {
     const ctx = getMimoRequestContext(init?.signal ?? undefined)
-    let nextInit = init
+    const shouldCapture = Boolean(ctx?.webSearch) || requestBodyHasWebSearch(init)
 
-    if (ctx?.webSearch && init?.body && typeof init.body === 'string') {
-      try {
-        const body = JSON.parse(init.body) as Record<string, unknown>
-        body.tools = [MIMO_WEB_SEARCH_TOOL]
-        body.tool_choice = 'auto'
-        nextInit = { ...init, body: JSON.stringify(body) }
-      } catch {
-        nextInit = init
-      }
-    }
+    const response = await baseFetch(input, init)
 
-    const response = await baseFetch(input, nextInit)
-
-    if (ctx?.webSearch && response.body) {
+    if (shouldCapture && ctx && response.body) {
       const [forClient, forParse] = response.body.tee()
       ctx.sourcesReady = captureSourcesFromBody(forParse, ctx)
       return new Response(forClient, {

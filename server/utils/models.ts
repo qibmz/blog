@@ -12,7 +12,7 @@ import { createDeepSeek } from '@ai-sdk/deepseek'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { eq } from 'drizzle-orm'
 import type { LanguageModel } from 'ai'
-import { createMimoFetch } from './webSearch'
+import { createMimoFetch, applyMimoWebSearchToRequestBody } from './webSearch'
 
 // ─── Provider 实例 ───────────────────────────────────────────────────────────
 
@@ -26,7 +26,9 @@ const mimo = createOpenAICompatible({
   name: 'mimo',
   baseURL: 'https://api.xiaomimimo.com/v1',
   apiKey: process.env.MIMO_API_KEY,
-  fetch: createMimoFetch()
+  fetch: createMimoFetch(),
+  // openai-compatible 会把 tools 置为 undefined；用自定义字段再转回 tools
+  transformRequestBody: applyMimoWebSearchToRequestBody
 })
 
 // ── 新增示例 ──────────────────────────────────────────────────────────────────

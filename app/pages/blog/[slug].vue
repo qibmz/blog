@@ -101,7 +101,10 @@ async function copyMarkdown() {
         v-if="post?.body?.toc?.links?.length"
         #right
       >
-        <UContentToc :links="post.body.toc.links" />
+        <UContentToc
+          :links="post.body.toc.links"
+          highlight-variant="circuit"
+        />
       </template>
     </UPage>
   </UContainer>

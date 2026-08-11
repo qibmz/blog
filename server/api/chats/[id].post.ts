@@ -9,7 +9,7 @@ import {
 } from '../../utils/models'
 import { checkDailyLimit } from '../../utils/rateLimiter'
 import { getRequestAbortSignal } from '../../utils/requestAbort'
-import { bindMimoRequestContext, type ChatSource } from '../../utils/webSearch'
+import { bindMimoRequestContext, MIMO_WEB_SEARCH_FLAG, type ChatSource } from '../../utils/webSearch'
 import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
 import { z } from 'zod'
 import {
@@ -139,7 +139,8 @@ export default defineEventHandler(async (event) => {
             thinking: { type: thinkingType }
           },
           mimo: {
-            thinking: { type: thinkingType }
+            thinking: { type: thinkingType },
+            ...(webSearchEnabled ? { [MIMO_WEB_SEARCH_FLAG]: true } : {})
           }
         }
       })
