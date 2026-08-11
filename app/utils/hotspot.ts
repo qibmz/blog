@@ -189,6 +189,10 @@ export function downloadJson(filename: string, data: unknown) {
   const a = document.createElement('a')
   a.href = url
   a.download = filename
+  a.style.display = 'none'
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url)
+  a.remove()
+  // 延迟 revoke，避免 Firefox 等浏览器取消尚未开始的下载
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

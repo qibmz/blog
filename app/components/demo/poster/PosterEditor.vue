@@ -177,6 +177,7 @@ function hitTest(pct: { x: number, y: number }): PosterLayerDraft | null {
 
 function onPointerDown(event: PointerEvent) {
   if (event.button === 1 || spacePressed.value || (props.tool === 'select' && event.altKey)) {
+    event.preventDefault()
     drag.value = {
       type: 'pan',
       lastClientX: event.clientX,
@@ -310,8 +311,18 @@ function onWheel(event: WheelEvent) {
 
 function onKeyDown(event: KeyboardEvent) {
   if (event.code !== 'Space' || event.repeat) return
-  const tag = (event.target as HTMLElement)?.tagName
-  if (tag === 'INPUT' || tag === 'TEXTAREA') return
+  const el = event.target as HTMLElement | null
+  const tag = el?.tagName
+  if (
+    tag === 'INPUT'
+    || tag === 'TEXTAREA'
+    || tag === 'BUTTON'
+    || tag === 'A'
+    || tag === 'SELECT'
+    || el?.isContentEditable
+  ) {
+    return
+  }
   event.preventDefault()
   spacePressed.value = true
 }

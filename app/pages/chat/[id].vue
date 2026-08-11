@@ -369,6 +369,7 @@ onMounted(async () => {
                         :color="isLiked((message as UIMessage).id) ? 'primary' : 'neutral'"
                         :variant="isLiked((message as UIMessage).id) ? 'soft' : 'ghost'"
                         aria-label="点赞"
+                        :aria-pressed="isLiked((message as UIMessage).id)"
                         @click="toggleLike(message as UIMessage)"
                       />
                     </Motion>
@@ -389,6 +390,7 @@ onMounted(async () => {
                         :color="isDisliked((message as UIMessage).id) ? 'error' : 'neutral'"
                         :variant="isDisliked((message as UIMessage).id) ? 'soft' : 'ghost'"
                         aria-label="点踩"
+                        :aria-pressed="isDisliked((message as UIMessage).id)"
                         @click="toggleDislike(message as UIMessage)"
                       />
                     </Motion>

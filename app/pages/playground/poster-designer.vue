@@ -7,6 +7,11 @@ import {
   tryParsePosterConfig
 } from '~/utils/poster'
 
+definePageMeta({
+  pageTransition: { name: 'fade' },
+  layoutTransition: { name: 'slide' }
+})
+
 const title = '海报设计器'
 const description = '插入文字与图片图层，导出百分比 JSON，C 端用 Canvas 渲染'
 

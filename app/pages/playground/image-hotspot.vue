@@ -7,6 +7,11 @@ import {
   tryParseHotspotConfig
 } from '~/utils/hotspot'
 
+definePageMeta({
+  pageTransition: { name: 'fade' },
+  layoutTransition: { name: 'slide' }
+})
+
 const title = '图片热区编辑器'
 const description = '拖拽绘制热区，导出百分比 JSON，供 C 端活动页快速接入'
 
@@ -57,7 +62,13 @@ function revokeObjectUrl() {
   }
 }
 
+function confirmDiscardHotspots() {
+  if (drafts.value.length === 0) return true
+  return window.confirm(`当前有 ${drafts.value.length} 个热区，更换背景会清空，是否继续？`)
+}
+
 function setBgImage(url: string) {
+  if (!confirmDiscardHotspots()) return
   revokeObjectUrl()
   bgImage.value = url
   drafts.value = []
@@ -68,6 +79,10 @@ async function onFileChange(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
+  if (!confirmDiscardHotspots()) {
+    input.value = ''
+    return
+  }
   revokeObjectUrl()
   const url = URL.createObjectURL(file)
   objectUrl.value = url

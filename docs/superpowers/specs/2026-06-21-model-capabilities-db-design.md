@@ -155,9 +155,9 @@ Prebuild 跳过 production，需手动操作一次。使用 Neon 提供的方式
 npx neonctl psql -- -f server/db/migrations/XXXX_xxx.sql
 ```
 
-**填充数据：** 本地跑一次 seed 脚本（先在环境中设置 `DATABASE_URL` 指向正式服，勿把凭据写进命令行）。
+**填充数据：** seed 数据变更后，本地执行 seed 脚本（先在环境中设置 `DATABASE_URL` 指向正式服，勿把凭据写进命令行）。脚本幂等，可重复执行。
 
-之后日常运维只需在 Neon SQL Editor 中执行 SQL（见下方），无需再跑 seed。
+之后日常运维也可在 Neon SQL Editor 中执行 SQL（见下方）。
 
 ### 日常运维
 

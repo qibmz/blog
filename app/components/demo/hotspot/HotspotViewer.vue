@@ -132,11 +132,15 @@ function onHotspotClick(h: Hotspot) {
         v-for="h in config.hotspots.filter(x => x.shape === 'polygon')"
         :key="h.id"
         :points="toSvgPoints(parsePoints(h.points))"
-        class="fill-transparent stroke-transparent cursor-pointer hover:fill-sky-400/15 hover:stroke-sky-400/50"
+        class="fill-transparent stroke-transparent cursor-pointer hover:fill-sky-400/15 hover:stroke-sky-400/50 focus:fill-sky-500/15 focus:stroke-sky-500 outline-none"
         vector-effect="non-scaling-stroke"
         stroke-width="0.3"
+        role="button"
+        tabindex="0"
         :aria-label="h.title || h.id"
         @click="onHotspotClick(h)"
+        @keydown.enter.prevent="onHotspotClick(h)"
+        @keydown.space.prevent="onHotspotClick(h)"
       >
         <title>{{ h.title || h.id }}</title>
       </polygon>

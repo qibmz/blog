@@ -70,7 +70,7 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 - **迁移流程：**
   - develop / Preview：prebuild 自动 `drizzle-kit push --force` + seed
   - main / Production：手动 `npx neonctl psql -- -f server/db/migrations/xxx.sql`（正式库禁止自动 push）
-- **Seed 脚本：** `server/db/seed-models.ts` — 幂等；Preview 由 prebuild 自动执行，Production 在环境中设置 `DATABASE_URL` 后手动跑一次（勿把凭据写进命令行）
+- **Seed 脚本：** `server/db/seed-models.ts` — 幂等；Preview 由 prebuild 自动执行，Production 在 seed 数据变更后于环境中设置 `DATABASE_URL` 再手动执行（勿把凭据写进命令行）
 
 **API 接口**（除 `GET /api/chats` 使用 `getUserSession` 做未登录优雅降级外，均需通过 `requireUserSession(event)` 认证）：
 

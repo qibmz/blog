@@ -548,8 +548,18 @@ function onWheel(event: WheelEvent) {
 
 function onKeyDown(event: KeyboardEvent) {
   if (event.code === 'Space' && !event.repeat) {
-    const tag = (event.target as HTMLElement)?.tagName
-    if (tag === 'INPUT' || tag === 'TEXTAREA') return
+    const el = event.target as HTMLElement | null
+    const tag = el?.tagName
+    if (
+      tag === 'INPUT'
+      || tag === 'TEXTAREA'
+      || tag === 'BUTTON'
+      || tag === 'A'
+      || tag === 'SELECT'
+      || el?.isContentEditable
+    ) {
+      return
+    }
     event.preventDefault()
     spacePressed.value = true
   }
