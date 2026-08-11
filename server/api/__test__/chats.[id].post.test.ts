@@ -35,7 +35,9 @@ vi.mock('../../utils/models', () => ({
   getModel: mockGetModel,
   DEFAULT_MODEL: 'deepseek-v4-pro',
   MODEL_OPTIONS: [],
-  modelSupportsImages: mockModelSupportsImages
+  modelSupportsImages: mockModelSupportsImages,
+  modelSupportsThinking: vi.fn(() => true),
+  modelSupportsWebSearch: vi.fn(async () => false)
 }))
 
 vi.mock('../../utils/requestAbort', () => ({

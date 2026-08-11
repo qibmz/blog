@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  draftsToConfig,
+  draftsToPosterConfig,
   getByPath,
   layerToDraft,
   moveLayer,
@@ -11,7 +11,7 @@ import {
 
 describe('poster utils', () => {
   it('round-trips text and image drafts', () => {
-    const config = draftsToConfig(
+    const config = draftsToPosterConfig(
       [
         {
           id: 'text_1',

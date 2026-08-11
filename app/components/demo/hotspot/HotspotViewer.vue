@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { Hotspot, HotspotConfig } from '#shared/types/hotspot'
 import { isSafeHotspotActionValue } from '#shared/types/hotspot'
-import { parsePct, parsePoints, toSvgPoints } from '~/utils/hotspot'
+import { parsePoints, toSvgPoints } from '~/utils/hotspot'
+import { parsePct } from '~/utils/geometry'
 
 defineProps<{
   config: HotspotConfig

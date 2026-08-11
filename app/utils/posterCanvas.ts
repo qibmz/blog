@@ -1,5 +1,6 @@
 import type { PosterConfig, PosterImageLayer, PosterLayer, PosterTextLayer } from '#shared/types/poster'
-import { parsePct, pctToPx, resolveTextContent } from './poster'
+import { resolveTextContent } from './poster'
+import { parsePct, pctToPx } from './geometry'
 
 const imageCache = new Map<string, Promise<HTMLImageElement>>()
 

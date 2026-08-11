@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { PosterEditorTool, PosterLayerDraft } from '#shared/types/poster'
 import {
-  configToDrafts,
-  draftsToConfig,
-  downloadJson,
+  posterConfigToDrafts,
+  draftsToPosterConfig,
   tryParsePosterConfig
 } from '~/utils/poster'
+import { downloadJson } from '~/utils/download'
 
 definePageMeta({
   pageTransition: { name: 'fade' },
@@ -59,7 +59,7 @@ const tools: { id: PosterEditorTool, label: string, icon: string }[] = [
 ]
 
 const config = computed(() =>
-  draftsToConfig(drafts.value, {
+  draftsToPosterConfig(drafts.value, {
     bgImage: bgImage.value,
     bgColor: bgColor.value,
     width: designSize.width,
@@ -143,7 +143,7 @@ function importJson() {
   bgColor.value = result.data.bgColor || '#ffffff'
   designSize.width = result.data.width
   designSize.height = result.data.height
-  drafts.value = configToDrafts(result.data)
+  drafts.value = posterConfigToDrafts(result.data)
   selectedId.value = drafts.value[0]?.id ?? null
   toast.add({ title: '导入成功', color: 'success' })
   tab.value = 'editor'

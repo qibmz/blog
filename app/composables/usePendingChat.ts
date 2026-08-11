@@ -4,7 +4,7 @@ export interface PendingChat {
   id: string
   message: UIMessage
   model: string
-  options: { thinkingMode: boolean }
+  options: { thinkingMode: boolean, webSearch: boolean }
 }
 
 /** 新建对话时的乐观跳转载荷，跨 /chat → /chat/:id 传递首条消息 */

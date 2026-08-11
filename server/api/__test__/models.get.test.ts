@@ -1,7 +1,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mock$Fetch } from '../../utils/__test__/setup'
 
-const MOCK_PROVIDER = {
+const MOCK_PROVIDER: {
+  name: string
+  prefixes: string[]
+  icon: string
+  modelsUrl: string
+  headers: () => Record<string, string>
+  exclude: string[]
+  include?: string[]
+  getInstance: ReturnType<typeof vi.fn>
+  supportsImages?: (id: string) => boolean
+  supportsThinking?: (id: string) => boolean
+  supportsWebSearch?: (id: string) => boolean
+} = {
   name: 'TestProvider',
   prefixes: ['test-'],
   icon: 'i-simple-icons-test',
@@ -93,8 +105,8 @@ describe('DB-backed model capabilities', () => {
 
     // DB returns supportsImages = true for test-v1, false for test-v2
     mockDbSelectResult.mockResolvedValue([
-      { id: 'test-v1', supportsImages: true },
-      { id: 'test-v2', supportsImages: false }
+      { id: 'test-v1', supportsImages: true, supportsWebSearch: false },
+      { id: 'test-v2', supportsImages: false, supportsWebSearch: true }
     ])
 
     const { default: handler } = await import('../models.get')
@@ -105,6 +117,29 @@ describe('DB-backed model capabilities', () => {
     const v2 = result.models.find((m: any) => m.value === 'test-v2')
     expect(v1!.supportsImages).toBe(true)
     expect(v2!.supportsImages).toBe(false)
+    expect(v1!.supportsWebSearch).toBe(false)
+    expect(v2!.supportsWebSearch).toBe(true)
+  })
+
+  it('should apply include allowlist when provider has include', async () => {
+    vi.resetModules()
+    const { mock$Fetch, mockDbSelectResult } = await import('../../utils/__test__/setup')
+
+    MOCK_PROVIDER.include = ['test-keep']
+    mockDbSelectResult.mockResolvedValue([])
+    mock$Fetch.mockResolvedValueOnce({
+      data: [{ id: 'test-keep' }, { id: 'test-drop' }, { id: 'test-asr' }]
+    })
+
+    try {
+      const { default: handler } = await import('../models.get')
+      const event = { context: {}, path: '/api/models' } as any
+      const result = await handler(event)
+
+      expect(result.models.map((m: any) => m.value)).toEqual(['test-keep'])
+    } finally {
+      delete MOCK_PROVIDER.include
+    }
   })
 
   it('should fallback when DB has no record for model (priority 2)', async () => {

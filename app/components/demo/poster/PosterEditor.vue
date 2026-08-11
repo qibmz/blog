@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import type { PosterEditorTool, PosterLayerDraft } from '#shared/types/poster'
 import {
-  clamp,
   createEmptyLayerDraft,
-  createPosterLayerId,
-  pxToPct,
-  roundPct
+  createPosterLayerId
 } from '~/utils/poster'
+import { clamp, pxToPct, roundPct } from '~/utils/geometry'
 
 const ZOOM_MIN = 0.25
 const ZOOM_MAX = 4

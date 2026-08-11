@@ -1,5 +1,6 @@
 import type { Hotspot, HotspotConfig, HotspotDraft } from '#shared/types/hotspot'
 import { HotspotConfigSchema } from '#shared/types/hotspot'
+import { clamp, parsePct, roundPct, toPctString } from './geometry'
 
 export function createHotspotId(): string {
   return `area_${Math.random().toString(36).slice(2, 9)}`
@@ -20,25 +21,6 @@ export function createEmptyDraft(shape: HotspotDraft['shape'] = 'rect'): Hotspot
   }
 }
 
-/** 保留一位小数的百分比数值 */
-export function roundPct(n: number): number {
-  return Math.round(n * 10) / 10
-}
-
-export function clamp(n: number, min = 0, max = 100): number {
-  return Math.min(max, Math.max(min, n))
-}
-
-export function toPctString(n: number): string {
-  return `${roundPct(n)}%`
-}
-
-export function parsePct(value: string | undefined, fallback = 0): number {
-  if (!value) return fallback
-  const n = Number.parseFloat(value.replace('%', ''))
-  return Number.isFinite(n) ? n : fallback
-}
-
 export function parsePoints(points: string | undefined): number[] {
   if (!points) return []
   return points
@@ -49,17 +31,6 @@ export function parsePoints(points: string | undefined): number[] {
 
 export function formatPoints(points: number[]): string {
   return points.map(toPctString).join(',')
-}
-
-/** 画布像素 → 百分比 */
-export function pxToPct(px: number, total: number): number {
-  if (total <= 0) return 0
-  return roundPct((px / total) * 100)
-}
-
-/** 百分比 → 画布像素 */
-export function pctToPx(pct: number, total: number): number {
-  return (pct / 100) * total
 }
 
 export function draftToHotspot(draft: HotspotDraft): Hotspot {
@@ -110,7 +81,7 @@ export function hotspotToDraft(hotspot: Hotspot): HotspotDraft {
   }
 }
 
-export function draftsToConfig(
+export function draftsToHotspotConfig(
   drafts: HotspotDraft[],
   meta: Pick<HotspotConfig, 'bgImage' | 'width' | 'height'>
 ): HotspotConfig {
@@ -139,7 +110,7 @@ export function tryParseHotspotConfig(text: string): { ok: true, data: HotspotCo
   }
 }
 
-export function configToDrafts(config: HotspotConfig): HotspotDraft[] {
+export function hotspotConfigToDrafts(config: HotspotConfig): HotspotDraft[] {
   return config.hotspots.map(hotspotToDraft)
 }
 
@@ -181,18 +152,4 @@ export function toSvgPoints(points: number[]): string {
     pairs.push(`${points[i]},${points[i + 1]}`)
   }
   return pairs.join(' ')
-}
-
-export function downloadJson(filename: string, data: unknown) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.style.display = 'none'
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  // 延迟 revoke，避免 Firefox 等浏览器取消尚未开始的下载
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
 }

@@ -14,7 +14,7 @@ const greeting = hour < 12 ? '早上好，Master' : hour < 18 ? '下午好，Mas
 const { loggedIn } = useUserSession()
 
 const { model: selectedModel, models: modelOptions } = useModels()
-const { thinkingMode } = useChatOptions()
+const { thinkingMode, webSearch } = useChatOptions()
 const pendingChat = usePendingChat()
 
 // ─── 图片上传 ────────────────────────────────
@@ -68,6 +68,12 @@ const currentModel = computed(() =>
   modelOptions.value.find(m => m.value === selectedModel.value)
 )
 
+const showWebSearch = computed(() => {
+  if (currentModel.value?.supportsWebSearch) return true
+  const id = selectedModel.value
+  return id === 'mimo-v2.5-pro' || id === 'mimo-v2.5'
+})
+
 function createChat(text: string) {
   if (!loggedIn.value) {
     navigateTo('/login')
@@ -91,7 +97,10 @@ function createChat(text: string) {
     id: chatId,
     message,
     model: selectedModel.value,
-    options: { thinkingMode: thinkingMode.value }
+    options: {
+      thinkingMode: currentModel.value?.supportsThinking === false ? false : thinkingMode.value,
+      webSearch: showWebSearch.value ? webSearch.value : false
+    }
   }
 
   // 乐观更新侧边栏，立即出现新对话
@@ -126,6 +135,10 @@ function onSubmit() {
 
 function toggleThinkingMode() {
   thinkingMode.value = !thinkingMode.value
+}
+
+function toggleWebSearch() {
+  webSearch.value = !webSearch.value
 }
 
 function goToLogin() {
@@ -211,6 +224,14 @@ function goToLogin() {
 
                   <div class="flex-1" />
 
+                  <UButton
+                    label="联网搜索"
+                    :icon="webSearch ? 'i-lucide-globe' : 'i-lucide-globe-off'"
+                    :variant="webSearch ? 'soft' : 'ghost'"
+                    :color="webSearch ? 'primary' : 'neutral'"
+                    size="sm"
+                    @click="toggleWebSearch"
+                  />
                   <UButton
                     label="深度思考"
                     icon="i-lucide-brain"

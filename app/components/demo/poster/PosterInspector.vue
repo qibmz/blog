@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PosterLayerDraft, PosterObjectFit, PosterTextAlign } from '#shared/types/poster'
-import { clamp, moveLayer } from '~/utils/poster'
+import { moveLayer } from '~/utils/poster'
+import { clamp } from '~/utils/geometry'
 
 const props = defineProps<{
   drafts: PosterLayerDraft[]

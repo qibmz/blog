@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import type { EditorTool, HotspotDraft } from '#shared/types/hotspot'
 import {
-  clamp,
   createEmptyDraft,
   createHotspotId,
   polygonBounds,
-  pxToPct,
-  roundPct,
   toSvgPoints,
   translatePoints
 } from '~/utils/hotspot'
+import { clamp, pxToPct, roundPct } from '~/utils/geometry'
 
 const ZOOM_MIN = 0.25
 const ZOOM_MAX = 4

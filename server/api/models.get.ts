@@ -18,6 +18,12 @@ const CACHE_TTL_MS = 5 * 60 * 1000
 let _cachedModels: ModelOption[] | null = null
 let _cacheExpiry = 0
 
+type CapabilityRow = {
+  id: string
+  supportsImages: boolean
+  supportsWebSearch: boolean
+}
+
 async function fetchAvailableModels(): Promise<ModelOption[]> {
   const results = await Promise.allSettled(
     PROVIDER_REGISTRY.map(async (provider) => {
@@ -41,6 +47,7 @@ async function fetchAvailableModels(): Promise<ModelOption[]> {
         .filter(id =>
           provider.prefixes.some(px => id.startsWith(px))
           && !provider.exclude.some(ex => id.toLowerCase().includes(ex.toLowerCase()))
+          && (!provider.include?.length || provider.include.includes(id))
         )
       allModelIds.push(...matched)
       providerModelMap.set(i, matched)
@@ -49,16 +56,20 @@ async function fetchAvailableModels(): Promise<ModelOption[]> {
   })
 
   // 第二阶段：批量 DB 查询
-  const dbMap = new Map<string, boolean>()
+  const dbMap = new Map<string, CapabilityRow>()
   let dbOk = false
   if (allModelIds.length > 0) {
     try {
       const records = await db
-        .select({ id: models.id, supportsImages: models.supportsImages })
+        .select({
+          id: models.id,
+          supportsImages: models.supportsImages,
+          supportsWebSearch: models.supportsWebSearch
+        })
         .from(models)
         .where(inArray(models.id, allModelIds))
       for (const r of records) {
-        dbMap.set(r.id, r.supportsImages)
+        dbMap.set(r.id, r)
       }
       dbOk = true
     } catch (err) {
@@ -74,23 +85,29 @@ async function fetchAvailableModels(): Promise<ModelOption[]> {
     if (!ids) return
 
     for (const id of ids) {
+      const row = dbMap.get(id)
       let supportsImages: boolean
-      if (dbMap.has(id)) {
-        supportsImages = dbMap.get(id)! // 优先级 1: DB 权威来源
+      let supportsWebSearch: boolean
+
+      if (row) {
+        supportsImages = row.supportsImages
+        supportsWebSearch = row.supportsWebSearch
       } else if (dbOk) {
-        // 优先级 2: DB 查询成功但无此模型记录（全量 Seed 下的异常）
         console.warn(`[models] DB miss for ${id}, model should be seeded`)
         supportsImages = provider.supportsImages?.(id) ?? false
+        supportsWebSearch = provider.supportsWebSearch?.(id) ?? false
       } else {
-        // 优先级 3: DB 查询失败
         supportsImages = provider.supportsImages?.(id) ?? false
+        supportsWebSearch = provider.supportsWebSearch?.(id) ?? false
       }
 
       modelOptions.push({
         value: id,
         label: `${provider.name} ${modelIdToLabel(provider, id)}`,
         icon: provider.icon,
-        supportsImages
+        supportsImages,
+        supportsThinking: provider.supportsThinking?.(id) ?? true,
+        supportsWebSearch
       })
     }
   })

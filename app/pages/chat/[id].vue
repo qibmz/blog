@@ -42,7 +42,7 @@ if (optimistic) {
 }
 
 const { model: selectedModel, models: modelOptions } = useModels()
-const { thinkingMode } = useChatOptions()
+const { thinkingMode, webSearch } = useChatOptions()
 
 // ─── 图片上传 ────────────────────────────────
 const {
@@ -96,6 +96,13 @@ const currentModel = computed(() =>
   modelOptions.value.find(m => m.value === selectedModel.value)
 )
 
+const showWebSearch = computed(() => {
+  if (currentModel.value?.supportsWebSearch) return true
+  // API/能力字段未就绪时，按官方对话模型 ID 兜底显示
+  const id = selectedModel.value
+  return id === 'mimo-v2.5-pro' || id === 'mimo-v2.5'
+})
+
 // 仅在没有 cookie 偏好时回退到聊天记录中的模型
 if (!selectedModel.value) {
   selectedModel.value = chatData.value!.model ?? modelOptions.value[0]?.value ?? ''
@@ -114,12 +121,37 @@ function toggleThinkingMode() {
   thinkingMode.value = !thinkingMode.value
 }
 
+function toggleWebSearch() {
+  webSearch.value = !webSearch.value
+}
+
+function getMessageSources(message: UIMessage) {
+  const part = message.parts?.find(p => (p as { type: string }).type === 'sources') as
+    | { type: 'sources'
+      sources?: Array<{
+        url: string
+        title?: string
+        summary?: string
+        siteName?: string
+        publishTime?: string
+        logoUrl?: string
+      }> }
+      | undefined
+  return part?.sources ?? []
+}
+
 const chat = new Chat({
   id,
   messages: chatData.value!.messages as unknown as UIMessage[],
   transport: new DefaultChatTransport({
     api: `/api/chats/${id}`,
-    body: () => ({ model: selectedModel.value, options: { thinkingMode: thinkingMode.value } })
+    body: () => ({
+      model: selectedModel.value,
+      options: {
+        thinkingMode: currentModel.value?.supportsThinking === false ? false : thinkingMode.value,
+        webSearch: showWebSearch.value ? webSearch.value : false
+      }
+    })
   }),
   onError: (err) => {
     const msg = normalizeError(err)
@@ -199,7 +231,7 @@ const createBody = ref<{
   id: string
   message: UIMessage
   model: string
-  options: { thinkingMode: boolean }
+  options: { thinkingMode: boolean, webSearch: boolean }
 } | null>(null)
 
 const { execute: executeCreate, error: createChatError } = useAPI('/api/chats', {
@@ -340,6 +372,10 @@ onMounted(async () => {
                     </p>
                   </template>
                 </template>
+                <ChatSources
+                  v-if="(message as UIMessage).role === 'assistant'"
+                  :sources="getMessageSources(message as UIMessage)"
+                />
               </template>
 
               <template #actions="{ message }">
@@ -449,6 +485,14 @@ onMounted(async () => {
                   <div class="flex-1" />
 
                   <UButton
+                    label="联网搜索"
+                    :icon="webSearch ? 'i-lucide-globe' : 'i-lucide-globe-off'"
+                    :variant="webSearch ? 'soft' : 'ghost'"
+                    :color="webSearch ? 'primary' : 'neutral'"
+                    size="sm"
+                    @click="toggleWebSearch"
+                  />
+                  <UButton
                     label="深度思考"
                     icon="i-lucide-brain"
                     :variant="thinkingMode ? 'soft' : 'ghost'"
@@ -456,6 +500,21 @@ onMounted(async () => {
                     size="sm"
                     @click="toggleThinkingMode"
                   />
+                  <USelectMenu
+                    v-model="selectedModel"
+                    :items="modelOptions"
+                    value-key="value"
+                    size="sm"
+                    variant="ghost"
+                    class="min-w-32 sm:min-w-48"
+                  >
+                    <template #leading="{ modelValue }">
+                      <UIcon
+                        v-if="modelValue"
+                        :name="modelOptions.find(m => m.value === modelValue)?.icon"
+                      />
+                    </template>
+                  </USelectMenu>
                   <UChatPromptSubmit
                     :status="chat.status"
                     color="neutral"

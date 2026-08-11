@@ -1,8 +1,15 @@
 import { defineEventHandler, getValidatedRouterParams, readValidatedBody } from 'h3'
 import { and, eq } from 'drizzle-orm'
-import { getModel, DEFAULT_MODEL, modelSupportsImages } from '../../utils/models'
+import {
+  getModel,
+  DEFAULT_MODEL,
+  modelSupportsImages,
+  modelSupportsThinking,
+  modelSupportsWebSearch
+} from '../../utils/models'
 import { checkDailyLimit } from '../../utils/rateLimiter'
 import { getRequestAbortSignal } from '../../utils/requestAbort'
+import { bindMimoRequestContext, type ChatSource } from '../../utils/webSearch'
 import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
 import { z } from 'zod'
 import {
@@ -35,7 +42,10 @@ export default defineEventHandler(async (event) => {
   const { model: modelValue = DEFAULT_MODEL, messages, options } = await readValidatedBody(event, z.object({
     model: z.string().optional(),
     messages: z.array(UIMessageSchema),
-    options: z.object({ thinkingMode: z.boolean().optional() }).optional()
+    options: z.object({
+      thinkingMode: z.boolean().optional(),
+      webSearch: z.boolean().optional()
+    }).optional()
   }).parse)
 
   // 非视觉模型拒绝图片
@@ -105,8 +115,17 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const thinkingType = options?.thinkingMode !== false ? 'enabled' as const : 'disabled' as const
+  const canThink = modelSupportsThinking(modelValue)
+  const thinkingType = canThink && options?.thinkingMode !== false
+    ? 'enabled' as const
+    : 'disabled' as const
+
+  const webSearchEnabled = options?.webSearch === true
+    && await modelSupportsWebSearch(modelValue)
+
   const abortSignal = getRequestAbortSignal(event)
+  const mimoCtx = { webSearch: webSearchEnabled, sources: [] as ChatSource[] }
+  bindMimoRequestContext(abortSignal, mimoCtx)
 
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
@@ -128,9 +147,20 @@ export default defineEventHandler(async (event) => {
       writer.merge(result.toUIMessageStream())
     },
     onFinish: async ({ responseMessage, isAborted }) => {
-      const parts = Array.isArray(responseMessage.parts) ? responseMessage.parts : []
+      let parts = Array.isArray(responseMessage.parts) ? [...responseMessage.parts] : []
       // 中断且无实质内容时不落库，避免空助手消息；有半截内容则保留
       if (isAborted && !hasPersistableParts(parts)) return
+
+      if (mimoCtx.sourcesReady) {
+        await mimoCtx.sourcesReady.catch(() => undefined)
+      }
+
+      if (mimoCtx.sources.length > 0) {
+        parts = [
+          ...parts,
+          { type: 'sources', sources: mimoCtx.sources } as unknown as UIMessage['parts'][number]
+        ]
+      }
 
       try {
         await db.insert(schema.messages).values({

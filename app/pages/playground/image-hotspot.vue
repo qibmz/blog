@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { EditorTool, HotspotDraft } from '#shared/types/hotspot'
 import {
-  configToDrafts,
-  draftsToConfig,
-  downloadJson,
+  hotspotConfigToDrafts,
+  draftsToHotspotConfig,
   tryParseHotspotConfig
 } from '~/utils/hotspot'
+import { downloadJson } from '~/utils/download'
 
 definePageMeta({
   pageTransition: { name: 'fade' },
@@ -46,7 +46,7 @@ const tools: { id: EditorTool, label: string, icon: string }[] = [
 ]
 
 const config = computed(() =>
-  draftsToConfig(drafts.value, {
+  draftsToHotspotConfig(drafts.value, {
     bgImage: bgImage.value,
     width: designSize.width,
     height: designSize.height
@@ -142,7 +142,7 @@ function importJson() {
   bgImage.value = result.data.bgImage
   designSize.width = result.data.width
   designSize.height = result.data.height
-  drafts.value = configToDrafts(result.data)
+  drafts.value = hotspotConfigToDrafts(result.data)
   selectedId.value = drafts.value[0]?.id ?? null
   toast.add({ title: '导入成功', color: 'success' })
   tab.value = 'editor'
