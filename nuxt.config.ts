@@ -27,16 +27,13 @@ export default defineNuxtConfig({
         { name: 'author', content: 'qibmz' },
         { name: 'keywords', content: '前端开发,Web3,UniApp,Vue,Nuxt,跨平台开发,区块链,技术博客' },
         { property: 'og:locale', content: 'zh_CN' }
-      ],
-      link: [
-        { rel: 'canonical', href: 'https://qibmz-blog.vercel.app' }
       ]
     }
   },
   css: ['~/assets/css/main.css'],
   // SEO 配置
   site: {
-    url: 'https://qibmz-blog.vercel.app',
+    url: 'https://blog.qibmz.com',
     name: 'qibmz 博客',
     description: 'qibmz 的个人技术博客，专注于前端开发、Web3 区块链应用、UniApp 跨平台开发、Vue/Nuxt 全栈技术分享。',
     defaultLocale: 'zh-CN'
@@ -59,7 +56,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
     public: {
-      origin: process.env.NUXT_PUBLIC_ORIGIN || 'https://qibmz.github.io/blog',
+      origin: process.env.NUXT_PUBLIC_ORIGIN || 'https://blog.qibmz.com',
       binanceWs: process.env.NUXT_PUBLIC_BINANCE_WS || 'wss://data-stream.binance.vision',
       binanceApi: process.env.NUXT_PUBLIC_BINANCE_API || 'https://api.binance.com',
       // Giscus：先在仓库开启 Discussions 并安装 Giscus App，再到 https://giscus.app 取 categoryId

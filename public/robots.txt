@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Sitemaps
-Sitemap: https://qibmz-blog.vercel.app/sitemap.xml
+Sitemap: https://blog.qibmz.com/sitemap.xml
 
 # 禁止爬取的路径
 Disallow: /api/

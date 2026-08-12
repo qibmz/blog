@@ -1,10 +1,10 @@
 # 个人博客
 
 [![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel&labelColor=000000)](https://qibmz-blog.vercel.app/)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel&labelColor=000000)](https://blog.qibmz.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-🌐 **在线访问**: [qibmz-blog.vercel.app](https://qibmz-blog.vercel.app/)
+🌐 **在线访问**: [blog.qibmz.com](https://blog.qibmz.com/)
 
 基于 [Nuxt UI SaaS 模板](https://github.com/nuxt-ui-templates/saas) 改造的个人博客，使用 [Nuxt UI](https://ui.nuxt.com) 组件构建。
 
