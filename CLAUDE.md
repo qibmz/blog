@@ -11,10 +11,12 @@
 - Lint：`pnpm lint`（eslint --fix）/ 类型检查：`pnpm typecheck` / 测试：`pnpm test`
 - 数据库迁移：`npx drizzle-kit generate` 生成迁移文件
   - **测试服（develop / Vercel Preview）：** `scripts/prebuild-migrate.js` 在部署时自动执行 `drizzle-kit push --force` + seed，无需手动干预
-  - **正式服（main / Production）：** 用 Neon CLI 对 **main** 分支执行 migration SQL（不自动 push）
-    ```bash
-    npx neonctl psql main --project-id <NEON_PROJECT_ID> -- --set ON_ERROR_STOP=on --single-transaction -f server/db/migrations/xxx.sql
-    ```
+  - **正式服（main / Production）：** 不自动 push，用下列任一方式对正式库执行 migration SQL
+    1. **推荐（Cursor Agent + Neon 插件）：** 安装并登录 Neon Postgres 插件后，可让 Agent 用 MCP 操作正式库（项目名 `blog-postgres`）。流程：`prepare_database_migration` 在临时分支跑 SQL → 校验 → 用户确认 → `complete_database_migration` 合入正式分支。也可用于查表结构、执行只读 SQL 等。正式库变更必须先经用户确认。
+    2. **CLI：**
+       ```bash
+       npx neonctl psql main --project-id <NEON_PROJECT_ID> -- --set ON_ERROR_STOP=on --single-transaction -f server/db/migrations/xxx.sql
+       ```
     Seed（如有）：先在环境中设置 `DATABASE_URL`（勿把凭据写进命令行），再执行  
     `SEED_TARGET=production npx tsx server/db/seed-models.ts`（会有 3 秒取消窗口）
 - **提交前检查**：`pnpm lint && pnpm test` 全部通过再提交
@@ -70,7 +72,8 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 - 配置：`drizzle.config.ts`（使用 `DATABASE_URL` 环境变量）
 - **迁移流程：**
   - develop / Preview：prebuild 自动 `drizzle-kit push --force` + seed
-  - main / Production：手动 `npx neonctl psql main --project-id <NEON_PROJECT_ID> -- --set ON_ERROR_STOP=on --single-transaction -f server/db/migrations/xxx.sql`（正式库禁止自动 push）
+  - main / Production：禁止自动 push。可用 **Cursor Neon Postgres 插件（MCP）** 让 Agent 在临时分支验证后合入正式库，或手动 `npx neonctl psql main --project-id <NEON_PROJECT_ID> -- --set ON_ERROR_STOP=on --single-transaction -f server/db/migrations/xxx.sql`
+  - 正式项目：Vercel org 下的 `blog-postgres`（Agent 可通过 Neon MCP `list_projects` 查找）
 - **Seed 脚本：** `server/db/seed-models.ts` — 幂等；Preview 由 prebuild 自动执行，Production 在 seed 数据变更后于环境中设置 `DATABASE_URL`，再执行 `SEED_TARGET=production npx tsx server/db/seed-models.ts`（勿把凭据写进命令行）
 
 **API 接口**（除 `GET /api/chats` 使用 `getUserSession` 做未登录优雅降级外，均需通过 `requireUserSession(event)` 认证）：
