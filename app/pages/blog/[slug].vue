@@ -76,7 +76,7 @@ async function copyMarkdown() {
         >
           <UAvatar
             v-bind="author.avatar"
-            alt="Author avatar"
+            :alt="author.name"
             size="2xs"
           />
 

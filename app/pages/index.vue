@@ -135,6 +135,7 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
             loading="eager"
             fetchpriority="high"
             alt=""
+            aria-hidden="true"
             class="absolute inset-0 h-full w-full object-cover brightness-100 contrast-100 saturate-100 block dark:hidden"
           >
           <img
@@ -147,6 +148,7 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
             loading="eager"
             fetchpriority="high"
             alt=""
+            aria-hidden="true"
             class="absolute inset-0 h-full w-full object-cover brightness-90 contrast-100 saturate-100 hidden dark:block"
           >
           <video

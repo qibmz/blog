@@ -476,7 +476,7 @@ watch(() => props.bgImage, async () => {
           <img
             v-else-if="d.src"
             :src="d.src"
-            alt=""
+            :alt="d.type === 'image' ? '海报图层图片' : '海报图层'"
             class="w-full h-full pointer-events-none select-none"
             :style="{ objectFit: d.objectFit }"
             draggable="false"

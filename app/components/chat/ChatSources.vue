@@ -83,7 +83,7 @@ watch(() => props.sources.length, () => {
             v-if="s.logoUrl"
             :src="s.logoUrl"
             class="size-full object-cover"
-            alt=""
+            :alt="site(s)"
             loading="lazy"
           >
           <span
@@ -123,7 +123,7 @@ watch(() => props.sources.length, () => {
             v-if="s.logoUrl"
             :src="s.logoUrl"
             class="size-4 rounded"
-            alt=""
+            :alt="site(s)"
             loading="lazy"
           >
           <UIcon

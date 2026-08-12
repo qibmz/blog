@@ -37,6 +37,11 @@ const { data: posts } = await useAsyncData(
 
 const formattedPosts = computed(() => (posts.value ?? []).map(post => ({
   ...post,
+  image: post.image ? { ...post.image, alt: post.title } : post.image,
+  authors: post.authors?.map(author => ({
+    ...author,
+    avatar: author.avatar ? { ...author.avatar, alt: author.name } : author.avatar
+  })),
   dateLabel: post.date ? dateFormatter.format(new Date(post.date)) : ''
 })))
 
