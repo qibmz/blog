@@ -90,35 +90,3 @@ html.dark {
   scrollbar-color: var(--ui-color-neutral-600) transparent;
 }
 
-/* ChatComark 流式输出光标 */
-.chat-comark-caret {
-  display: inline-block;
-  width: 2.5px;
-  height: 1em;
-  margin-inline-start: 2px;
-  border-radius: 999px;
-  vertical-align: text-bottom;
-  background: var(--ui-primary);
-  box-shadow: 0 0 0 1px color-mix(in oklab, var(--ui-primary) 25%, transparent);
-  animation: chat-comark-caret-pulse 1.05s ease-in-out infinite;
-}
-
-@keyframes chat-comark-caret-pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scaleY(1);
-  }
-  50% {
-    opacity: 0.2;
-    transform: scaleY(0.92);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chat-comark-caret {
-    animation: none;
-    opacity: 0.75;
-  }
-}
-
