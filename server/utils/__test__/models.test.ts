@@ -214,4 +214,24 @@ describe('modelSupportsWebSearch', () => {
     const { modelSupportsWebSearch } = await import('../models')
     expect(await modelSupportsWebSearch('mimo-v2.5-asr')).toBe(false)
   })
+
+  it('should prefer DB false over provider true for MiMo chat models', async () => {
+    const { mockDbFindFirstModel } = await import('./setup')
+    mockDbFindFirstModel.mockResolvedValueOnce({
+      id: 'mimo-v2.5-pro',
+      supportsWebSearch: false
+    })
+    const { modelSupportsWebSearch } = await import('../models')
+    expect(await modelSupportsWebSearch('mimo-v2.5-pro')).toBe(false)
+  })
+
+  it('should prefer DB true over provider false for DeepSeek', async () => {
+    const { mockDbFindFirstModel } = await import('./setup')
+    mockDbFindFirstModel.mockResolvedValueOnce({
+      id: 'deepseek-v4-pro',
+      supportsWebSearch: true
+    })
+    const { modelSupportsWebSearch } = await import('../models')
+    expect(await modelSupportsWebSearch('deepseek-v4-pro')).toBe(true)
+  })
 })

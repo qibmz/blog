@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { UIMessage } from 'ai'
 import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
+import { modelShowsWebSearch } from '#shared/utils/modelCapability'
 
 definePageMeta({ layout: 'chat' })
 
@@ -68,11 +69,9 @@ const currentModel = computed(() =>
   modelOptions.value.find(m => m.value === selectedModel.value)
 )
 
-const showWebSearch = computed(() => {
-  if (currentModel.value?.supportsWebSearch) return true
-  const id = selectedModel.value
-  return id === 'mimo-v2.5-pro' || id === 'mimo-v2.5'
-})
+const showWebSearch = computed(() =>
+  modelShowsWebSearch(currentModel.value, selectedModel.value)
+)
 
 function createChat(text: string) {
   if (!loggedIn.value) {

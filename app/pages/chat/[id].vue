@@ -4,6 +4,7 @@ import { DefaultChatTransport, isReasoningUIPart, isTextUIPart } from 'ai'
 import { isPartStreaming } from '@nuxt/ui/utils/ai'
 import type { UIMessage, FileUIPart } from 'ai'
 import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
+import { modelShowsWebSearch } from '#shared/utils/modelCapability'
 
 definePageMeta({ layout: 'chat' })
 
@@ -96,12 +97,9 @@ const currentModel = computed(() =>
   modelOptions.value.find(m => m.value === selectedModel.value)
 )
 
-const showWebSearch = computed(() => {
-  if (currentModel.value?.supportsWebSearch) return true
-  // API/能力字段未就绪时，按官方对话模型 ID 兜底显示
-  const id = selectedModel.value
-  return id === 'mimo-v2.5-pro' || id === 'mimo-v2.5'
-})
+const showWebSearch = computed(() =>
+  modelShowsWebSearch(currentModel.value, selectedModel.value)
+)
 
 // 仅在没有 cookie 偏好时回退到聊天记录中的模型
 if (!selectedModel.value) {

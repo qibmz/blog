@@ -56,7 +56,6 @@ export default defineNuxtConfig({
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
     public: {
-      origin: process.env.NUXT_PUBLIC_ORIGIN || 'https://blog.qibmz.com',
       binanceWs: process.env.NUXT_PUBLIC_BINANCE_WS || 'wss://data-stream.binance.vision',
       binanceApi: process.env.NUXT_PUBLIC_BINANCE_API || 'https://api.binance.com',
       // Giscus：先在仓库开启 Discussions 并安装 Giscus App，再到 https://giscus.app 取 categoryId
