@@ -1,7 +1,7 @@
 title: 技术博客
-description: 前端开发、UniApp、Web3、Vue/Nuxt 等技术文章和开发经验分享
+description: UniApp、Nuxt、Vue 实战踩坑与报错修复笔记（z-paging、RootPortal、payload.json、Wagmi 等）
 navigation.icon: i-lucide-smile
 seo:
-  title: 技术博客 | qibmz - 前端开发与Web3技术文章
-  description: qibmz 的技术博客，分享前端开发、UniApp跨平台、Web3区块链、Vue/Nuxt等技术文章，记录实战中的问题与解决方案。
+  title: 技术博客 | qibmz - UniApp / Nuxt / Vue 踩坑与报错修复
+  description: qibmz 技术博客：UniApp 跨端、Nuxt/Vue、WangEditor、Wagmi 等实战问题与报错原文级解决方案，方便按错误信息检索。
 

@@ -19,7 +19,7 @@ useHead({
 
 useSeoMeta({
   titleTemplate: '%s | qibmz 博客',
-  description: 'qibmz 的个人技术博客，专注于前端开发、Web3 区块链应用、UniApp 跨平台开发、Vue/Nuxt 全栈技术分享。',
+  description: 'qibmz 的个人技术博客：UniApp / Nuxt / Vue 实战踩坑与报错修复笔记，按错误原文和库名可检索。',
   ogSiteName: 'qibmz 博客',
   ogType: 'website',
   ogLocale: 'zh_CN',

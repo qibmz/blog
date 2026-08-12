@@ -25,7 +25,7 @@ export default defineNuxtConfig({
       },
       meta: [
         { name: 'author', content: 'qibmz' },
-        { name: 'keywords', content: '前端开发,Web3,UniApp,Vue,Nuxt,跨平台开发,区块链,技术博客' },
+        { name: 'keywords', content: 'qibmz,UniApp踩坑,Nuxt payload.json,z-paging easycom,RootPortal,WangEditor,Wagmi UniApp,nvm-windows' },
         { property: 'og:locale', content: 'zh_CN' }
       ]
     }
@@ -35,7 +35,7 @@ export default defineNuxtConfig({
   site: {
     url: 'https://blog.qibmz.com',
     name: 'qibmz 博客',
-    description: 'qibmz 的个人技术博客，专注于前端开发、Web3 区块链应用、UniApp 跨平台开发、Vue/Nuxt 全栈技术分享。',
+    description: 'qibmz 的个人技术博客：UniApp / Nuxt / Vue 实战踩坑与报错修复笔记，按错误原文和库名可检索。',
     defaultLocale: 'zh-CN'
   },
   colorMode: {

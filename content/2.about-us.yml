@@ -1,8 +1,8 @@
 title: 关于我
-description: 前端开发者，专注 UniApp 跨端、Web3 与 Vue 全栈实践
+description: 前端开发者 qibmz，专注 UniApp 跨端、Web3 与 Vue/Nuxt 全栈实践
 seo:
-  title: 关于我 | qibmz 前端开发者 · UniApp 跨端、Web3 与 Vue 全栈工作经历与技术实践
-  description: 了解前端开发者 qibmz 的个人简介与工作经历，涵盖 UniApp 跨端、Web3 DApp、Vue/Nuxt 全栈实践与技术方向。
+  title: 关于我 | qibmz · UniApp / Web3 / Vue 前端开发者
+  description: qibmz 个人简介与工作经历：UniApp 跨端、Web3 DApp、Vue/Nuxt 全栈实践与技术方向。
 navigation:
   icon: i-lucide-user
 
