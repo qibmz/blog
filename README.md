@@ -57,62 +57,37 @@ pnpm preview
 
 ## 🔑 环境变量
 
-在项目根目录创建 `.env` 文件，内容如下：
+在项目根目录创建 `.env`。Chat / 数据库相关功能最少需要「必填」一组；其余有代码默认值，可不配。
 
 ```env
-# ── 站点配置 ──────────────────────────────────────────────────────────
-# vercel 线上域名
-NUXT_PUBLIC_ORIGIN=
-# 应用基础路径 (可选，默认 /)
-# NUXT_APP_BASE_URL=
-
-# ── 数据库 (Neon PostgreSQL / Vercel 自动生成) ────────────────────────
+# ── 必填（本地跑 Chat / DB）──────────────────────────────────────────
+# Neon PostgreSQL 连接串（本项目实际只读这个；Vercel 接 Neon 时可能还会注入一堆 POSTGRES_* / NEON_*，可忽略）
 DATABASE_URL=
-# 以下由 Vercel CLI 连接 Neon 后自动生成，手动部署时只需配 DATABASE_URL
-# DATABASE_URL_UNPOOLED=
-# NEON_AUTH_BASE_URL=
-# NEON_PROJECT_ID=
-# PGDATABASE=
-# PGHOST=
-# PGHOST_UNPOOLED=
-# PGPASSWORD=
-# PGUSER=
-# POSTGRES_DATABASE=
-# POSTGRES_HOST=
-# POSTGRES_PASSWORD=
-# POSTGRES_PRISMA_URL=
-# POSTGRES_URL=
-# POSTGRES_URL_NON_POOLING=
-# POSTGRES_URL_NO_SSL=
-# POSTGRES_USER=
-# VITE_NEON_AUTH_URL=
-
-# ── Session ───────────────────────────────────────────────────────────
-# Session 加密密钥 (至少 32 位随机字符串)
+# Session 加密密钥（至少 32 位随机字符串）
 NUXT_SESSION_PASSWORD=
-
-# ── GitHub OAuth ──────────────────────────────────────────────────────
+# GitHub OAuth（nuxt-auth-utils）
 NUXT_OAUTH_GITHUB_CLIENT_ID=
 NUXT_OAUTH_GITHUB_CLIENT_SECRET=
-
-# ── Google OAuth ──────────────────────────────────────────────────────
+# Google OAuth
 NUXT_OAUTH_GOOGLE_CLIENT_ID=
 NUXT_OAUTH_GOOGLE_CLIENT_SECRET=
+# AI 模型
+DEEPSEEK_API_KEY=
+MIMO_API_KEY=
 
-# ── Giscus 评论（GitHub Discussions）────────────────────────────
-# 1. 仓库 Settings → Features → 开启 Discussions
-# 2. 安装 https://github.com/apps/giscus 到 qibmz/blog
-# 3. 打开 https://giscus.app 按仓库配置，复制 category / categoryId
+# ── 可选 ──────────────────────────────────────────────────────────────
+# 应用基础路径（默认 /；GitHub Pages 子路径部署时才需要）
+# NUXT_APP_BASE_URL=/
+# 币安行情 Playground（不配则用公开默认端点）
+# NUXT_PUBLIC_BINANCE_WS=wss://data-stream.binance.vision
+# NUXT_PUBLIC_BINANCE_API=https://api.binance.com
+# Giscus 评论（代码里已有 qibmz/blog 默认值；换分类时再覆盖）
 # NUXT_PUBLIC_GISCUS_CATEGORY=Announcements
 # NUXT_PUBLIC_GISCUS_CATEGORY_ID=DIC_kwDOQRi49s4DDLq7
 
-# ── 币安行情 ───────────────────────────────────────────────────
-# NUXT_PUBLIC_BINANCE_WS=
-# NUXT_PUBLIC_BINANCE_API=
-
-# ── AI 模型 API Keys ─────────────────────────────────────────────────
-DEEPSEEK_API_KEY=
-MIMO_API_KEY=
+# ── 运维（一般不写进本地 .env）────────────────────────────────────────
+# 正式库 seed：SEED_TARGET=production npx tsx server/db/seed-models.ts
+# Preview 部署：VERCEL_ENV=preview 时 prebuild 会自动 drizzle-kit push + seed
 ```
 
 ## 📋 可用脚本
