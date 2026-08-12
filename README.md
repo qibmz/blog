@@ -8,6 +8,19 @@
 
 基于 [Nuxt UI SaaS 模板](https://github.com/nuxt-ui-templates/saas) 改造的个人博客，使用 [Nuxt UI](https://ui.nuxt.com) 组件构建。
 
+## ☁️ 部署架构
+
+个人站低成本方案，目前均可走免费档：
+
+| 层级 | 服务 | 说明 |
+|------|------|------|
+| 应用托管 | [Vercel](https://vercel.com/) Hobby | Nuxt 构建与 Serverless / Preview 部署 |
+| 数据库 | [Neon](https://neon.tech/) Free | PostgreSQL（Chat 等服务端数据） |
+| 域名 | 自购域名 | 如 `blog.qibmz.com` |
+| CDN / DNS | [Cloudflare](https://www.cloudflare.com/) | 域名解析 + 代理（橙色云），证书与缓存走 CF |
+
+流量大致为：用户 → Cloudflare 代理 → Vercel → Neon。
+
 ## ✨ 特性
 
 - 🚀 基于 **Nuxt 4** 构建，享受最新的框架特性
@@ -25,7 +38,9 @@
 | [Nuxt UI](https://ui.nuxt.com/) | 组件库 |
 | [Nuxt Content](https://content.nuxt.com/) | 内容管理 |
 | [TypeScript](https://www.typescriptlang.org/) | 类型安全 |
-| [Vercel](https://vercel.com/) | 部署平台 |
+| [Vercel](https://vercel.com/) | 应用部署（Hobby） |
+| [Neon](https://neon.tech/) | PostgreSQL（Free） |
+| [Cloudflare](https://www.cloudflare.com/) | 域名 DNS / CDN 代理 |
 
 ## 🚀 快速开始
 
