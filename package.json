@@ -22,6 +22,7 @@
     "@ai-sdk/openai-compatible": "^2.0.51",
     "@ai-sdk/vue": "^3.0.208",
     "@comark/nuxt": "^0.4.0",
+    "@giscus/vue": "^3.1.1",
     "@iconify-json/lucide": "^1.2.123",
     "@iconify-json/simple-icons": "^1.2.93",
     "@neondatabase/serverless": "^1.1.0",

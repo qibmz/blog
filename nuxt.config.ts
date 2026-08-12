@@ -61,7 +61,14 @@ export default defineNuxtConfig({
     public: {
       origin: process.env.NUXT_PUBLIC_ORIGIN || 'https://qibmz.github.io/blog',
       binanceWs: process.env.NUXT_PUBLIC_BINANCE_WS || 'wss://data-stream.binance.vision',
-      binanceApi: process.env.NUXT_PUBLIC_BINANCE_API || 'https://api.binance.com'
+      binanceApi: process.env.NUXT_PUBLIC_BINANCE_API || 'https://api.binance.com',
+      // Giscus：先在仓库开启 Discussions 并安装 Giscus App，再到 https://giscus.app 取 categoryId
+      giscus: {
+        repo: 'qibmz/blog',
+        repoId: 'R_kgDOQRi49g',
+        category: process.env.NUXT_PUBLIC_GISCUS_CATEGORY || 'Announcements',
+        categoryId: process.env.NUXT_PUBLIC_GISCUS_CATEGORY_ID || 'DIC_kwDOQRi49s4DDLq7'
+      }
     }
   },
 

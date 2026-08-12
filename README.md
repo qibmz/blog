@@ -99,6 +99,13 @@ NUXT_OAUTH_GITHUB_CLIENT_SECRET=
 NUXT_OAUTH_GOOGLE_CLIENT_ID=
 NUXT_OAUTH_GOOGLE_CLIENT_SECRET=
 
+# ── Giscus 评论（GitHub Discussions）────────────────────────────
+# 1. 仓库 Settings → Features → 开启 Discussions
+# 2. 安装 https://github.com/apps/giscus 到 qibmz/blog
+# 3. 打开 https://giscus.app 按仓库配置，复制 category / categoryId
+# NUXT_PUBLIC_GISCUS_CATEGORY=Announcements
+# NUXT_PUBLIC_GISCUS_CATEGORY_ID=DIC_kwDOQRi49s4DDLq7
+
 # ── 币安行情 ───────────────────────────────────────────────────
 # NUXT_PUBLIC_BINANCE_WS=
 # NUXT_PUBLIC_BINANCE_API=

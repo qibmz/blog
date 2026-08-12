@@ -92,6 +92,8 @@ async function copyMarkdown() {
           :value="post"
         />
 
+        <GiscusComments />
+
         <USeparator v-if="surround?.length" />
 
         <UContentSurround :surround="surround" />
