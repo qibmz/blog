@@ -35,6 +35,7 @@ export const messagesRelations = relations(messages, ({ one }) => ({
 export const models = pgTable('models', {
   id: text('id').primaryKey(),
   supportsImages: boolean('supports_images').notNull().default(false),
+  supportsWebSearch: boolean('supports_web_search').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow()
 })

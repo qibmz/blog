@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { UIMessage } from 'ai'
 import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
+import { modelShowsWebSearch } from '#shared/utils/modelCapability'
 
 definePageMeta({ layout: 'chat' })
 
@@ -14,7 +15,7 @@ const greeting = hour < 12 ? '早上好，Master' : hour < 18 ? '下午好，Mas
 const { loggedIn } = useUserSession()
 
 const { model: selectedModel, models: modelOptions } = useModels()
-const { thinkingMode } = useChatOptions()
+const { thinkingMode, webSearch } = useChatOptions()
 const pendingChat = usePendingChat()
 
 // ─── 图片上传 ────────────────────────────────
@@ -68,6 +69,10 @@ const currentModel = computed(() =>
   modelOptions.value.find(m => m.value === selectedModel.value)
 )
 
+const showWebSearch = computed(() =>
+  modelShowsWebSearch(currentModel.value, selectedModel.value)
+)
+
 function createChat(text: string) {
   if (!loggedIn.value) {
     navigateTo('/login')
@@ -91,12 +96,19 @@ function createChat(text: string) {
     id: chatId,
     message,
     model: selectedModel.value,
-    options: { thinkingMode: thinkingMode.value }
+    options: {
+      thinkingMode: currentModel.value?.supportsThinking === false ? false : Boolean(thinkingMode.value),
+      webSearch: showWebSearch.value ? Boolean(webSearch.value) : false
+    }
   }
 
   // 乐观更新侧边栏，立即出现新对话
   const provisionalTitle = getProvisionalChatTitle(message.parts)
-  const sidebar = useNuxtData<{ chats: Array<Record<string, unknown>>, remainingToday: number }>('sidebar-chats')
+  const sidebar = useNuxtData<{
+    chats: Array<Record<string, unknown>>
+    remainingToday: number | null
+    dailyLimit?: number | null
+  }>('sidebar-chats')
   if (sidebar.data.value) {
     sidebar.data.value = {
       chats: [
@@ -111,7 +123,10 @@ function createChat(text: string) {
         },
         ...sidebar.data.value.chats
       ],
-      remainingToday: Math.max(0, (sidebar.data.value.remainingToday ?? 1) - 1)
+      remainingToday: sidebar.data.value.remainingToday == null
+        ? null
+        : Math.max(0, (sidebar.data.value.remainingToday ?? 1) - 1),
+      dailyLimit: sidebar.data.value.dailyLimit
     }
   }
 
@@ -126,6 +141,10 @@ function onSubmit() {
 
 function toggleThinkingMode() {
   thinkingMode.value = !thinkingMode.value
+}
+
+function toggleWebSearch() {
+  webSearch.value = !webSearch.value
 }
 
 function goToLogin() {
@@ -211,6 +230,15 @@ function goToLogin() {
 
                   <div class="flex-1" />
 
+                  <UButton
+                    v-if="showWebSearch"
+                    label="联网搜索"
+                    :icon="webSearch ? 'i-lucide-globe' : 'i-lucide-globe-off'"
+                    :variant="webSearch ? 'soft' : 'ghost'"
+                    :color="webSearch ? 'primary' : 'neutral'"
+                    size="sm"
+                    @click="toggleWebSearch"
+                  />
                   <UButton
                     label="深度思考"
                     icon="i-lucide-brain"

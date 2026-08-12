@@ -29,6 +29,13 @@
       "when": 1782113640774,
       "tag": "0003_aberrant_firelord",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786433964234,
+      "tag": "0004_supports_web_search",
+      "breakpoints": true
     }
   ]
 }

@@ -4,7 +4,7 @@ const props = defineProps<{
   duration?: number
 }>()
 
-const el = ref<HTMLElement | null>(null)
+const el = useTemplateRef('el')
 const displayValue = ref('0')
 const triggered = ref(false)
 

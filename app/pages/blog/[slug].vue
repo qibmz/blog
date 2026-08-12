@@ -76,7 +76,7 @@ async function copyMarkdown() {
         >
           <UAvatar
             v-bind="author.avatar"
-            alt="Author avatar"
+            :alt="author.name"
             size="2xs"
           />
 
@@ -92,6 +92,8 @@ async function copyMarkdown() {
           :value="post"
         />
 
+        <GiscusComments />
+
         <USeparator v-if="surround?.length" />
 
         <UContentSurround :surround="surround" />
@@ -101,7 +103,12 @@ async function copyMarkdown() {
         v-if="post?.body?.toc?.links?.length"
         #right
       >
-        <UContentToc :links="post.body.toc.links" />
+        <UContentToc
+          :links="post.body.toc.links"
+          highlight
+          highlight-color="primary"
+          highlight-variant="circuit"
+        />
       </template>
     </UPage>
   </UContainer>

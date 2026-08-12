@@ -25,21 +25,22 @@ export default defineNuxtConfig({
       },
       meta: [
         { name: 'author', content: 'qibmz' },
-        { name: 'keywords', content: '前端开发,Web3,UniApp,Vue,Nuxt,跨平台开发,区块链,技术博客' },
+        { name: 'keywords', content: 'qibmz,UniApp踩坑,Nuxt payload.json,z-paging easycom,RootPortal,WangEditor,Wagmi UniApp,nvm-windows' },
         { property: 'og:locale', content: 'zh_CN' }
-      ],
-      link: [
-        { rel: 'canonical', href: 'https://qibmz-blog.vercel.app' }
       ]
     }
   },
   css: ['~/assets/css/main.css'],
   // SEO 配置
   site: {
-    url: 'https://qibmz-blog.vercel.app',
+    url: 'https://blog.qibmz.com',
     name: 'qibmz 博客',
-    description: 'qibmz 的个人技术博客，专注于前端开发、Web3 区块链应用、UniApp 跨平台开发、Vue/Nuxt 全栈技术分享。',
+    description: 'qibmz 的个人技术博客：UniApp / Nuxt / Vue 实战踩坑与报错修复笔记，按错误原文和库名可检索。',
     defaultLocale: 'zh-CN'
+  },
+  colorMode: {
+    preference: 'dark',
+    fallback: 'dark'
   },
 
   // MDC 高亮：显式启用 API 路由，避免客户端请求 /api/_mdc/highlight 404
@@ -55,9 +56,15 @@ export default defineNuxtConfig({
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
     public: {
-      origin: process.env.NUXT_PUBLIC_ORIGIN || 'https://qibmz.github.io/blog',
       binanceWs: process.env.NUXT_PUBLIC_BINANCE_WS || 'wss://data-stream.binance.vision',
-      binanceApi: process.env.NUXT_PUBLIC_BINANCE_API || 'https://api.binance.com'
+      binanceApi: process.env.NUXT_PUBLIC_BINANCE_API || 'https://api.binance.com',
+      // Giscus：先在仓库开启 Discussions 并安装 Giscus App，再到 https://giscus.app 取 categoryId
+      giscus: {
+        repo: 'qibmz/blog',
+        repoId: 'R_kgDOQRi49g',
+        category: process.env.NUXT_PUBLIC_GISCUS_CATEGORY || 'Announcements',
+        categoryId: process.env.NUXT_PUBLIC_GISCUS_CATEGORY_ID || 'DIC_kwDOQRi49s4DDLq7'
+      }
     }
   },
 

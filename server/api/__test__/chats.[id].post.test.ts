@@ -5,6 +5,7 @@ import { mockDbFindFirst, mockDbUpdate, mockDb, mockUser, mockReadValidatedBody 
 const mockCheckDailyLimit = vi.fn()
 const mockGetModel = vi.fn(() => ({ provider: 'mock', modelId: 'mock' }))
 const mockModelSupportsImages = vi.fn(async () => true)
+const mockModelSupportsWebSearch = vi.fn(async () => false)
 const mockStreamText = vi.fn()
 const mockGenerateText = vi.fn()
 const mockConvertToModelMessages = vi.fn((msgs: unknown[]) => msgs)
@@ -12,8 +13,13 @@ const mockSmoothStream = vi.fn(() => ({ _type: 'smoothStream' }))
 const mockConsumeStream = vi.fn()
 const mockAbortSignal = new AbortController().signal
 const mockGetRequestAbortSignal = vi.fn(() => mockAbortSignal)
+const mockAwaitMimoSources = vi.fn(async () => [] as Array<{ url: string, title?: string }>)
 
-const mockToUIMessageStream = vi.fn(() => ({ _type: 'ui-message-stream' }))
+const mockToUIMessageStream = vi.fn(() => new ReadableStream({
+  start(controller) {
+    controller.close()
+  }
+}))
 const mockCreateUIMessageStream = vi.fn((opts: any) => ({
   _type: 'ui-message-stream',
   _execute: opts.execute,
@@ -35,8 +41,18 @@ vi.mock('../../utils/models', () => ({
   getModel: mockGetModel,
   DEFAULT_MODEL: 'deepseek-v4-pro',
   MODEL_OPTIONS: [],
-  modelSupportsImages: mockModelSupportsImages
+  modelSupportsImages: mockModelSupportsImages,
+  modelSupportsThinking: vi.fn(() => true),
+  modelSupportsWebSearch: mockModelSupportsWebSearch
 }))
+
+vi.mock('../../utils/webSearch', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../utils/webSearch')>()
+  return {
+    ...actual,
+    awaitMimoSources: mockAwaitMimoSources
+  }
+})
 
 vi.mock('../../utils/requestAbort', () => ({
   getRequestAbortSignal: mockGetRequestAbortSignal
@@ -55,6 +71,8 @@ vi.mock('ai', () => ({
 beforeEach(() => {
   vi.clearAllMocks()
   mockGetRequestAbortSignal.mockReturnValue(mockAbortSignal)
+  mockModelSupportsWebSearch.mockResolvedValue(false)
+  mockAwaitMimoSources.mockResolvedValue([])
 })
 
 describe('POST /api/chats/:id', () => {
@@ -526,5 +544,73 @@ describe('POST /api/chats/:id', () => {
 
     expect(consoleError).toHaveBeenCalled()
     consoleError.mockRestore()
+  })
+
+  it('should send MiMo web-search flag and persist sources when web search is enabled', async () => {
+    mockModelSupportsWebSearch.mockResolvedValue(true)
+    mockAwaitMimoSources.mockResolvedValue([
+      { url: 'https://example.com/a', title: 'Source A' }
+    ])
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: 'Existing Chat',
+      model: 'mimo-v2.5-pro'
+    })
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
+        const body = {
+          model: 'mimo-v2.5-pro',
+          options: { webSearch: true },
+          messages: [
+            { id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] },
+            { id: 'msg-2', role: 'assistant', parts: [{ type: 'text', text: 'Hi' }] },
+            { id: 'msg-3', role: 'user', parts: [{ type: 'text', text: '搜一下新闻' }] }
+          ]
+        }
+        return typeof validateFn === 'function' ? validateFn(body) : body
+      }
+    )
+
+    const { MIMO_WEB_SEARCH_FLAG } = await import('../../utils/webSearch')
+    const { default: handler } = await import('../chats/[id].post')
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+
+    const streamOpts = mockCreateUIMessageStream.mock.calls[0]?.[0]
+    await streamOpts.execute({ writer: { merge: vi.fn() } })
+
+    expect(mockStreamText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerOptions: expect.objectContaining({
+          mimo: expect.objectContaining({ [MIMO_WEB_SEARCH_FLAG]: true })
+        })
+      })
+    )
+
+    await streamOpts.onFinish({
+      isAborted: false,
+      responseMessage: {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [{ type: 'text', text: '带引用的回复' }]
+      }
+    })
+
+    expect(mockAwaitMimoSources).toHaveBeenCalled()
+    const valuesCalls = mockDb.insert.mock.results
+      .map(result => result.value?.values)
+      .filter(Boolean)
+      .flatMap(valuesFn => valuesFn.mock.calls.map(call => call[0]))
+    const assistantInsert = valuesCalls.find(payload => payload?.role === 'assistant')
+    expect(assistantInsert).toEqual(expect.objectContaining({
+      role: 'assistant',
+      parts: [
+        { type: 'text', text: '带引用的回复' },
+        { type: 'sources', sources: [{ url: 'https://example.com/a', title: 'Source A' }] }
+      ]
+    }))
   })
 })

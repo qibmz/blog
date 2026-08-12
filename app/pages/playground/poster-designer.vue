@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { PosterEditorTool, PosterLayerDraft } from '#shared/types/poster'
 import {
-  configToDrafts,
-  draftsToConfig,
-  downloadJson,
+  posterConfigToDrafts,
+  draftsToPosterConfig,
   tryParsePosterConfig
 } from '~/utils/poster'
+import { downloadJson } from '~/utils/download'
 
 definePageMeta({
   pageTransition: { name: 'fade' },
@@ -35,7 +35,7 @@ const imageUrlInput = ref('')
 const importText = ref('')
 const previewWidth = ref<'full' | 'mobile'>('mobile')
 const objectUrl = ref<string | null>(null)
-const fileInputRef = ref<HTMLInputElement | null>(null)
+const fileInputRef = useTemplateRef('fileInputRef')
 /** 导入 JSON 后跳过一次 image-loaded，避免自然尺寸覆盖设计稿尺寸 */
 const preserveDesignSizeOnce = ref(false)
 const mockDataText = ref(JSON.stringify({
@@ -59,7 +59,7 @@ const tools: { id: PosterEditorTool, label: string, icon: string }[] = [
 ]
 
 const config = computed(() =>
-  draftsToConfig(drafts.value, {
+  draftsToPosterConfig(drafts.value, {
     bgImage: bgImage.value,
     bgColor: bgColor.value,
     width: designSize.width,
@@ -143,7 +143,7 @@ function importJson() {
   bgColor.value = result.data.bgColor || '#ffffff'
   designSize.width = result.data.width
   designSize.height = result.data.height
-  drafts.value = configToDrafts(result.data)
+  drafts.value = posterConfigToDrafts(result.data)
   selectedId.value = drafts.value[0]?.id ?? null
   toast.add({ title: '导入成功', color: 'success' })
   tab.value = 'editor'

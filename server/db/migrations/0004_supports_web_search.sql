@@ -1,0 +1,1 @@
+ALTER TABLE "models" ADD COLUMN "supports_web_search" boolean DEFAULT false NOT NULL;

@@ -8,7 +8,7 @@ const { data: chatsData } = useAPI('/api/chats', {
   key: 'sidebar-chats',
   lazy: true,
   skipAuthRedirect: true,
-  default: () => ({ chats: [], remainingToday: 0 }),
+  default: () => ({ chats: [], remainingToday: 0 as number | null, dailyLimit: 5 as number | null }),
   ignoreResponseError: true
 })
 const groups = computed<CommandPaletteGroup[]>(() => {

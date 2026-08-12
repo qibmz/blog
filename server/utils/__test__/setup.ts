@@ -31,6 +31,7 @@ export const mockSchema = {
   models: {
     id: 'id',
     supportsImages: 'supports_images',
+    supportsWebSearch: 'supports_web_search',
     createdAt: 'created_at',
     updatedAt: 'updated_at'
   }

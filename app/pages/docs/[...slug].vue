@@ -40,6 +40,8 @@ useSeoMeta({
         :value="page"
       />
 
+      <GiscusComments />
+
       <USeparator v-if="surround?.length" />
 
       <UContentSurround :surround="surround" />
@@ -49,7 +51,12 @@ useSeoMeta({
       v-if="page?.body?.toc?.links?.length"
       #right
     >
-      <UContentToc :links="page.body.toc.links" />
+      <UContentToc
+        :links="page.body.toc.links"
+        highlight
+        highlight-color="primary"
+        highlight-variant="circuit"
+      />
     </template>
   </UPage>
 </template>

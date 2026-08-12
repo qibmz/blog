@@ -1,7 +1,7 @@
 /**
  * 模型能力元数据 Seed 脚本
  *
- * 全量初始化 models 表的能力数据，INSERT ... ON CONFLICT DO NOTHING 保证幂等。
+ * 全量初始化 models 表的能力数据，INSERT ... ON CONFLICT DO UPDATE 保证幂等。
  * Preview (develop): prebuild-migrate.js 自动执行
  * Production (main): schema 用
  *   `npx neonctl psql main --project-id <NEON_PROJECT_ID> -- --set ON_ERROR_STOP=on --single-transaction -f server/db/migrations/xxx.sql`
@@ -28,20 +28,20 @@ if (!dbUrl) {
 const db = drizzle(neon(dbUrl), { schema })
 
 // ─── 全量模型能力数据 ─────────────────────────────────────────────────────────
-// 来源于 server/utils/models.ts 中 ProviderConfig.supportsImages 硬编码规则。
-// 新增模型时在下方追加即可，无需改代码重新部署。
-const seedData: { id: string, supportsImages: boolean }[] = [
-  // DeepSeek — 无视觉模型
-  { id: 'deepseek-v4-pro', supportsImages: false },
-  { id: 'deepseek-v4-flash', supportsImages: false },
-  // MiMo v2.5 系列
-  { id: 'mimo-v2.5-pro', supportsImages: false },
-  { id: 'mimo-v2.5-flash', supportsImages: false },
-  { id: 'mimo-v2.5', supportsImages: true },
-  // MiMo v2-omni 系列
-  { id: 'mimo-v2-omni', supportsImages: true },
-  { id: 'mimo-v2-omni-pro', supportsImages: false },
-  { id: 'mimo-v2-omni-flash', supportsImages: false }
+// 对话侧 MiMo 仅 mimo-v2.5-pro / mimo-v2.5；其余 seed 行作兼容/能力权威。
+const seedData: { id: string, supportsImages: boolean, supportsWebSearch: boolean }[] = [
+  // DeepSeek
+  { id: 'deepseek-v4-pro', supportsImages: false, supportsWebSearch: false },
+  { id: 'deepseek-v4-flash', supportsImages: false, supportsWebSearch: false },
+  // MiMo 当前对话模型
+  { id: 'mimo-v2.5-pro', supportsImages: false, supportsWebSearch: true },
+  { id: 'mimo-v2.5', supportsImages: true, supportsWebSearch: true },
+  // 非对话 / 已下线：保留能力记录
+  { id: 'mimo-v2.5-flash', supportsImages: false, supportsWebSearch: false },
+  { id: 'mimo-v2.5-asr', supportsImages: false, supportsWebSearch: false },
+  { id: 'mimo-v2-omni', supportsImages: true, supportsWebSearch: false },
+  { id: 'mimo-v2-omni-pro', supportsImages: false, supportsWebSearch: false },
+  { id: 'mimo-v2-omni-flash', supportsImages: false, supportsWebSearch: false }
 ]
 
 console.log(`[seed-models] Seeding ${seedData.length} models...`)
@@ -52,6 +52,7 @@ for (const model of seedData) {
     .values({
       id: model.id,
       supportsImages: model.supportsImages,
+      supportsWebSearch: model.supportsWebSearch,
       createdAt: new Date(),
       updatedAt: new Date()
     })
@@ -59,6 +60,7 @@ for (const model of seedData) {
       target: schema.models.id,
       set: {
         supportsImages: model.supportsImages,
+        supportsWebSearch: model.supportsWebSearch,
         updatedAt: new Date()
       }
     })

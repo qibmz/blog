@@ -4,6 +4,7 @@ import { DefaultChatTransport, isReasoningUIPart, isTextUIPart } from 'ai'
 import { isPartStreaming } from '@nuxt/ui/utils/ai'
 import type { UIMessage, FileUIPart } from 'ai'
 import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
+import { modelShowsWebSearch } from '#shared/utils/modelCapability'
 
 definePageMeta({ layout: 'chat' })
 
@@ -42,7 +43,7 @@ if (optimistic) {
 }
 
 const { model: selectedModel, models: modelOptions } = useModels()
-const { thinkingMode } = useChatOptions()
+const { thinkingMode, webSearch } = useChatOptions()
 
 // ─── 图片上传 ────────────────────────────────
 const {
@@ -96,6 +97,10 @@ const currentModel = computed(() =>
   modelOptions.value.find(m => m.value === selectedModel.value)
 )
 
+const showWebSearch = computed(() =>
+  modelShowsWebSearch(currentModel.value, selectedModel.value)
+)
+
 // 仅在没有 cookie 偏好时回退到聊天记录中的模型
 if (!selectedModel.value) {
   selectedModel.value = chatData.value!.model ?? modelOptions.value[0]?.value ?? ''
@@ -114,12 +119,56 @@ function toggleThinkingMode() {
   thinkingMode.value = !thinkingMode.value
 }
 
+function toggleWebSearch() {
+  webSearch.value = !webSearch.value
+}
+
+function getMessageSources(message: UIMessage) {
+  const parts = message.parts ?? []
+  for (const part of parts) {
+    const p = part as {
+      type: string
+      sources?: Array<{
+        url: string
+        title?: string
+        summary?: string
+        siteName?: string
+        publishTime?: string
+        logoUrl?: string
+      }>
+      data?: Array<{
+        url: string
+        title?: string
+        summary?: string
+        siteName?: string
+        publishTime?: string
+        logoUrl?: string
+      }>
+    }
+    // 落库格式
+    if (p.type === 'sources' && Array.isArray(p.sources) && p.sources.length > 0) {
+      return p.sources
+    }
+    // 流式 data-* 格式（结束前注入，刷新前即可显示）
+    if (p.type === 'data-sources' && Array.isArray(p.data) && p.data.length > 0) {
+      return p.data
+    }
+  }
+  return []
+}
+
 const chat = new Chat({
   id,
   messages: chatData.value!.messages as unknown as UIMessage[],
   transport: new DefaultChatTransport({
     api: `/api/chats/${id}`,
-    body: () => ({ model: selectedModel.value, options: { thinkingMode: thinkingMode.value } })
+    body: () => ({
+      model: selectedModel.value,
+      options: {
+        thinkingMode: currentModel.value?.supportsThinking === false ? false : Boolean(thinkingMode.value),
+        webSearch: showWebSearch.value ? Boolean(webSearch.value) : false
+      }
+    })
   }),
   onError: (err) => {
     const msg = normalizeError(err)
@@ -131,13 +180,39 @@ const chat = new Chat({
       duration: 6000
     })
   },
-  onFinish: ({ isError }) => {
-    if (!isError) {
-      refreshNuxtData('sidebar-chats')
-      refreshChat()
-    }
+  onFinish: async ({ isError }) => {
+    if (isError) return
+    refreshNuxtData('sidebar-chats')
+    // 流已带 data-sources 时无需依赖 refresh；此处兜底同步落库后的 sources
+    await syncSourcesFromServer()
   }
 })
+
+/** 按序把服务端最后一条助手消息的 sources 合并进本地 chat.messages（id 可能不一致） */
+async function syncSourcesFromServer() {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await refreshChat()
+    const dbAssistants = (chatData.value?.messages ?? []).filter(m => m.role === 'assistant')
+    const lastDb = dbAssistants.at(-1) as UIMessage | undefined
+    const lastLive = chat.messages.filter(m => m.role === 'assistant').at(-1)
+    if (!lastDb || !lastLive) {
+      await new Promise(r => setTimeout(r, 150 * (attempt + 1)))
+      continue
+    }
+    const sources = getMessageSources(lastDb)
+    if (sources.length === 0) {
+      await new Promise(r => setTimeout(r, 150 * (attempt + 1)))
+      continue
+    }
+    if (getMessageSources(lastLive).length > 0) return
+    const parts = (lastLive.parts ?? []).filter(p => (p as { type: string }).type !== 'data-sources')
+    lastLive.parts = [
+      ...parts,
+      { type: 'sources', sources } as unknown as UIMessage['parts'][number]
+    ]
+    return
+  }
+}
 
 const { copy, copied } = useClipboard()
 const toast = useToast()
@@ -199,7 +274,7 @@ const createBody = ref<{
   id: string
   message: UIMessage
   model: string
-  options: { thinkingMode: boolean }
+  options: { thinkingMode: boolean, webSearch: boolean }
 } | null>(null)
 
 const { execute: executeCreate, error: createChatError } = useAPI('/api/chats', {
@@ -239,11 +314,18 @@ onMounted(async () => {
     await executeCreate()
     if (createChatError.value) {
       // 回滚侧边栏乐观条目
-      const sidebar = useNuxtData<{ chats: Array<{ id: string }>, remainingToday: number }>('sidebar-chats')
+      const sidebar = useNuxtData<{
+        chats: Array<{ id: string }>
+        remainingToday: number | null
+        dailyLimit?: number | null
+      }>('sidebar-chats')
       if (sidebar.data.value) {
         sidebar.data.value = {
           chats: sidebar.data.value.chats.filter(c => c.id !== optimistic.id),
-          remainingToday: sidebar.data.value.remainingToday + 1
+          remainingToday: sidebar.data.value.remainingToday == null
+            ? null
+            : sidebar.data.value.remainingToday + 1,
+          dailyLimit: sidebar.data.value.dailyLimit
         }
       }
       await navigateTo('/chat')
@@ -322,7 +404,6 @@ onMounted(async () => {
                     <ChatComark
                       :markdown="part.text"
                       :streaming="isPartStreaming(part)"
-                      caret
                     />
                   </UChatReasoning>
                   <template v-else-if="isTextUIPart(part)">
@@ -330,7 +411,6 @@ onMounted(async () => {
                       v-if="(message as UIMessage).role === 'assistant'"
                       :markdown="part.text"
                       :streaming="isPartStreaming(part)"
-                      caret
                     />
                     <p
                       v-else-if="(message as UIMessage).role === 'user'"
@@ -340,6 +420,10 @@ onMounted(async () => {
                     </p>
                   </template>
                 </template>
+                <ChatSources
+                  v-if="(message as UIMessage).role === 'assistant'"
+                  :sources="getMessageSources(message as UIMessage)"
+                />
               </template>
 
               <template #actions="{ message }">
@@ -449,6 +533,15 @@ onMounted(async () => {
                   <div class="flex-1" />
 
                   <UButton
+                    v-if="showWebSearch"
+                    label="联网搜索"
+                    :icon="webSearch ? 'i-lucide-globe' : 'i-lucide-globe-off'"
+                    :variant="webSearch ? 'soft' : 'ghost'"
+                    :color="webSearch ? 'primary' : 'neutral'"
+                    size="sm"
+                    @click="toggleWebSearch"
+                  />
+                  <UButton
                     label="深度思考"
                     icon="i-lucide-brain"
                     :variant="thinkingMode ? 'soft' : 'ghost'"
@@ -456,6 +549,21 @@ onMounted(async () => {
                     size="sm"
                     @click="toggleThinkingMode"
                   />
+                  <USelectMenu
+                    v-model="selectedModel"
+                    :items="modelOptions"
+                    value-key="value"
+                    size="sm"
+                    variant="ghost"
+                    class="min-w-32 sm:min-w-48"
+                  >
+                    <template #leading="{ modelValue }">
+                      <UIcon
+                        v-if="modelValue"
+                        :name="modelOptions.find(m => m.value === modelValue)?.icon"
+                      />
+                    </template>
+                  </USelectMenu>
                   <UChatPromptSubmit
                     :status="chat.status"
                     color="neutral"

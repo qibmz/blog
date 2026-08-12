@@ -6,17 +6,7 @@ import type {
   PosterImageLayer
 } from '#shared/types/poster'
 import { PosterConfigSchema } from '#shared/types/poster'
-import { parsePct, toPctString } from './hotspot'
-
-export {
-  clamp,
-  downloadJson,
-  parsePct,
-  roundPct,
-  toPctString,
-  pxToPct,
-  pctToPx
-} from './hotspot'
+import { parsePct, toPctString } from './geometry'
 
 export function createPosterLayerId(type: PosterLayerDraft['type']): string {
   return `${type}_${Math.random().toString(36).slice(2, 9)}`
@@ -132,7 +122,7 @@ export function layerToDraft(layer: PosterLayer): PosterLayerDraft {
   }
 }
 
-export function draftsToConfig(
+export function draftsToPosterConfig(
   drafts: PosterLayerDraft[],
   meta: Pick<PosterConfig, 'bgImage' | 'width' | 'height'> & { bgColor?: string }
 ): PosterConfig {
@@ -145,7 +135,7 @@ export function draftsToConfig(
   }
 }
 
-export function configToDrafts(config: PosterConfig): PosterLayerDraft[] {
+export function posterConfigToDrafts(config: PosterConfig): PosterLayerDraft[] {
   return config.layers.map(layerToDraft)
 }
 

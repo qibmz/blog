@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import type { PosterEditorTool, PosterLayerDraft } from '#shared/types/poster'
 import {
-  clamp,
   createEmptyLayerDraft,
-  createPosterLayerId,
-  pxToPct,
-  roundPct
+  createPosterLayerId
 } from '~/utils/poster'
+import { clamp, pxToPct, roundPct } from '~/utils/geometry'
 
 const ZOOM_MIN = 0.25
 const ZOOM_MAX = 4
@@ -27,9 +25,9 @@ const emit = defineEmits<{
   'image-loaded': [payload: { width: number, height: number }]
 }>()
 
-const viewportRef = ref<HTMLElement | null>(null)
-const stageRef = ref<HTMLElement | null>(null)
-const imgRef = ref<HTMLImageElement | null>(null)
+const viewportRef = useTemplateRef('viewportRef')
+const stageRef = useTemplateRef('stageRef')
+const imgRef = useTemplateRef('imgRef')
 const displaySize = reactive({ width: 0, height: 0 })
 const viewportSize = reactive({ width: 0, height: 0 })
 
@@ -478,7 +476,7 @@ watch(() => props.bgImage, async () => {
           <img
             v-else-if="d.src"
             :src="d.src"
-            alt=""
+            :alt="d.type === 'image' ? '海报图层图片' : '海报图层'"
             class="w-full h-full pointer-events-none select-none"
             :style="{ objectFit: d.objectFit }"
             draggable="false"

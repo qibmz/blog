@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { isSafeHotspotActionValue } from '#shared/types/hotspot'
 import {
-  draftsToConfig,
+  draftsToHotspotConfig,
   hotspotToDraft,
   parseHotspotConfig,
-  toPctString,
   tryParseHotspotConfig
 } from '../hotspot'
+import { toPctString } from '../geometry'
 
 describe('hotspot utils', () => {
   it('formats percent strings', () => {
@@ -15,7 +15,7 @@ describe('hotspot utils', () => {
   })
 
   it('round-trips rect/circle/polygon drafts', () => {
-    const config = draftsToConfig(
+    const config = draftsToHotspotConfig(
       [
         {
           id: 'area_1',

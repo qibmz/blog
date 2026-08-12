@@ -9,8 +9,8 @@ const props = defineProps<{
   data?: PosterRenderData | null
 }>()
 
-const rootRef = ref<HTMLElement | null>(null)
-const canvasRef = ref<HTMLCanvasElement | null>(null)
+const rootRef = useTemplateRef('rootRef')
+const canvasRef = useTemplateRef('canvasRef')
 const pending = ref(false)
 const errorMsg = ref('')
 const displayWidth = ref(0)

@@ -1,10 +1,10 @@
 # 个人博客
 
 [![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel&labelColor=000000)](https://qibmz-blog.vercel.app/)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel&labelColor=000000)](https://blog.qibmz.com/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-🌐 **在线访问**: [qibmz-blog.vercel.app](https://qibmz-blog.vercel.app/)
+🌐 **在线访问**: [blog.qibmz.com](https://blog.qibmz.com/)
 
 基于 [Nuxt UI SaaS 模板](https://github.com/nuxt-ui-templates/saas) 改造的个人博客，使用 [Nuxt UI](https://ui.nuxt.com) 组件构建。
 
@@ -57,55 +57,37 @@ pnpm preview
 
 ## 🔑 环境变量
 
-在项目根目录创建 `.env` 文件，内容如下：
+在项目根目录创建 `.env`。Chat / 数据库相关功能最少需要「必填」一组；其余有代码默认值，可不配。
 
 ```env
-# ── 站点配置 ──────────────────────────────────────────────────────────
-# vercel 线上域名
-NUXT_PUBLIC_ORIGIN=
-# 应用基础路径 (可选，默认 /)
-# NUXT_APP_BASE_URL=
-
-# ── 数据库 (Neon PostgreSQL / Vercel 自动生成) ────────────────────────
+# ── 必填（本地跑 Chat / DB）──────────────────────────────────────────
+# Neon PostgreSQL 连接串（本项目实际只读这个；Vercel 接 Neon 时可能还会注入一堆 POSTGRES_* / NEON_*，可忽略）
 DATABASE_URL=
-# 以下由 Vercel CLI 连接 Neon 后自动生成，手动部署时只需配 DATABASE_URL
-# DATABASE_URL_UNPOOLED=
-# NEON_AUTH_BASE_URL=
-# NEON_PROJECT_ID=
-# PGDATABASE=
-# PGHOST=
-# PGHOST_UNPOOLED=
-# PGPASSWORD=
-# PGUSER=
-# POSTGRES_DATABASE=
-# POSTGRES_HOST=
-# POSTGRES_PASSWORD=
-# POSTGRES_PRISMA_URL=
-# POSTGRES_URL=
-# POSTGRES_URL_NON_POOLING=
-# POSTGRES_URL_NO_SSL=
-# POSTGRES_USER=
-# VITE_NEON_AUTH_URL=
-
-# ── Session ───────────────────────────────────────────────────────────
-# Session 加密密钥 (至少 32 位随机字符串)
+# Session 加密密钥（至少 32 位随机字符串）
 NUXT_SESSION_PASSWORD=
-
-# ── GitHub OAuth ──────────────────────────────────────────────────────
+# GitHub OAuth（nuxt-auth-utils）
 NUXT_OAUTH_GITHUB_CLIENT_ID=
 NUXT_OAUTH_GITHUB_CLIENT_SECRET=
-
-# ── Google OAuth ──────────────────────────────────────────────────────
+# Google OAuth
 NUXT_OAUTH_GOOGLE_CLIENT_ID=
 NUXT_OAUTH_GOOGLE_CLIENT_SECRET=
-
-# ── 币安行情 ───────────────────────────────────────────────────
-# NUXT_PUBLIC_BINANCE_WS=
-# NUXT_PUBLIC_BINANCE_API=
-
-# ── AI 模型 API Keys ─────────────────────────────────────────────────
+# AI 模型
 DEEPSEEK_API_KEY=
 MIMO_API_KEY=
+
+# ── 可选 ──────────────────────────────────────────────────────────────
+# 应用基础路径（默认 /；GitHub Pages 子路径部署时才需要）
+# NUXT_APP_BASE_URL=/
+# 币安行情 Playground（不配则用公开默认端点）
+# NUXT_PUBLIC_BINANCE_WS=wss://data-stream.binance.vision
+# NUXT_PUBLIC_BINANCE_API=https://api.binance.com
+# Giscus 评论（代码里已有 qibmz/blog 默认值；换分类时再覆盖）
+# NUXT_PUBLIC_GISCUS_CATEGORY=Announcements
+# NUXT_PUBLIC_GISCUS_CATEGORY_ID=DIC_kwDOQRi49s4DDLq7
+
+# ── 运维（一般不写进本地 .env）────────────────────────────────────────
+# 正式库 seed：SEED_TARGET=production npx tsx server/db/seed-models.ts
+# Preview 部署：VERCEL_ENV=preview 时 prebuild 会自动 drizzle-kit push + seed
 ```
 
 ## 📋 可用脚本

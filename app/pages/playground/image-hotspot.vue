@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { EditorTool, HotspotDraft } from '#shared/types/hotspot'
 import {
-  configToDrafts,
-  draftsToConfig,
-  downloadJson,
+  hotspotConfigToDrafts,
+  draftsToHotspotConfig,
   tryParseHotspotConfig
 } from '~/utils/hotspot'
+import { downloadJson } from '~/utils/download'
 
 definePageMeta({
   pageTransition: { name: 'fade' },
@@ -34,7 +34,7 @@ const imageUrlInput = ref('')
 const importText = ref('')
 const previewWidth = ref<'full' | 'mobile'>('full')
 const objectUrl = ref<string | null>(null)
-const fileInputRef = ref<HTMLInputElement | null>(null)
+const fileInputRef = useTemplateRef('fileInputRef')
 /** 导入 JSON 后跳过一次 image-loaded，避免自然尺寸覆盖设计稿尺寸 */
 const preserveDesignSizeOnce = ref(false)
 
@@ -46,7 +46,7 @@ const tools: { id: EditorTool, label: string, icon: string }[] = [
 ]
 
 const config = computed(() =>
-  draftsToConfig(drafts.value, {
+  draftsToHotspotConfig(drafts.value, {
     bgImage: bgImage.value,
     width: designSize.width,
     height: designSize.height
@@ -142,7 +142,7 @@ function importJson() {
   bgImage.value = result.data.bgImage
   designSize.width = result.data.width
   designSize.height = result.data.height
-  drafts.value = configToDrafts(result.data)
+  drafts.value = hotspotConfigToDrafts(result.data)
   selectedId.value = drafts.value[0]?.id ?? null
   toast.add({ title: '导入成功', color: 'success' })
   tab.value = 'editor'

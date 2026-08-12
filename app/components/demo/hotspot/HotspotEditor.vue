@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import type { EditorTool, HotspotDraft } from '#shared/types/hotspot'
 import {
-  clamp,
   createEmptyDraft,
   createHotspotId,
   polygonBounds,
-  pxToPct,
-  roundPct,
   toSvgPoints,
   translatePoints
 } from '~/utils/hotspot'
+import { clamp, pxToPct, roundPct } from '~/utils/geometry'
 
 const ZOOM_MIN = 0.25
 const ZOOM_MAX = 4
@@ -29,9 +27,9 @@ const emit = defineEmits<{
   'image-loaded': [payload: { width: number, height: number }]
 }>()
 
-const viewportRef = ref<HTMLElement | null>(null)
-const stageRef = ref<HTMLElement | null>(null)
-const imgRef = ref<HTMLImageElement | null>(null)
+const viewportRef = useTemplateRef('viewportRef')
+const stageRef = useTemplateRef('stageRef')
+const imgRef = useTemplateRef('imgRef')
 const displaySize = reactive({ width: 0, height: 0 })
 const viewportSize = reactive({ width: 0, height: 0 })
 

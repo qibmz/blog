@@ -1,7 +1,15 @@
 <script setup lang="ts">
 const colorMode = useColorMode()
+const route = useRoute()
+const site = useSiteConfig()
 
 const color = computed(() => colorMode.value === 'dark' ? '#020618' : 'white')
+
+const canonical = computed(() => {
+  const base = String(site.url || 'https://blog.qibmz.com').replace(/\/$/, '')
+  const path = route.path === '/' ? '' : route.path.replace(/\/$/, '')
+  return `${base}${path}`
+})
 
 useHead({
   meta: [
@@ -10,6 +18,7 @@ useHead({
     { key: 'theme-color', name: 'theme-color', content: color }
   ],
   link: [
+    { key: 'canonical', rel: 'canonical', href: canonical },
     { rel: 'icon', href: '/favicon.ico', sizes: 'any' },
     { rel: 'icon', type: 'image/png', href: '/favicon-32x32.png', sizes: '32x32' },
     { rel: 'icon', type: 'image/png', href: '/favicon-16x16.png', sizes: '16x16' },
@@ -19,7 +28,7 @@ useHead({
 
 useSeoMeta({
   titleTemplate: '%s | qibmz 博客',
-  description: 'qibmz 的个人技术博客，专注于前端开发、Web3 区块链应用、UniApp 跨平台开发、Vue/Nuxt 全栈技术分享。',
+  description: 'qibmz 的个人技术博客：UniApp / Nuxt / Vue 实战踩坑与报错修复笔记，按错误原文和库名可检索。',
   ogSiteName: 'qibmz 博客',
   ogType: 'website',
   ogLocale: 'zh_CN',

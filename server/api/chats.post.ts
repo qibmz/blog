@@ -14,7 +14,10 @@ export default defineEventHandler(async (event) => {
     id: z.string().uuid().optional(),
     message: UIMessageSchema,
     model: z.string().optional(),
-    options: z.object({ thinkingMode: z.boolean().optional() }).optional()
+    options: z.object({
+      thinkingMode: z.boolean().optional(),
+      webSearch: z.boolean().optional()
+    }).optional()
   }).parse)
 
   // 非视觉模型拒绝图片
