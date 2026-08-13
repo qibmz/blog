@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Chat } from '@ai-sdk/vue'
+import { useChat } from '@ai-sdk/vue'
 import { DefaultChatTransport, isReasoningUIPart, isTextUIPart } from 'ai'
 import { isPartStreaming } from '@nuxt/ui/utils/ai'
 import type { UIMessage, FileUIPart } from 'ai'
@@ -157,7 +157,7 @@ function getMessageSources(message: UIMessage) {
   return []
 }
 
-const chat = new Chat({
+const { messages, status, sendMessage, regenerate, stop } = useChat({
   id,
   messages: chatData.value!.messages as unknown as UIMessage[],
   transport: new DefaultChatTransport({
@@ -188,13 +188,13 @@ const chat = new Chat({
   }
 })
 
-/** 按序把服务端最后一条助手消息的 sources 合并进本地 chat.messages（id 可能不一致） */
+/** 按序把服务端最后一条助手消息的 sources 合并进本地 messages（id 可能不一致） */
 async function syncSourcesFromServer() {
   for (let attempt = 0; attempt < 3; attempt++) {
     await refreshChat()
     const dbAssistants = (chatData.value?.messages ?? []).filter(m => m.role === 'assistant')
     const lastDb = dbAssistants.at(-1) as UIMessage | undefined
-    const lastLive = chat.messages.filter(m => m.role === 'assistant').at(-1)
+    const lastLive = messages.value.filter(m => m.role === 'assistant').at(-1)
     if (!lastDb || !lastLive) {
       await new Promise(r => setTimeout(r, 150 * (attempt + 1)))
       continue
@@ -210,6 +210,7 @@ async function syncSourcesFromServer() {
       ...parts,
       { type: 'sources', sources } as unknown as UIMessage['parts'][number]
     ]
+    messages.value = [...messages.value]
     return
   }
 }
@@ -292,12 +293,12 @@ function onSubmit() {
   if (isCompressing.value) return
 
   if (hasFiles) {
-    chat.sendMessage({
+    sendMessage({
       text: hasText ? input.value : '',
       files: [...readyParts.value]
     })
   } else {
-    chat.sendMessage({ text: input.value })
+    sendMessage({ text: input.value })
   }
   input.value = ''
   clearFiles()
@@ -332,13 +333,13 @@ onMounted(async () => {
       return
     }
     refreshNuxtData('sidebar-chats')
-    nextTick(() => chat.sendMessage())
+    nextTick(() => sendMessage())
     return
   }
 
-  const messages = chatData.value?.messages ?? []
-  if (messages.at(-1)?.role === 'user') {
-    nextTick(() => chat.sendMessage())
+  const existing = chatData.value?.messages ?? []
+  if (existing.at(-1)?.role === 'user') {
+    nextTick(() => sendMessage())
   }
 })
 </script>
@@ -381,13 +382,13 @@ onMounted(async () => {
         <div class="flex flex-1">
           <UContainer class="flex-1 flex flex-col gap-4 sm:gap-6">
             <UChatMessages
-              :messages="chat.messages"
+              :messages="messages"
               :assistant="assistantConfig"
               :user="{ ui: { container: '!pb-0' } }"
-              :status="chat.status"
+              :status="status"
               :spacing-offset="160"
               auto-scroll-icon="i-lucide-chevron-down"
-              :should-auto-scroll="chat.status === 'streaming' || chat.status === 'submitted'"
+              :should-auto-scroll="status === 'streaming' || status === 'submitted'"
               class="pt-(--ui-header-height) pb-4 sm:pb-6"
             >
               <template #content="{ message }">
@@ -402,14 +403,14 @@ onMounted(async () => {
                     chevron="leading"
                   >
                     <ChatComark
-                      :markdown="part.text"
+                      :value="part.text"
                       :streaming="isPartStreaming(part)"
                     />
                   </UChatReasoning>
                   <template v-else-if="isTextUIPart(part)">
                     <ChatComark
                       v-if="(message as UIMessage).role === 'assistant'"
-                      :markdown="part.text"
+                      :value="part.text"
                       :streaming="isPartStreaming(part)"
                     />
                     <p
@@ -565,11 +566,11 @@ onMounted(async () => {
                     </template>
                   </USelectMenu>
                   <UChatPromptSubmit
-                    :status="chat.status"
+                    :status="status"
                     color="neutral"
                     size="sm"
-                    @stop="chat.stop()"
-                    @reload="chat.regenerate()"
+                    @stop="stop()"
+                    @reload="regenerate()"
                   />
                 </div>
               </template>

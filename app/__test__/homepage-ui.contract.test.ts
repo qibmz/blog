@@ -55,7 +55,7 @@ describe('homepage UI contracts', () => {
     const content = readProjectFile('content/0.index.yml')
 
     expect(content).toContain(
-      'description: 记录前端开发、UniApp、Web3 与工程化实践中的问题和解决方案。'
+      'description: UniApp、Nuxt、Vue 开发踩坑与报错修复笔记，按具体错误和库名可检索。'
     )
   })
 

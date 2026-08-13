@@ -23,7 +23,7 @@ const mockToUIMessageStream = vi.fn(() => new ReadableStream({
 const mockCreateUIMessageStream = vi.fn((opts: any) => ({
   _type: 'ui-message-stream',
   _execute: opts.execute,
-  _onFinish: opts.onFinish
+  _onEnd: opts.onEnd
 }))
 const mockCreateUIMessageStreamResponse = vi.fn(({ stream }: any) =>
   new Response(JSON.stringify({ stream }), {
@@ -65,7 +65,8 @@ vi.mock('ai', () => ({
   consumeStream: mockConsumeStream,
   generateText: (args: any) => mockGenerateText(args),
   smoothStream: () => mockSmoothStream(),
-  streamText: (args: any) => mockStreamText(args)
+  streamText: (args: any) => mockStreamText(args),
+  toUIMessageStream: mockToUIMessageStream
 }))
 
 beforeEach(() => {
@@ -86,7 +87,7 @@ describe('POST /api/chats/:id', () => {
 
     // Mock streamText to return a stream-like object
     mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
+      stream: new ReadableStream({ start(controller) { controller.close() } })
     })
 
     const { default: handler } = await import('../chats/[id].post')
@@ -131,7 +132,7 @@ describe('POST /api/chats/:id', () => {
     })
 
     mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
+      stream: new ReadableStream({ start(controller) { controller.close() } })
     })
 
     const { default: handler } = await import('../chats/[id].post')
@@ -158,7 +159,7 @@ describe('POST /api/chats/:id', () => {
     })
 
     mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
+      stream: new ReadableStream({ start(controller) { controller.close() } })
     })
 
     const { default: handler } = await import('../chats/[id].post')
@@ -196,7 +197,7 @@ describe('POST /api/chats/:id', () => {
     })
 
     mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
+      stream: new ReadableStream({ start(controller) { controller.close() } })
     })
 
     mockReadValidatedBody.mockImplementationOnce(
@@ -246,7 +247,7 @@ describe('POST /api/chats/:id', () => {
     })
 
     mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
+      stream: new ReadableStream({ start(controller) { controller.close() } })
     })
 
     // Override readValidatedBody to return 2 messages (simulating follow-up)
@@ -285,7 +286,7 @@ describe('POST /api/chats/:id', () => {
       model: 'mimo-v2.5'
     })
     mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
+      stream: new ReadableStream({ start(controller) { controller.close() } })
     })
     mockReadValidatedBody.mockImplementationOnce(
       async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
@@ -319,7 +320,7 @@ describe('POST /api/chats/:id', () => {
       model: 'deepseek-v4-pro'
     })
     mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
+      stream: new ReadableStream({ start(controller) { controller.close() } })
     })
     mockGenerateText.mockResolvedValue({ text: '精炼标题' })
     mockReadValidatedBody.mockImplementationOnce(
@@ -366,7 +367,7 @@ describe('POST /api/chats/:id', () => {
       model: 'deepseek-v4-pro'
     })
     mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
+      stream: new ReadableStream({ start(controller) { controller.close() } })
     })
     mockGenerateText.mockResolvedValue({ text: '图片问答' })
     mockReadValidatedBody.mockImplementationOnce(
@@ -399,7 +400,7 @@ describe('POST /api/chats/:id', () => {
       model: 'deepseek-v4-pro'
     })
     mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
+      stream: new ReadableStream({ start(controller) { controller.close() } })
     })
     mockReadValidatedBody.mockImplementationOnce(
       async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
@@ -430,14 +431,14 @@ describe('POST /api/chats/:id', () => {
       model: 'deepseek-v4-pro'
     })
     mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
+      stream: new ReadableStream({ start(controller) { controller.close() } })
     })
 
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
-    const onFinish = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onFinish
-    await onFinish({
+    const onEnd = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onEnd
+    await onEnd({
       isAborted: false,
       responseMessage: {
         id: 'assistant-1',
@@ -463,14 +464,14 @@ describe('POST /api/chats/:id', () => {
       model: 'deepseek-v4-pro'
     })
     mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
+      stream: new ReadableStream({ start(controller) { controller.close() } })
     })
 
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
-    const onFinish = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onFinish
-    await onFinish({
+    const onEnd = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onEnd
+    await onEnd({
       isAborted: true,
       responseMessage: {
         id: 'assistant-1',
@@ -490,14 +491,14 @@ describe('POST /api/chats/:id', () => {
       model: 'deepseek-v4-pro'
     })
     mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
+      stream: new ReadableStream({ start(controller) { controller.close() } })
     })
 
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
-    const onFinish = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onFinish
-    await onFinish({
+    const onEnd = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onEnd
+    await onEnd({
       isAborted: true,
       responseMessage: {
         id: 'assistant-1',
@@ -509,7 +510,7 @@ describe('POST /api/chats/:id', () => {
     expect(mockDb.insert).not.toHaveBeenCalled()
   })
 
-  it('should swallow assistant persistence errors in onFinish', async () => {
+  it('should swallow assistant persistence errors in onEnd', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockDbFindFirst.mockResolvedValue({
       id: 'chat-1',
@@ -518,7 +519,7 @@ describe('POST /api/chats/:id', () => {
       model: 'deepseek-v4-pro'
     })
     mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
+      stream: new ReadableStream({ start(controller) { controller.close() } })
     })
     mockDb.insert.mockImplementationOnce(() => ({
       values: vi.fn(() => {
@@ -532,8 +533,8 @@ describe('POST /api/chats/:id', () => {
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
-    const onFinish = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onFinish
-    await expect(onFinish({
+    const onEnd = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onEnd
+    await expect(onEnd({
       isAborted: false,
       responseMessage: {
         id: 'assistant-1',
@@ -558,7 +559,7 @@ describe('POST /api/chats/:id', () => {
       model: 'mimo-v2.5-pro'
     })
     mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
+      stream: new ReadableStream({ start(controller) { controller.close() } })
     })
     mockReadValidatedBody.mockImplementationOnce(
       async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
@@ -590,7 +591,7 @@ describe('POST /api/chats/:id', () => {
       })
     )
 
-    await streamOpts.onFinish({
+    await streamOpts.onEnd({
       isAborted: false,
       responseMessage: {
         id: 'assistant-1',
@@ -603,7 +604,7 @@ describe('POST /api/chats/:id', () => {
     const valuesCalls = mockDb.insert.mock.results
       .map(result => result.value?.values)
       .filter(Boolean)
-      .flatMap(valuesFn => valuesFn.mock.calls.map(call => call[0]))
+      .flatMap(valuesFn => valuesFn.mock.calls.map((call: unknown[]) => call[0]))
     const assistantInsert = valuesCalls.find(payload => payload?.role === 'assistant')
     expect(assistantInsert).toEqual(expect.objectContaining({
       role: 'assistant',

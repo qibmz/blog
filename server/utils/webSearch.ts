@@ -16,7 +16,7 @@ export interface ChatSource {
 export interface MimoRequestContext {
   webSearch?: boolean
   sources?: ChatSource[]
-  /** onFinish 前 await，确保 SSE 解析完成 */
+  /** onEnd 前 await，确保 SSE 解析完成 */
   sourcesReady?: Promise<void>
 }
 

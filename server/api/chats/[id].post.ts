@@ -25,6 +25,7 @@ import {
   createUIMessageStreamResponse,
   generateText,
   streamText,
+  toUIMessageStream,
   type UIMessage
 } from 'ai'
 
@@ -91,7 +92,7 @@ export default defineEventHandler(async (event) => {
     if (userText && !alreadyRefined) {
       const titlePromise = generateText({
         model,
-        system: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。',
+        instructions: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。',
         prompt: JSON.stringify(messages[0])
       }).then(async ({ text: title }) => {
         const safeTitle = title.trim()
@@ -137,7 +138,7 @@ export default defineEventHandler(async (event) => {
     execute: async ({ writer }) => {
       const result = streamText({
         model,
-        system: '你是迦勒底的人工智能助手。回答友好、简洁、有帮助；语气可轻度带有《Fate/Grand Order》风格（如称呼用户为 Master、偶尔用「契约」「灵基」等轻松比喻），但不要过度角色扮演，也不要强行把无关问题硬扯到 FGO。优先把问题讲清楚。',
+        instructions: '你是迦勒底的人工智能助手。回答友好、简洁、有帮助；语气可轻度带有《Fate/Grand Order》风格（如称呼用户为 Master、偶尔用「契约」「灵基」等轻松比喻），但不要过度角色扮演，也不要强行把无关问题硬扯到 FGO。优先把问题讲清楚。',
         messages: await convertToModelMessages(messages as UIMessage[]),
         abortSignal,
         providerOptions: {
@@ -153,11 +154,11 @@ export default defineEventHandler(async (event) => {
 
       // finish 前注入 data-sources，客户端即时可见（勿只靠落库后 refresh）
       writer.merge(withWebSearchSources(
-        result.toUIMessageStream(),
+        toUIMessageStream({ stream: result.stream }),
         () => awaitMimoSources(mimoCtx)
       ))
     },
-    onFinish: async ({ responseMessage, isAborted }) => {
+    onEnd: async ({ responseMessage, isAborted }) => {
       let parts = Array.isArray(responseMessage.parts) ? [...responseMessage.parts] : []
       // 中断且无实质内容时不落库，避免空助手消息；有半截内容则保留
       if (isAborted && !hasPersistableParts(parts)) return
@@ -190,7 +191,7 @@ export default defineEventHandler(async (event) => {
 
   return createUIMessageStreamResponse({
     stream,
-    // 确保客户端 abort 时 onFinish 仍会执行（含 isAborted）
+    // 确保客户端 abort 时 onEnd 仍会执行（含 isAborted）
     consumeSseStream: consumeStream
   })
 })
