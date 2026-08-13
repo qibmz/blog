@@ -176,14 +176,25 @@ const { messages, status, sendMessage, regenerate, stop } = useChat({
   onFinish: async ({ isError }) => {
     if (isError) return
     refreshNuxtData('sidebar-chats')
-    // 流已带 data-sources 时无需依赖 refresh；此处兜底同步落库后的 sources
-    await syncSourcesFromServer()
+    // 流结束兜底：同步落库后的 sources / chart tool（避免 UI 卡在 input-streaming）
+    await syncAssistantFromServer()
   }
 })
 
-/** 按序把服务端最后一条助手消息的 sources 合并进本地 messages（id 可能不一致） */
-async function syncSourcesFromServer() {
-  for (let attempt = 0; attempt < 3; attempt++) {
+function isIncompleteChartPart(part: UIMessage['parts'][number]) {
+  if (!isToolUIPart(part) || getToolName(part) !== 'chart') return false
+  return part.state !== 'output-available' && part.state !== 'output-error'
+}
+
+function hasCompleteChartPart(parts: UIMessage['parts'] = []) {
+  return parts.some(part =>
+    isToolUIPart(part) && getToolName(part) === 'chart' && part.state === 'output-available'
+  )
+}
+
+/** 按序把服务端最后一条助手消息合并进本地（chart / sources；id 可能不一致） */
+async function syncAssistantFromServer() {
+  for (let attempt = 0; attempt < 5; attempt++) {
     await refreshChat()
     const dbAssistants = (chatData.value?.messages ?? []).filter(m => m.role === 'assistant')
     const lastDb = dbAssistants.at(-1) as UIMessage | undefined
@@ -192,19 +203,33 @@ async function syncSourcesFromServer() {
       await new Promise(r => setTimeout(r, 150 * (attempt + 1)))
       continue
     }
-    const sources = getMessageSources(lastDb)
-    if (sources.length === 0) {
-      await new Promise(r => setTimeout(r, 150 * (attempt + 1)))
-      continue
+
+    const liveHasIncompleteChart = (lastLive.parts ?? []).some(isIncompleteChartPart)
+    const dbHasCompleteChart = hasCompleteChartPart(lastDb.parts)
+    const dbSources = getMessageSources(lastDb)
+    const liveSources = getMessageSources(lastLive)
+
+    if (liveHasIncompleteChart && dbHasCompleteChart) {
+      lastLive.parts = structuredClone(lastDb.parts) as UIMessage['parts']
+      messages.value = [...messages.value]
+      return
     }
-    if (getMessageSources(lastLive).length > 0) return
-    const parts = (lastLive.parts ?? []).filter(p => (p as { type: string }).type !== 'data-sources')
-    lastLive.parts = [
-      ...parts,
-      { type: 'sources', sources } as unknown as UIMessage['parts'][number]
-    ]
-    messages.value = [...messages.value]
-    return
+
+    if (dbSources.length > 0 && liveSources.length === 0) {
+      const parts = (lastLive.parts ?? []).filter(p => (p as { type: string }).type !== 'data-sources')
+      lastLive.parts = [
+        ...parts,
+        { type: 'sources', sources: dbSources } as unknown as UIMessage['parts'][number]
+      ]
+      messages.value = [...messages.value]
+      return
+    }
+
+    if (!liveHasIncompleteChart && (dbSources.length === 0 || liveSources.length > 0)) {
+      return
+    }
+
+    await new Promise(r => setTimeout(r, 150 * (attempt + 1)))
   }
 }
 
@@ -387,7 +412,7 @@ onMounted(async () => {
               <template #content="{ message }">
                 <template
                   v-for="(part, index) in (message as UIMessage).parts"
-                  :key="`${(message as UIMessage).id}-${part.type}-${index}`"
+                  :key="`${(message as UIMessage).id}-${part.type}-${index}-${isToolUIPart(part) ? `${getToolName(part)}-${part.state}` : ''}`"
                 >
                   <UChatReasoning
                     v-if="isReasoningUIPart(part)"

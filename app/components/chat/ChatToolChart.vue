@@ -1,9 +1,45 @@
 <script setup lang="ts">
 import type { ChartUIToolInvocation } from '#shared/utils/tools/chart'
+import type { BulletLegendItemInterface } from 'vue-chrts/types'
+import { CurveType, LegendPosition } from 'vue-chrts/enums'
+import { LineChart } from 'vue-chrts'
+
+type ChartPayload = {
+  title?: string
+  data: Array<Record<string, string | number>>
+  xKey: string
+  series: Array<{ key: string, name: string, color: string }>
+  xLabel?: string
+  yLabel?: string
+}
 
 const props = defineProps<{
   invocation: ChartUIToolInvocation
 }>()
+
+function isChartPayload(value: unknown): value is ChartPayload {
+  if (!value || typeof value !== 'object') return false
+  const v = value as Record<string, unknown>
+  return Array.isArray(v.data)
+    && v.data.length > 0
+    && typeof v.xKey === 'string'
+    && Array.isArray(v.series)
+    && v.series.length > 0
+}
+
+/** chart tool 的 execute 只是 echo；input 齐全即可渲染，不必死等 output-available */
+const chart = computed<ChartPayload | null>(() => {
+  if (props.invocation.state === 'output-available' && isChartPayload(props.invocation.output)) {
+    return props.invocation.output
+  }
+  if (
+    (props.invocation.state === 'input-available' || props.invocation.state === 'output-available')
+    && isChartPayload(props.invocation.input)
+  ) {
+    return props.invocation.input
+  }
+  return null
+})
 
 const color = computed(() => {
   return ({
@@ -25,16 +61,15 @@ const message = computed(() => {
   })[props.invocation.state as string] || '正在加载图表数据...'
 })
 
-const xFormatter = (invocation: ChartUIToolInvocation) => {
+const xFormatter = (payload: ChartPayload) => {
   return (tick: number, _i?: number, _ticks?: number[]): string => {
-    if (!invocation.output?.data[tick]) return ''
-    return String(invocation.output.data[tick][invocation.output.xKey] ?? '')
+    if (!payload.data[tick]) return ''
+    return String(payload.data[tick]![payload.xKey] ?? '')
   }
 }
 
-const categories = (invocation: ChartUIToolInvocation): Record<string, BulletLegendItemInterface> => {
-  if (!invocation.output?.series) return {}
-  return invocation.output.series.reduce((acc: Record<string, BulletLegendItemInterface>, serie: { key: string, name: string, color: string }) => {
+const categories = (payload: ChartPayload): Record<string, BulletLegendItemInterface> => {
+  return payload.series.reduce((acc, serie) => {
     acc[serie.key] = {
       name: serie.name,
       color: serie.color
@@ -59,11 +94,11 @@ const formatValue = (value: string | number | undefined): string => {
 
 <template>
   <div
-    v-if="invocation.state === 'output-available'"
+    v-if="chart"
     class="my-5"
   >
     <div
-      v-if="invocation.output.title"
+      v-if="chart.title"
       class="flex items-center gap-2 mb-2"
     >
       <UIcon
@@ -72,7 +107,7 @@ const formatValue = (value: string | number | undefined): string => {
       />
       <div class="min-w-0">
         <h3 class="text-lg font-semibold truncate">
-          {{ invocation.output.title }}
+          {{ chart.title }}
         </h3>
       </div>
     </div>
@@ -80,50 +115,57 @@ const formatValue = (value: string | number | undefined): string => {
     <div class="relative overflow-hidden">
       <div class="dot-pattern h-full -top-5 left-0 right-0" />
 
-      <LineChart
-        :height="300"
-        :data="invocation.output.data"
-        :categories="categories(invocation)"
-        :x-formatter="xFormatter(invocation)"
-        :x-label="invocation.output.xLabel"
-        :y-label="invocation.output.yLabel"
-        :y-grid-line="true"
-        :curve-type="CurveType.MonotoneX"
-        :legend-position="LegendPosition.TopRight"
-        :hide-legend="false"
-        :x-num-ticks="Math.min(6, invocation.output.data.length)"
-        :y-num-ticks="5"
-        :show-tooltip="true"
-      >
-        <template #tooltip="{ values }">
-          <div class="bg-muted/50 rounded-sm px-2 py-1 shadow-lg backdrop-blur-sm max-w-xs ring ring-offset-2 ring-offset-bg ring-default border border-default">
-            <div
-              v-if="values && values[invocation.output.xKey]"
-              class="text-sm font-semibold text-highlighted mb-2"
-            >
-              {{ values[invocation.output.xKey] }}
-            </div>
-            <div class="space-y-1.5">
+      <ClientOnly>
+        <LineChart
+          :height="300"
+          :data="chart.data"
+          :categories="categories(chart)"
+          :x-formatter="xFormatter(chart)"
+          :x-label="chart.xLabel"
+          :y-label="chart.yLabel"
+          :y-grid-line="true"
+          :curve-type="CurveType.MonotoneX"
+          :legend-position="LegendPosition.TopRight"
+          :hide-legend="false"
+          :x-num-ticks="Math.min(6, chart.data.length)"
+          :y-num-ticks="5"
+          :show-tooltip="true"
+        >
+          <template #tooltip="{ values }">
+            <div class="bg-muted/50 rounded-sm px-2 py-1 shadow-lg backdrop-blur-sm max-w-xs ring ring-offset-2 ring-offset-bg ring-default border border-default">
               <div
-                v-for="serie in invocation.output.series"
-                :key="serie.key"
-                class="flex items-center justify-between gap-3"
+                v-if="values && values[chart.xKey]"
+                class="text-sm font-semibold text-highlighted mb-2"
               >
-                <div class="flex items-center gap-2 min-w-0">
-                  <div
-                    class="size-2.5 rounded-full shrink-0"
-                    :style="{ backgroundColor: serie.color }"
-                  />
-                  <span class="text-sm text-muted truncate">{{ serie.name }}</span>
+                {{ values[chart.xKey] }}
+              </div>
+              <div class="space-y-1.5">
+                <div
+                  v-for="serie in chart.series"
+                  :key="serie.key"
+                  class="flex items-center justify-between gap-3"
+                >
+                  <div class="flex items-center gap-2 min-w-0">
+                    <div
+                      class="size-2.5 rounded-full shrink-0"
+                      :style="{ backgroundColor: serie.color }"
+                    />
+                    <span class="text-sm text-muted truncate">{{ serie.name }}</span>
+                  </div>
+                  <span class="text-sm font-semibold text-highlighted shrink-0">
+                    {{ formatValue(values?.[serie.key]) }}
+                  </span>
                 </div>
-                <span class="text-sm font-semibold text-highlighted shrink-0">
-                  {{ formatValue(values?.[serie.key]) }}
-                </span>
               </div>
             </div>
+          </template>
+        </LineChart>
+        <template #fallback>
+          <div class="flex items-center justify-center h-44 text-sm text-muted">
+            正在渲染图表...
           </div>
         </template>
-      </LineChart>
+      </ClientOnly>
     </div>
   </div>
 
