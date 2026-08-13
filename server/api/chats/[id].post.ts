@@ -3,10 +3,12 @@ import { and, eq } from 'drizzle-orm'
 import {
   getModel,
   DEFAULT_MODEL,
+  modelSupportsCustomTools,
   modelSupportsImages,
   modelSupportsThinking,
   modelSupportsWebSearch
 } from '../../utils/models'
+import { chartTool } from '#shared/utils/tools/chart'
 import { checkDailyLimit } from '../../utils/rateLimiter'
 import { getRequestAbortSignal } from '../../utils/requestAbort'
 import {
@@ -24,8 +26,8 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   generateText,
+  isStepCount,
   streamText,
-  toUIMessageStream,
   type UIMessage
 } from 'ai'
 
@@ -130,6 +132,10 @@ export default defineEventHandler(async (event) => {
   const webSearchEnabled = options?.webSearch === true
     && await modelSupportsWebSearch(modelValue)
 
+  const tools = modelSupportsCustomTools(modelValue)
+    ? { chart: chartTool }
+    : undefined
+
   const abortSignal = getRequestAbortSignal(event)
   const mimoCtx = { webSearch: webSearchEnabled, sources: [] as ChatSource[] }
   bindMimoRequestContext(abortSignal, mimoCtx)
@@ -138,9 +144,14 @@ export default defineEventHandler(async (event) => {
     execute: async ({ writer }) => {
       const result = streamText({
         model,
-        instructions: '你是迦勒底的人工智能助手。回答友好、简洁、有帮助；语气可轻度带有《Fate/Grand Order》风格（如称呼用户为 Master、偶尔用「契约」「灵基」等轻松比喻），但不要过度角色扮演，也不要强行把无关问题硬扯到 FGO。优先把问题讲清楚。',
-        messages: await convertToModelMessages(messages as UIMessage[]),
+        instructions: `你是迦勒底的人工智能助手。回答友好、简洁、有帮助；语气可轻度带有《Fate/Grand Order》风格（如称呼用户为 Master、偶尔用「契约」「灵基」等轻松比喻），但不要过度角色扮演，也不要强行把无关问题硬扯到 FGO。优先把问题讲清楚。
+
+**图表：**
+- 用户要求画图、看趋势、对比数据时，调用 chart 工具生成折线图
+- 不要只用 markdown 表格代替可视化`,
+        messages: await convertToModelMessages(messages as UIMessage[], tools ? { tools } : undefined),
         abortSignal,
+        ...(tools ? { tools, stopWhen: isStepCount(5) } : {}),
         providerOptions: {
           deepseek: {
             thinking: { type: thinkingType }
@@ -153,8 +164,9 @@ export default defineEventHandler(async (event) => {
       })
 
       // finish 前注入 data-sources，客户端即时可见（勿只靠落库后 refresh）
+      // 使用 result.toUIMessageStream()：会带上 tools，且与 createUIMessageStream.merge 兼容
       writer.merge(withWebSearchSources(
-        toUIMessageStream({ stream: result.stream }),
+        result.toUIMessageStream({ sendReasoning: true }),
         () => awaitMimoSources(mimoCtx)
       ))
     },

@@ -44,6 +44,7 @@
     "motion-v": "^2.3.0",
     "nuxt": "^4.5.2",
     "nuxt-auth-utils": "^0.5.30",
+    "nuxt-charts": "^2.2.0",
     "tailwindcss": "^4.3.3",
     "zod": "^4.4.3"
   },

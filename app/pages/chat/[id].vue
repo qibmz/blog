@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { useChat } from '@ai-sdk/vue'
-import { DefaultChatTransport, isReasoningUIPart, isTextUIPart } from 'ai'
+import { DefaultChatTransport, getToolName, isReasoningUIPart, isTextUIPart, isToolUIPart } from 'ai'
 import { isPartStreaming } from '@nuxt/ui/utils/ai'
 import type { UIMessage, FileUIPart } from 'ai'
 import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
 import { modelShowsWebSearch } from '#shared/utils/modelCapability'
+import type { ChartUIToolInvocation } from '#shared/utils/tools/chart'
 
 definePageMeta({ layout: 'chat' })
 
@@ -407,6 +408,10 @@ onMounted(async () => {
                       :streaming="isPartStreaming(part)"
                     />
                   </UChatReasoning>
+                  <ChatToolChart
+                    v-else-if="isToolUIPart(part) && getToolName(part) === 'chart'"
+                    :invocation="(part as ChartUIToolInvocation)"
+                  />
                   <template v-else-if="isTextUIPart(part)">
                     <ChatComark
                       v-if="(message as UIMessage).role === 'assistant'"

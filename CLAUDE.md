@@ -90,7 +90,9 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 
 **AI 提供商：** DeepSeek 和 MiMo（小米），配置在 `server/utils/models.ts`。使用 `@ai-sdk/deepseek` 和 `@ai-sdk/openai-compatible`。API 密钥：`DEEPSEEK_API_KEY`、`MIMO_API_KEY`。
 
-**流式回复：** 使用 `createUIMessageStream` + `createUIMessageStreamResponse` + `toUIMessageStream({ stream: result.stream })`（`ai` 包）构建 SSE 流。`streamText` / `generateText` 用 `instructions`（勿用已弃用的 `system`），流结束回调用 `onEnd`。DeepSeek 模型通过 `providerOptions.deepseek.thinking` 启用推理过程，前端 `UChatReasoning` 组件展示思维链。**不要使用 `smoothStream()`**，它会缓冲导致延迟感。
+**流式回复：** 使用 `createUIMessageStream` + `createUIMessageStreamResponse` + `result.toUIMessageStream()`（`ai` 包）构建 SSE 流。`streamText` / `generateText` 用 `instructions`（勿用已弃用的 `system`），流结束回调用 `onEnd`。DeepSeek 模型通过 `providerOptions.deepseek.thinking` 启用推理过程，前端 `UChatReasoning` 组件展示思维链。**不要使用 `smoothStream()`**，它会缓冲导致延迟感。**不要用独立的 `toUIMessageStream({ stream: result.stream })` 替代 `result.toUIMessageStream()`**，后者会带上 tools 且与 merge 兼容。
+
+**图表 tool：** DeepSeek 支持自定义 function calling。`shared/utils/tools/chart.ts` 定义 `chartTool`，`streamText` 在 `modelSupportsCustomTools` 为 true 时传入 `tools: { chart }` + `stopWhen: isStepCount(5)`。前端 `ChatToolChart` 用 `nuxt-charts` 的 `LineChart` 渲染。MiMo 的 openai-compatible 会丢掉自定义 tools，暂不开放。
 
 **自动标题生成：** 首次对话时，服务端通过 `generateText` 异步生成标题（`event.waitUntil` 确保 serverless 环境完整执行），不阻塞流式响应。客户端 `onFinish` 中调用 `refreshNuxtData('sidebar-chats')` 刷新侧边栏。
 
@@ -103,6 +105,7 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 - `app/pages/chat/index.vue` — 新建聊天页，提示输入 + 模型选择 + 快捷建议
 - `app/pages/chat/[id].vue` — 聊天详情，`@ai-sdk/vue` `useChat` + `DefaultChatTransport` 流式通信
 - `app/components/chat/ChatComark.ts` — 通过 `@comark/nuxt` `defineMarkdownComponent` + Shiki 渲染 AI 回复（`:value` 传 markdown），注册了 html/css/python/sql/go/rust/java/c/cpp/ruby/php/swift/kotlin/diff/dockerfile/xml/toml/graphql 额外语言
+- `app/components/chat/ChatToolChart.vue` — DeepSeek chart tool 的折线图渲染（`nuxt-charts`）
 - `app/components/chat/ChatSearch.vue` — 命令面板模态框，搜索历史聊天
 - `app/composables/useApi.ts` — 全局 API 封装（`useAPI` composable），内置 401 跳转 + toast 错误提示
 - `app/composables/useModels.ts` — 模型选择，`useCookie` 持久化，刷新页面不丢失

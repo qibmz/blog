@@ -11,7 +11,8 @@ export default defineNuxtConfig({
     '@nuxtjs/sitemap',
     'nuxt-auth-utils',
     'motion-v/nuxt',
-    '@vercel/analytics/nuxt'
+    '@vercel/analytics/nuxt',
+    'nuxt-charts'
   ],
   devtools: {
     enabled: true
