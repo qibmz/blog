@@ -124,13 +124,16 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const canThink = modelSupportsThinking(modelValue)
-  const thinkingType = canThink && options?.thinkingMode !== false
-    ? 'enabled' as const
-    : 'disabled' as const
-
+  // MiMo 官方建议：调用 tool（含 web_search）时关闭 thinking，否则易卡顿且不稳定
   const webSearchEnabled = options?.webSearch === true
     && await modelSupportsWebSearch(modelValue)
+
+  const canThink = modelSupportsThinking(modelValue)
+  const thinkingType = canThink
+    && options?.thinkingMode !== false
+    && !webSearchEnabled
+    ? 'enabled' as const
+    : 'disabled' as const
 
   const tools = modelSupportsCustomTools(modelValue)
     ? { chart: chartTool }

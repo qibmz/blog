@@ -15,7 +15,7 @@ const greeting = hour < 12 ? '早上好，Master' : hour < 18 ? '下午好，Mas
 const { loggedIn } = useUserSession()
 
 const { model: selectedModel, models: modelOptions } = useModels()
-const { thinkingMode, webSearch } = useChatOptions()
+const { thinkingMode, webSearch, toggleThinkingMode, toggleWebSearch } = useChatOptions()
 const pendingChat = usePendingChat()
 
 // ─── 图片上传 ────────────────────────────────
@@ -137,14 +137,6 @@ function createChat(text: string) {
 
 function onSubmit() {
   createChat(input.value)
-}
-
-function toggleThinkingMode() {
-  thinkingMode.value = !thinkingMode.value
-}
-
-function toggleWebSearch() {
-  webSearch.value = !webSearch.value
 }
 
 function goToLogin() {

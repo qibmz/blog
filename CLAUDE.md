@@ -109,7 +109,7 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 - `app/components/chat/ChatSearch.vue` — 命令面板模态框，搜索历史聊天
 - `app/composables/useApi.ts` — 全局 API 封装（`useAPI` composable），内置 401 跳转 + toast 错误提示
 - `app/composables/useModels.ts` — 模型选择，`useCookie` 持久化，刷新页面不丢失
-- `app/composables/useChatOptions.ts` — 思考模式开关，`useCookie` 持久化
+- `app/composables/useChatOptions.ts` — 思考 / 联网开关（互斥），`useCookie` 持久化
 - `app/composables/useChatList.ts` — 聊天列表分组（按日期归组）
 - `app/utils/error.ts` — `normalizeError()` 统一解析不同来源的错误消息
 

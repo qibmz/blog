@@ -44,7 +44,7 @@ if (optimistic) {
 }
 
 const { model: selectedModel, models: modelOptions } = useModels()
-const { thinkingMode, webSearch } = useChatOptions()
+const { thinkingMode, webSearch, toggleThinkingMode, toggleWebSearch } = useChatOptions()
 
 // ─── 图片上传 ────────────────────────────────
 const {
@@ -115,14 +115,6 @@ watch(() => chatData.value?.title, (newTitle) => {
 useSeoMeta({ title: computed(() => `${chatTitle.value} — AI Chat`) })
 
 const input = ref('')
-
-function toggleThinkingMode() {
-  thinkingMode.value = !thinkingMode.value
-}
-
-function toggleWebSearch() {
-  webSearch.value = !webSearch.value
-}
 
 function getMessageSources(message: UIMessage) {
   const parts = message.parts ?? []
