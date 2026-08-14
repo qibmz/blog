@@ -12,7 +12,7 @@ export default defineNuxtConfig({
     'nuxt-auth-utils',
     'motion-v/nuxt',
     '@vercel/analytics/nuxt',
-    'nuxt-charts'
+    'nuxt-echarts'
   ],
   devtools: {
     enabled: true
@@ -98,6 +98,17 @@ export default defineNuxtConfig({
     esbuild: {
       drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
     }
+  },
+
+  echarts: {
+    renderer: ['canvas'],
+    charts: ['LineChart', 'BarChart', 'PieChart'],
+    components: [
+      'GridComponent',
+      'TooltipComponent',
+      'LegendComponent',
+      'ToolboxComponent'
+    ]
   },
 
   eslint: {
