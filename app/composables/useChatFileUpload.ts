@@ -14,8 +14,37 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'im
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 const MAX_FILES = 3
 
+interface PresignResponse {
+  uploadUrl: string
+  publicUrl: string
+  key: string
+  filename?: string
+}
+
 export function useChatFileUpload() {
   const items = ref<FileItem[]>([])
+
+  const toast = useToast()
+
+  const presignBody = ref<{ contentType: string, filename?: string }>({
+    contentType: 'image/jpeg'
+  })
+  const { execute: executePresign, data: presignData } = useAPI<PresignResponse>(
+    '/api/uploads/presign',
+    {
+      method: 'POST',
+      body: presignBody,
+      immediate: false,
+      watch: false
+    }
+  )
+
+  /** 串行化 presign + PUT，避免共用 body/execute 被并发覆盖 */
+  let uploadQueue: Promise<void> = Promise.resolve()
+  function enqueueUpload(task: () => Promise<void>) {
+    uploadQueue = uploadQueue.then(task, task)
+    return uploadQueue
+  }
 
   /** 供 ChatFileList 使用的逐项状态 */
   const statuses = computed(() => {
@@ -41,12 +70,10 @@ export function useChatFileUpload() {
     items.value.map(i => i.previewPart)
   )
 
-  /** 已完成压缩、可以发送的 parts */
+  /** 已完成压缩并上传、可以发送的 parts */
   const readyParts = computed<FileUIPart[]>(() =>
     items.value.filter(i => i.status === 'ready').map(i => i.part!)
   )
-
-  const toast = useToast()
 
   /** 创建本地预览 part（blob URL，即刻可用） */
   function makePreviewPart(file: File): FileUIPart {
@@ -59,35 +86,49 @@ export function useChatFileUpload() {
   }
 
   /**
-   * 压缩单个文件并更新状态。
+   * 压缩并上传到 R2。
    * 必须通过 index 访问 items.value[index] 拿到 Vue Proxy 对象再修改，
    * 否则修改 raw plain object 不会触发响应式更新。
    */
-  async function compressOne(index: number) {
-    const item = items.value[index]
-    if (!item) return
+  async function compressAndUploadOne(index: number) {
+    await enqueueUpload(async () => {
+      const item = items.value[index]
+      if (!item || item.status === 'ready') return
 
-    try {
-      const compressed = await compressImageFile(item.file)
-      // compressed 可能是原文件（跳过压缩）或新的 File
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result as string)
-        reader.onerror = () => reject(new Error('读取文件失败'))
-        reader.readAsDataURL(compressed)
-      })
-      item.part = {
-        type: 'file',
-        url: dataUrl,
-        mediaType: compressed.type || item.file.type,
-        filename: compressed.name || item.file.name
+      try {
+        const compressed = await compressImageFile(item.file)
+        const mediaType = compressed.type || item.file.type
+        const filename = compressed.name || item.file.name
+
+        presignBody.value = { contentType: mediaType, filename }
+        await executePresign()
+        const signed = presignData.value
+        if (!signed?.uploadUrl || !signed.publicUrl) {
+          throw new Error('获取上传地址失败')
+        }
+
+        const putRes = await fetch(signed.uploadUrl, {
+          method: 'PUT',
+          body: compressed,
+          headers: { 'Content-Type': mediaType }
+        })
+        if (!putRes.ok) {
+          throw new Error(`上传失败（${putRes.status}）`)
+        }
+
+        item.part = {
+          type: 'file',
+          url: signed.publicUrl,
+          mediaType,
+          filename
+        }
+        item.status = 'ready'
+      } catch (e) {
+        item.status = 'error'
+        item.error = e instanceof Error ? e.message : '图片处理失败，请重试'
+        // 不释放 blob URL —— 预览仍可用原图
       }
-      item.status = 'ready'
-    } catch (e) {
-      item.status = 'error'
-      item.error = e instanceof Error ? e.message : '图片处理失败，请重试'
-      // 不释放 blob URL —— 预览仍可用原图
-    }
+    })
   }
 
   async function addFiles(incoming: File[]) {
@@ -131,9 +172,9 @@ export function useChatFileUpload() {
     }))
     items.value = [...items.value, ...newItems]
 
-    // 并行压缩 —— 传 index，通过 items.value[index] 拿 Proxy 对象
-    await Promise.allSettled(
-      newItems.map((_, i) => compressOne(startIndex + i))
+    // 并行排队（队列内部串行执行，保证 presign 状态安全）
+    await Promise.all(
+      newItems.map((_, i) => compressAndUploadOne(startIndex + i))
     )
   }
 
@@ -160,7 +201,7 @@ export function useChatFileUpload() {
     clearFiles()
   })
 
-  /** 是否有文件仍在压缩中 */
+  /** 是否有文件仍在压缩/上传中 */
   const isCompressing = computed(() =>
     items.value.some(i => i.status === 'compressing')
   )

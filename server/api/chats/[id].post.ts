@@ -11,6 +11,7 @@ import {
 import { chartTool } from '#shared/utils/tools/chart'
 import { checkDailyLimit } from '../../utils/rateLimiter'
 import { getRequestAbortSignal } from '../../utils/requestAbort'
+import { assertAllowedChatFileUrls } from '../../utils/r2'
 import {
   awaitMimoSources,
   bindMimoRequestContext,
@@ -63,6 +64,9 @@ export default defineEventHandler(async (event) => {
   )
   if (hasImageParts && !(await modelSupportsImages(modelValue))) {
     throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
+  }
+  for (const msg of messages) {
+    assertAllowedChatFileUrls(msg.parts)
   }
 
   const chat = await db.query.chats.findFirst({
