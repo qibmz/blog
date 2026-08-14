@@ -152,6 +152,7 @@ export default defineEventHandler(async (event) => {
 **图表：**
 - 用户要求画图、看趋势、对比数据或占比时，调用 chart 工具
 - type 按场景选择：趋势用 line/area，分类对比用 bar，占比构成用 donut
+- donut 每个扇区用不同颜色（data.color 或多样 series.color）
 - 不要只用 markdown 表格代替可视化`,
         messages: await convertToModelMessages(messages as UIMessage[], tools ? { tools } : undefined),
         abortSignal,

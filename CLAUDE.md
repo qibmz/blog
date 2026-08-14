@@ -105,6 +105,7 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 - `app/pages/chat/index.vue` — 新建聊天页，提示输入 + 模型选择 + 快捷建议
 - `app/pages/chat/[id].vue` — 聊天详情，`@ai-sdk/vue` `useChat` + `DefaultChatTransport` 流式通信
 - `app/components/chat/ChatComark.ts` — 通过 `@comark/nuxt` `defineMarkdownComponent` + Shiki 渲染 AI 回复（`:value` 传 markdown），注册了 html/css/python/sql/go/rust/java/c/cpp/ruby/php/swift/kotlin/diff/dockerfile/xml/toml/graphql 额外语言
+- `app/components/chat/ChatThinkingMatrix.vue` — 思考中点阵动画（indicator / 深度思考开关）
 - `app/components/chat/ChatToolChart.vue` — DeepSeek chart tool 渲染（line / area / bar / donut，`nuxt-charts`）
 - `app/components/chat/ChatSearch.vue` — 命令面板模态框，搜索历史聊天
 - `app/composables/useApi.ts` — 全局 API 封装（`useAPI` composable），内置 401 跳转 + toast 错误提示

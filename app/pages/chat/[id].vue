@@ -507,7 +507,10 @@ onMounted(async () => {
               </template>
 
               <template #indicator>
-                <UChatShimmer text="思考中..." />
+                <div class="flex items-center gap-2 text-muted">
+                  <ChatThinkingMatrix />
+                  <UChatShimmer text="思考中..." />
+                </div>
               </template>
 
               <template #files="{ parts: msgFileParts }">
@@ -566,12 +569,23 @@ onMounted(async () => {
                   />
                   <UButton
                     label="深度思考"
-                    icon="i-lucide-brain"
                     :variant="thinkingMode ? 'soft' : 'ghost'"
                     :color="thinkingMode ? 'primary' : 'neutral'"
                     size="sm"
                     @click="toggleThinkingMode"
-                  />
+                  >
+                    <template #leading>
+                      <ChatThinkingMatrix
+                        v-if="thinkingMode"
+                        class="text-primary"
+                      />
+                      <UIcon
+                        v-else
+                        name="i-lucide-brain"
+                        class="size-4"
+                      />
+                    </template>
+                  </UButton>
                   <USelectMenu
                     v-model="selectedModel"
                     :items="modelOptions"

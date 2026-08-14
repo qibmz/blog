@@ -233,12 +233,23 @@ function goToLogin() {
                   />
                   <UButton
                     label="深度思考"
-                    icon="i-lucide-brain"
                     :variant="thinkingMode ? 'soft' : 'ghost'"
                     :color="thinkingMode ? 'primary' : 'neutral'"
                     size="sm"
                     @click="toggleThinkingMode"
-                  />
+                  >
+                    <template #leading>
+                      <ChatThinkingMatrix
+                        v-if="thinkingMode"
+                        class="text-primary"
+                      />
+                      <UIcon
+                        v-else
+                        name="i-lucide-brain"
+                        class="size-4"
+                      />
+                    </template>
+                  </UButton>
                   <USelectMenu
                     v-model="selectedModel"
                     :items="modelOptions"

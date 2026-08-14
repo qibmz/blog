@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ChartType, ChartUIToolInvocation } from '#shared/utils/tools/chart'
+import { resolveDonutSliceColor } from '#shared/utils/tools/chartColors'
 import type { BulletLegendItemInterface } from 'vue-chrts/types'
 import { CurveType, LegendPosition } from 'vue-chrts/enums'
 import { AreaChart, BarChart, DonutChart, DonutType, LineChart } from 'vue-chrts'
@@ -102,7 +103,7 @@ const categories = computed(() => {
 
 const yAxisKeys = computed(() => chart.value?.series.map(serie => serie.key) ?? [])
 
-/** Donut：每行一个扇区，数值取首个 series.key，颜色按 series 轮询 */
+/** Donut：每行一个扇区；颜色优先 row.color / 多 series 色，否则用色板区分 */
 const donutData = computed(() => {
   if (!chart.value || chartType.value !== 'donut') return [] as number[]
   const valueKey = chart.value.series[0]!.key
@@ -114,12 +115,11 @@ const donutData = computed(() => {
 
 const donutCategories = computed(() => {
   if (!chart.value || chartType.value !== 'donut') return {} as Record<string, BulletLegendItemInterface>
-  const colors = chart.value.series.map(s => s.color)
   return chart.value.data.reduce((acc, row, index) => {
     const label = String(row[chart.value!.xKey] ?? `项${index + 1}`)
     acc[`slice-${index}`] = {
       name: label,
-      color: colors[index % colors.length] || '#3b82f6'
+      color: resolveDonutSliceColor(row, index, chart.value!.series)
     }
     return acc
   }, {} as Record<string, BulletLegendItemInterface>)
