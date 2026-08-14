@@ -89,6 +89,13 @@ NUXT_OAUTH_GOOGLE_CLIENT_SECRET=
 # AI 模型
 DEEPSEEK_API_KEY=
 MIMO_API_KEY=
+# Cloudflare R2（Chat 图片上传；预签名直传）
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET_NAME=
+# 公开读基址（可不配，默认 https://img.qibmz.com）
+# R2_PUBLIC_BASE_URL=https://img.qibmz.com
 
 # ── 可选 ──────────────────────────────────────────────────────────────
 # 应用基础路径（默认 /；GitHub Pages 子路径部署时才需要）
