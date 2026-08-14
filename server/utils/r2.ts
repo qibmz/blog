@@ -48,7 +48,10 @@ function getS3Client() {
   _client = new S3Client({
     region: 'auto',
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-    credentials: { accessKeyId, secretAccessKey }
+    credentials: { accessKeyId, secretAccessKey },
+    // 浏览器直传不需要柔性校验和；否则预签名会带 x-amz-checksum-*，CORS 预检失败
+    requestChecksumCalculation: 'WHEN_REQUIRED',
+    responseChecksumValidation: 'WHEN_REQUIRED'
   })
   return _client
 }

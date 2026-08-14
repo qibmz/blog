@@ -96,6 +96,21 @@ R2_SECRET_ACCESS_KEY=
 R2_BUCKET_NAME=
 # 公开读基址（可不配，默认 https://img.qibmz.com）
 # R2_PUBLIC_BASE_URL=https://img.qibmz.com
+#
+# R2 bucket CORS（Settings → CORS Policy；浏览器直传 PUT 必需）：
+# [
+#   {
+#     "AllowedOrigins": [
+#       "http://localhost:3000",
+#       "https://blog.qibmz.com",
+#       "https://qibmz-blog-git-develop-qibmzs-projects.vercel.app"
+#     ],
+#     "AllowedMethods": ["GET", "PUT", "HEAD"],
+#     "AllowedHeaders": ["*"],
+#     "ExposeHeaders": ["ETag"],
+#     "MaxAgeSeconds": 86400
+#   }
+# ]
 
 # ── 可选 ──────────────────────────────────────────────────────────────
 # 应用基础路径（默认 /；GitHub Pages 子路径部署时才需要）
