@@ -55,6 +55,10 @@ watch(
       resume()
     } else {
       pause()
+      // 关闭时保持最后一帧；首屏即为关闭则亮一格静态点阵，避免全灰
+      if (activeDots.value.size === 0) {
+        activeDots.value = new Set(patterns[0]?.[0] ?? [])
+      }
     }
   },
   { immediate: true }

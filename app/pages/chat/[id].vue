@@ -576,13 +576,8 @@ onMounted(async () => {
                   >
                     <template #leading>
                       <ChatThinkingMatrix
-                        v-if="thinkingMode"
-                        class="text-primary"
-                      />
-                      <UIcon
-                        v-else
-                        name="i-lucide-brain"
-                        class="size-4"
+                        :playing="thinkingMode"
+                        :class="thinkingMode ? 'text-primary' : undefined"
                       />
                     </template>
                   </UButton>

@@ -139,16 +139,15 @@ function saveAsImage() {
       </UTooltip>
     </div>
 
-    <div class="relative overflow-hidden rounded-lg">
+    <div class="relative h-[300px] w-full overflow-hidden rounded-lg">
       <ClientOnly>
         <VChart
           ref="chartRef"
-          class="h-[300px] w-full"
           :option="option"
           autoresize
         />
         <template #fallback>
-          <div class="flex items-center justify-center h-[300px] text-sm text-muted">
+          <div class="flex items-center justify-center h-full text-sm text-muted">
             正在渲染图表...
           </div>
         </template>
