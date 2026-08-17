@@ -302,7 +302,7 @@ describe('POST /api/chats/:id', () => {
           messages: [{
             id: 'msg-1',
             role: 'user',
-            parts: [{ type: 'file', url: 'data:image/png;base64,xxx', mediaType: 'image/png' }]
+            parts: [{ type: 'file', url: 'https://img.qibmz.com/chat/u1/a.png', mediaType: 'image/png' }]
           }]
         }
         return typeof validateFn === 'function' ? validateFn(body) : body
@@ -338,7 +338,7 @@ describe('POST /api/chats/:id', () => {
             id: 'msg-1',
             role: 'user',
             parts: [
-              { type: 'file', url: 'data:image/png;base64,xxx', mediaType: 'image/png' },
+              { type: 'file', url: 'https://img.qibmz.com/chat/u1/a.png', mediaType: 'image/png' },
               { type: 'text', text: '这是什么图' }
             ]
           }]
@@ -357,7 +357,7 @@ describe('POST /api/chats/:id', () => {
           id: 'msg-1',
           role: 'user',
           parts: [
-            { type: 'file', url: 'data:image/png;base64,xxx', mediaType: 'image/png' },
+            { type: 'file', url: 'https://img.qibmz.com/chat/u1/a.png', mediaType: 'image/png' },
             { type: 'text', text: '这是什么图' }
           ]
         })

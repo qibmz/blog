@@ -17,13 +17,27 @@ describe('assertAllowedChatFileUrls', () => {
     })
   })
 
-  it('allows R2 public URLs and legacy data URLs', async () => {
+  it('allows R2 public URLs', async () => {
     const { assertAllowedChatFileUrls } = await import('../r2')
     expect(() => assertAllowedChatFileUrls([
       { type: 'file', url: 'https://img.qibmz.com/chat/u1/a.jpg', mediaType: 'image/jpeg' },
-      { type: 'file', url: 'data:image/png;base64,xxx', mediaType: 'image/png' },
       { type: 'text', text: 'hi' }
     ])).not.toThrow()
+  })
+
+  it('rejects legacy data URLs on new writes', async () => {
+    const { assertAllowedChatFileUrls } = await import('../r2')
+    try {
+      assertAllowedChatFileUrls([
+        { type: 'file', url: 'data:image/png;base64,xxx', mediaType: 'image/png' }
+      ])
+      expect.fail('expected throw')
+    } catch (err) {
+      expect(err).toMatchObject({
+        statusCode: 400,
+        statusMessage: '非法图片地址'
+      })
+    }
   })
 
   it('rejects arbitrary https URLs', async () => {

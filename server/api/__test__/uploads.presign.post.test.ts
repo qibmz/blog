@@ -12,7 +12,8 @@ vi.mock('../../utils/r2', () => ({
   createPresignedUpload: mockCreatePresignedUpload,
   publicUrlForKey: mockPublicUrlForKey,
   isChatImageMimeType: mockIsChatImageMimeType,
-  extensionForMime: mockExtensionForMime
+  extensionForMime: mockExtensionForMime,
+  MAX_CHAT_IMAGE_BYTES: 5 * 1024 * 1024
 }))
 
 beforeEach(() => {
@@ -29,7 +30,7 @@ describe('POST /api/uploads/presign', () => {
   it('should return uploadUrl, publicUrl and key for valid image type', async () => {
     mockReadValidatedBody.mockImplementationOnce(
       async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
-        const body = { contentType: 'image/jpeg', filename: 'photo.jpg' }
+        const body = { contentType: 'image/jpeg', contentLength: 1024, filename: 'photo.jpg' }
         return typeof validateFn === 'function' ? validateFn(body) : body
       }
     )
@@ -39,20 +40,36 @@ describe('POST /api/uploads/presign', () => {
 
     expect(result).toMatchObject({
       uploadUrl: 'https://r2.example/presigned-put',
-      filename: 'photo.jpg'
+      filename: 'photo.jpg',
+      contentLength: 1024
     })
     expect(result.publicUrl).toMatch(/^https:\/\/img\.qibmz\.com\/chat\/test-user-1\//)
     expect(result.key).toMatch(/^chat\/test-user-1\/.+\.jpg$/)
     expect(mockCreatePresignedUpload).toHaveBeenCalledWith({
       key: result.key,
-      contentType: 'image/jpeg'
+      contentType: 'image/jpeg',
+      contentLength: 1024
     })
+  })
+
+  it('should reject contentLength over 5MB', async () => {
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
+        const body = { contentType: 'image/jpeg', contentLength: 6 * 1024 * 1024 }
+        return typeof validateFn === 'function' ? validateFn(body) : body
+      }
+    )
+
+    const { default: handler } = await import('../uploads/presign.post')
+
+    await expect(handler({ context: {}, path: '/api/uploads/presign' } as any)).rejects.toThrow()
+    expect(mockCreatePresignedUpload).not.toHaveBeenCalled()
   })
 
   it('should reject unsupported mime types', async () => {
     mockReadValidatedBody.mockImplementationOnce(
       async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
-        const body = { contentType: 'application/pdf' }
+        const body = { contentType: 'application/pdf', contentLength: 100 }
         return typeof validateFn === 'function' ? validateFn(body) : body
       }
     )

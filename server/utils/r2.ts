@@ -12,6 +12,9 @@ export const CHAT_IMAGE_MIME_TYPES = [
 
 export type ChatImageMimeType = (typeof CHAT_IMAGE_MIME_TYPES)[number]
 
+/** 与前端 useChatFileUpload 一致 */
+export const MAX_CHAT_IMAGE_BYTES = 5 * 1024 * 1024
+
 const MIME_TO_EXT: Record<ChatImageMimeType, string> = {
   'image/jpeg': '.jpg',
   'image/png': '.png',
@@ -69,24 +72,31 @@ export function publicUrlForKey(key: string): string {
   return `${publicBaseUrl}/${key.replace(/^\//, '')}`
 }
 
+/** URL 白名单只需公开读基址，不要求完整 R2 密钥 */
 export function getR2PublicBaseUrl(): string {
-  return getR2Config().publicBaseUrl
+  const config = useRuntimeConfig()
+  return String(config.r2PublicBaseUrl || 'https://img.qibmz.com').replace(/\/$/, '')
 }
 
 export async function createPresignedUpload(params: {
   key: string
   contentType: ChatImageMimeType
+  contentLength: number
 }): Promise<string> {
   const { bucketName } = getR2Config()
   const command = new PutObjectCommand({
     Bucket: bucketName,
     Key: params.key,
-    ContentType: params.contentType
+    ContentType: params.contentType,
+    ContentLength: params.contentLength
   })
   return getSignedUrl(getS3Client(), command, { expiresIn: PRESIGN_EXPIRES_SECONDS })
 }
 
-/** 校验即将落库的 file part URL：允许 R2 公开域或历史 data: */
+/**
+ * 校验即将落库的 file part URL。
+ * 新写入只允许 R2 公开域；不再接受 data:（旧库中的 data: 历史消息仍可被 GET 读出展示）。
+ */
 export function assertAllowedChatFileUrls(parts: unknown[] | undefined) {
   if (!Array.isArray(parts)) return
 
@@ -95,16 +105,10 @@ export function assertAllowedChatFileUrls(parts: unknown[] | undefined) {
   )
   if (fileParts.length === 0) return
 
-  let publicBaseUrl = ''
-  try {
-    publicBaseUrl = getR2PublicBaseUrl()
-  } catch {
-    // 未配 R2 时仍允许 data:（旧消息 / 本地无密钥）
-  }
+  const publicBaseUrl = getR2PublicBaseUrl()
 
   for (const p of fileParts) {
     const url = typeof p.url === 'string' ? p.url : ''
-    if (url.startsWith('data:')) continue
     if (publicBaseUrl && (url === publicBaseUrl || url.startsWith(`${publicBaseUrl}/`))) continue
     throw createError({ statusCode: 400, statusMessage: '非法图片地址' })
   }

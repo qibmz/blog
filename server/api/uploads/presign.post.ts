@@ -4,14 +4,16 @@ import {
   createPresignedUpload,
   extensionForMime,
   isChatImageMimeType,
+  MAX_CHAT_IMAGE_BYTES,
   publicUrlForKey
 } from '../../utils/r2'
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
 
-  const { contentType, filename } = await readValidatedBody(event, z.object({
+  const { contentType, contentLength, filename } = await readValidatedBody(event, z.object({
     contentType: z.string().min(1),
+    contentLength: z.number().int().positive().max(MAX_CHAT_IMAGE_BYTES),
     filename: z.string().optional()
   }).parse)
 
@@ -20,13 +22,14 @@ export default defineEventHandler(async (event) => {
   }
 
   const key = `chat/${user.id}/${crypto.randomUUID()}${extensionForMime(contentType)}`
-  const uploadUrl = await createPresignedUpload({ key, contentType })
+  const uploadUrl = await createPresignedUpload({ key, contentType, contentLength })
   const publicUrl = publicUrlForKey(key)
 
   return {
     uploadUrl,
     publicUrl,
     key,
+    contentLength,
     ...(filename ? { filename } : {})
   }
 })

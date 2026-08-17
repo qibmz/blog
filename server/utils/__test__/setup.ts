@@ -174,6 +174,15 @@ vi.stubGlobal('chats', mockSchema.chats)
 vi.stubGlobal('messages', mockSchema.messages)
 vi.stubGlobal('$fetch', mock$Fetch)
 
+vi.stubGlobal('useRuntimeConfig', () => ({
+  r2AccountId: 'test-account',
+  r2AccessKeyId: 'test-key',
+  r2SecretAccessKey: 'test-secret',
+  r2BucketName: 'test-bucket',
+  r2PublicBaseUrl: 'https://img.qibmz.com',
+  public: {}
+}))
+
 // h3 auto-imports
 vi.stubGlobal('defineEventHandler', mockDefineEventHandler)
 vi.stubGlobal('getValidatedRouterParams', mockGetValidatedRouterParams)
