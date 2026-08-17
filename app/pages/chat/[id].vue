@@ -233,8 +233,10 @@ async function syncAssistantFromServer() {
   }
 }
 
-const { copy, copied } = useClipboard()
-const toast = useToast()
+const { copy, copied } = useClipboard({ copiedDuring: 2000 })
+const copiedMessageId = ref<string | null>(null)
+/** 消息创建时间：DB / 乐观条目有 createdAt；流式新消息补本地时间戳 */
+const messageCreatedAt = ref<Record<string, string>>({})
 
 const feedbackState = ref<Record<string, { liked?: boolean, disliked?: boolean }>>({})
 const feedbackPulse = ref<Record<string, { like?: number, dislike?: number }>>({})
@@ -251,15 +253,79 @@ function isDisliked(messageId: string) {
   return !!feedbackState.value[messageId]?.disliked
 }
 
+function isCopied(messageId: string) {
+  return copied.value && copiedMessageId.value === messageId
+}
+
+function rememberCreatedAt(id: string, raw: unknown, overwrite = false) {
+  if (!id) return
+  if (messageCreatedAt.value[id] && !overwrite) return
+  if (raw instanceof Date) {
+    messageCreatedAt.value[id] = raw.toISOString()
+    return
+  }
+  if (typeof raw === 'string' && raw) {
+    messageCreatedAt.value[id] = raw
+  }
+}
+
+function formatMessageDate(message: UIMessage) {
+  const raw = messageCreatedAt.value[message.id]
+    ?? (message as { createdAt?: string | Date }).createdAt
+    ?? (message.metadata as { createdAt?: string } | undefined)?.createdAt
+  if (!raw) return null
+  const date = raw instanceof Date ? raw : new Date(raw)
+  if (Number.isNaN(date.getTime())) return null
+  return {
+    iso: date.toISOString(),
+    time: date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+    full: date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    })
+  }
+}
+
 async function onCopy(message: UIMessage) {
   await copy(getTextContent(message.parts))
-  toast.add({
-    title: copied.value ? '已复制到剪贴板' : '复制失败，请重试',
-    icon: copied.value ? 'i-lucide-check' : 'i-lucide-x',
-    color: copied.value ? 'success' : 'error',
-    duration: 2000
-  })
+  copiedMessageId.value = copied.value ? message.id : null
 }
+
+watch(copied, (value) => {
+  if (!value) copiedMessageId.value = null
+})
+
+watch(
+  () => chatData.value?.messages,
+  (list) => {
+    for (const m of list ?? []) {
+      rememberCreatedAt(m.id, m.createdAt, true)
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  messages,
+  (list) => {
+    for (const m of list) {
+      const existing = (m as { createdAt?: string | Date }).createdAt
+        ?? (m.metadata as { createdAt?: string } | undefined)?.createdAt
+      if (existing) {
+        rememberCreatedAt(m.id, existing)
+      } else if (!messageCreatedAt.value[m.id]) {
+        messageCreatedAt.value[m.id] = new Date().toISOString()
+      }
+    }
+  },
+  { deep: true, immediate: true }
+)
 
 function toggleLike(message: UIMessage) {
   const fb = (feedbackState.value[message.id] ??= {})
@@ -402,7 +468,6 @@ onMounted(async () => {
             <UChatMessages
               :messages="messages"
               :assistant="assistantConfig"
-              :user="{ ui: { container: '!pb-0' } }"
               :status="status"
               :spacing-offset="160"
               auto-scroll-icon="i-lucide-chevron-down"
@@ -451,13 +516,13 @@ onMounted(async () => {
 
               <template #actions="{ message }">
                 <template v-if="(message as UIMessage).role === 'assistant'">
-                  <UTooltip text="复制">
+                  <UTooltip :text="isCopied((message as UIMessage).id) ? '已复制' : '复制'">
                     <UButton
-                      icon="i-lucide-copy"
+                      :icon="isCopied((message as UIMessage).id) ? 'i-lucide-check' : 'i-lucide-copy'"
                       size="sm"
-                      color="neutral"
+                      :color="isCopied((message as UIMessage).id) ? 'success' : 'neutral'"
                       variant="ghost"
-                      aria-label="复制"
+                      :aria-label="isCopied((message as UIMessage).id) ? '已复制' : '复制'"
                       @click="onCopy(message as UIMessage)"
                     />
                   </UTooltip>
@@ -502,6 +567,35 @@ onMounted(async () => {
                         @click="toggleDislike(message as UIMessage)"
                       />
                     </Motion>
+                  </UTooltip>
+                </template>
+
+                <template v-else-if="(message as UIMessage).role === 'user'">
+                  <template
+                    v-for="formattedDate in [formatMessageDate(message as UIMessage)]"
+                    :key="formattedDate?.iso ?? 'no-date'"
+                  >
+                    <UTooltip
+                      v-if="formattedDate"
+                      :text="formattedDate.full"
+                    >
+                      <time
+                        :datetime="formattedDate.iso"
+                        class="text-xs text-muted mr-1.5"
+                      >
+                        {{ formattedDate.time }}
+                      </time>
+                    </UTooltip>
+                  </template>
+                  <UTooltip :text="isCopied((message as UIMessage).id) ? '已复制' : '复制'">
+                    <UButton
+                      :icon="isCopied((message as UIMessage).id) ? 'i-lucide-check' : 'i-lucide-copy'"
+                      size="sm"
+                      :color="isCopied((message as UIMessage).id) ? 'success' : 'neutral'"
+                      variant="ghost"
+                      :aria-label="isCopied((message as UIMessage).id) ? '已复制' : '复制'"
+                      @click="onCopy(message as UIMessage)"
+                    />
                   </UTooltip>
                 </template>
               </template>
