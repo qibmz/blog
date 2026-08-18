@@ -108,6 +108,47 @@ const writingTopics = [
 
 const githubUrl = 'https://github.com/qibmz'
 const contactEmail = (page.value as unknown as { contact?: { email?: string } })?.contact?.email || '1583326640@qq.com'
+
+const stats = computed(() => [
+  { label: '技术文章', value: String(posts.value?.length || 0), suffix: '篇' },
+  { label: '深耕方向', value: '3', suffix: '年+' },
+  { label: '技术栈', value: '27', suffix: '项' }
+])
+
+const exploreLinks = [
+  {
+    label: '备忘录',
+    description: '零散的技术笔记与代码速查',
+    icon: 'i-lucide-notebook-pen',
+    to: '/docs',
+    accent: 'text-sky-500 bg-sky-50 ring-sky-200/70 dark:text-sky-300 dark:bg-sky-500/10 dark:ring-sky-400/20',
+    hoverShadow: 'hover:border-sky-300 hover:shadow-[0_0_32px_-8px_rgba(14,165,233,0.35)] dark:hover:border-sky-400/40'
+  },
+  {
+    label: 'AI Chat',
+    description: '和 AI 聊聊技术方案与思路',
+    icon: 'i-lucide-bot',
+    to: '/chat',
+    accent: 'text-violet-500 bg-violet-50 ring-violet-200/70 dark:text-violet-300 dark:bg-violet-500/10 dark:ring-violet-400/20',
+    hoverShadow: 'hover:border-violet-300 hover:shadow-[0_0_32px_-8px_rgba(139,92,246,0.35)] dark:hover:border-violet-400/40'
+  },
+  {
+    label: 'Demos',
+    description: 'K 线图、海报设计器等实验',
+    icon: 'i-lucide-flask-conical',
+    to: '/playground',
+    accent: 'text-amber-500 bg-amber-50 ring-amber-200/70 dark:text-amber-300 dark:bg-amber-500/10 dark:ring-amber-400/20',
+    hoverShadow: 'hover:border-amber-300 hover:shadow-[0_0_32px_-8px_rgba(245,158,11,0.35)] dark:hover:border-amber-400/40'
+  },
+  {
+    label: '关于我',
+    description: '工作经历与技术方向',
+    icon: 'i-lucide-user-round',
+    to: '/about-us',
+    accent: 'text-primary-500 bg-primary-50 ring-primary-200/70 dark:text-primary-300 dark:bg-primary-500/10 dark:ring-primary-400/20',
+    hoverShadow: 'hover:border-primary-300 hover:shadow-[0_0_32px_-8px_rgba(59,130,246,0.35)] dark:hover:border-primary-400/40'
+  }
+]
 </script>
 
 <template>
@@ -272,6 +313,68 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
       </div>
 
       <section
+        aria-label="个人简介与数据"
+        class="relative -mt-12 md:-mt-16"
+      >
+        <UContainer>
+          <Motion
+            :initial="{ opacity: 0, y: 16 }"
+            :while-in-view="{ opacity: 1, y: 0 }"
+            :transition="{ duration: 0.35 }"
+            :viewport="{ once: true, margin: '-60px' }"
+            class="flex flex-col items-center gap-6 rounded-3xl border border-slate-200/70 bg-white/70 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-xl md:flex-row md:items-center md:justify-between md:p-8 dark:border-white/10 dark:bg-white/[0.05] dark:shadow-black/20"
+          >
+            <div class="flex items-center gap-4">
+              <span class="relative shrink-0">
+                <span class="absolute -inset-0.5 rounded-full bg-linear-to-br from-primary-400 to-primary-600 opacity-70 blur-[6px]" />
+                <NuxtImg
+                  src="/image/avatar.avif"
+                  alt="qibmz 头像"
+                  width="64"
+                  height="64"
+                  class="relative size-16 rounded-full object-cover ring-2 ring-white dark:ring-gray-950"
+                />
+                <span class="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-emerald-400 ring-2 ring-white dark:ring-gray-950">
+                  <span class="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-70 motion-reduce:animate-none" />
+                </span>
+              </span>
+              <div>
+                <p class="font-mono text-xs text-primary-600 dark:text-primary-400">
+                  $ whoami
+                </p>
+                <h2 class="mt-0.5 text-lg font-bold text-slate-950 dark:text-white">
+                  qibmz · 前端开发者
+                </h2>
+                <p class="mt-1 max-w-xs text-sm leading-6 text-slate-600 dark:text-gray-400">
+                  用代码记录踩坑，把弯路变成别人的近路
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-4 md:gap-6">
+              <template
+                v-for="(stat, index) in stats"
+                :key="stat.label"
+              >
+                <div
+                  v-if="index > 0"
+                  class="h-8 w-px shrink-0 bg-slate-200 dark:bg-white/10"
+                />
+                <div class="text-center">
+                  <p class="text-2xl font-bold text-slate-950 tabular-nums dark:text-white">
+                    {{ stat.value }}<span class="text-sm font-semibold text-primary-500">{{ stat.suffix }}</span>
+                  </p>
+                  <p class="mt-0.5 text-xs text-slate-500 dark:text-gray-400">
+                    {{ stat.label }}
+                  </p>
+                </div>
+              </template>
+            </div>
+          </Motion>
+        </UContainer>
+      </section>
+
+      <section
         id="recent-articles"
         aria-labelledby="recent-articles-title"
         class="relative scroll-mt-20 py-14 md:py-18"
@@ -293,7 +396,7 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
               to="/blog"
               class="group inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:text-primary-400"
             >
-              查看全部文章
+              查���全部文章
               <UIcon
                 name="i-lucide-arrow-right"
                 class="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
@@ -451,6 +554,61 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
       </section>
 
       <section
+        aria-labelledby="explore-title"
+        class="relative py-12 md:py-16"
+      >
+        <UContainer>
+          <div class="mb-7">
+            <p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 dark:text-primary-400">
+              不止于博客
+            </p>
+            <h2
+              id="explore-title"
+              class="text-2xl font-bold text-slate-950 dark:text-white"
+            >
+              探索更多
+            </h2>
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Motion
+              v-for="(link, index) in exploreLinks"
+              :key="link.label"
+              :initial="{ opacity: 0, y: 12 }"
+              :while-in-view="{ opacity: 1, y: 0 }"
+              :transition="{ duration: 0.25, delay: index * 0.06 }"
+              :viewport="{ once: true, margin: '-80px' }"
+            >
+              <NuxtLink
+                :to="link.to"
+                class="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white/60 p-5 backdrop-blur-md transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:border-white/10 dark:bg-white/[0.04]"
+                :class="link.hoverShadow"
+              >
+                <span
+                  class="flex size-11 shrink-0 items-center justify-center rounded-xl ring-1"
+                  :class="link.accent"
+                >
+                  <UIcon
+                    :name="link.icon"
+                    class="size-5"
+                  />
+                </span>
+                <h3 class="mt-4 text-base font-semibold text-slate-950 dark:text-white">
+                  {{ link.label }}
+                </h3>
+                <p class="mt-1.5 text-sm leading-6 text-slate-600 dark:text-gray-400">
+                  {{ link.description }}
+                </p>
+                <UIcon
+                  name="i-lucide-arrow-up-right"
+                  class="mt-auto ml-auto size-4 shrink-0 pt-3 text-slate-400 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 dark:text-gray-500"
+                />
+              </NuxtLink>
+            </Motion>
+          </div>
+        </UContainer>
+      </section>
+
+      <section
         aria-labelledby="tech-stack-title"
         class="relative py-12 md:py-14"
       >
@@ -472,14 +630,24 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
 
       <section class="relative pb-14 md:pb-18">
         <UContainer>
-          <div class="relative overflow-hidden rounded-3xl bg-slate-950 px-6 py-10 text-center ring-1 ring-white/10 md:px-12 md:py-14">
+          <div class="relative mx-auto max-w-2xl overflow-hidden rounded-2xl bg-slate-950 ring-1 ring-white/10 shadow-2xl shadow-primary-900/20">
             <div class="pointer-events-none absolute inset-0 -z-1">
               <div class="absolute left-1/2 top-1/2 size-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-500/25 blur-[110px]" />
               <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent_55%)]" />
+              <div class="absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:20px_20px] opacity-40" />
             </div>
-            <div class="relative">
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary-300">
-                保持联系
+
+            <!-- 终端标题栏 -->
+            <div class="relative flex items-center gap-2 border-b border-white/10 bg-white/[0.03] px-4 py-3">
+              <span class="size-2.5 rounded-full bg-red-400/80" />
+              <span class="size-2.5 rounded-full bg-amber-400/80" />
+              <span class="size-2.5 rounded-full bg-emerald-400/80" />
+              <span class="ml-2 font-mono text-xs text-slate-400">contact.sh</span>
+            </div>
+
+            <div class="relative px-6 py-10 text-center md:px-12 md:py-12">
+              <p class="font-mono text-xs text-primary-300">
+                <span class="text-emerald-400">$</span> ./contact --me
               </p>
               <h2 class="mt-3 text-2xl font-bold text-white md:text-3xl">
                 一起做点有意思的东西
@@ -510,6 +678,9 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
                   GitHub
                 </UButton>
               </div>
+              <p class="mt-8 font-mono text-[11px] text-slate-500">
+                <span class="text-emerald-400">➜</span> 响应速度：通常 24 小时内回复
+              </p>
             </div>
           </div>
         </UContainer>
