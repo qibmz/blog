@@ -14,12 +14,14 @@ definePageMeta({
 
 const title = '海报设计器'
 const description = '插入文字与图片图层，导出百分比 JSON，C 端用 Canvas 渲染'
+const seoTitle = '海报设计器：文字 / 图片图层编辑并导出 Canvas 配置'
+const seoDescription = '在线编辑海报文字与图片图层，按百分比导出 JSON 配置，供 C 端用 Canvas 渲染活动海报和运营物料。'
 
 useSeoMeta({
-  title,
-  description,
-  ogTitle: title,
-  ogDescription: description
+  title: seoTitle,
+  description: seoDescription,
+  ogTitle: seoTitle,
+  ogDescription: seoDescription
 })
 
 const toast = useToast()

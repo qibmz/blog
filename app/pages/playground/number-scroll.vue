@@ -1,6 +1,6 @@
 <script setup lang="ts">
-const title = '数字滚动动画'
-const description = '高性能 GPU 加速数字滚动组件演示'
+const title = 'Vue 3 数字滚动动画演示：CSS transform 与 GPU 加速'
+const description = '在线试用 Vue 3 数字滚动组件，用 CSS transform 做 GPU 加速过渡，适合数据大屏、计数器和统计面板；可对照配套实现文章查看源码。'
 
 useSeoMeta({
   title,

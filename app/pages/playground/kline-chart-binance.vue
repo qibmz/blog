@@ -2,8 +2,8 @@
 import type { PeriodType } from 'klinecharts'
 import type { BinanceTradeData } from '~/composables/useBinanceBusiness'
 
-const title = 'K线图表'
-const description = '基于币安实现的实时K线图表组件演示'
+const title = '币安实时 K 线图表演示：WebSocket 与 KLineChart'
+const description = '基于 Binance WebSocket 和 KLineChart 的 Vue 实时 K 线演示，支持周期切换、最新成交列表和全屏查看。'
 
 useSeoMeta({
   title,
