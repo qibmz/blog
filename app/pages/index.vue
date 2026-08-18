@@ -322,8 +322,14 @@ const exploreLinks = [
             :while-in-view="{ opacity: 1, y: 0 }"
             :transition="{ duration: 0.35 }"
             :viewport="{ once: true, margin: '-60px' }"
-            class="flex flex-col items-center gap-6 rounded-3xl border border-slate-200/70 bg-white/70 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-xl md:flex-row md:items-center md:justify-between md:p-8 dark:border-white/10 dark:bg-white/[0.05] dark:shadow-black/20"
+            class="relative flex flex-col items-center gap-6 overflow-hidden rounded-3xl border border-slate-200/70 bg-white/70 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-xl md:flex-row md:items-center md:justify-between md:p-8 dark:border-white/10 dark:bg-white/[0.05] dark:shadow-black/20"
           >
+            <div
+              class="pointer-events-none absolute inset-0 -z-1 opacity-[0.35] [mask-image:linear-gradient(to_bottom,black,transparent)] dark:opacity-[0.12]"
+              aria-hidden="true"
+              style="background-image: radial-gradient(currentColor 1px, transparent 1px); background-size: 16px 16px; color: rgb(100 116 139);"
+            />
+            <DecorCorners />
             <div class="flex items-center gap-4">
               <span class="relative shrink-0">
                 <span class="absolute -inset-0.5 rounded-full bg-linear-to-br from-primary-400 to-primary-600 opacity-70 blur-[6px]" />
@@ -380,10 +386,16 @@ const exploreLinks = [
         class="relative scroll-mt-20 py-14 md:py-18"
       >
         <UContainer>
-          <div class="mb-8 flex items-end justify-between gap-4">
+          <div class="relative mb-8 flex items-end justify-between gap-4">
+            <span
+              class="pointer-events-none absolute -top-6 right-0 hidden select-none font-mono text-6xl font-bold text-slate-900/[0.04] md:block dark:text-white/[0.04]"
+              aria-hidden="true"
+            >
+              01
+            </span>
             <div>
-              <p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 dark:text-primary-400">
-                近期更新
+              <p class="mb-2 flex items-center gap-1.5 font-mono text-xs font-semibold uppercase tracking-[0.1em] text-primary-600 dark:text-primary-400">
+                <span class="text-slate-400 dark:text-gray-500">//</span> 近期更新
               </p>
               <h2
                 id="recent-articles-title"
@@ -396,7 +408,7 @@ const exploreLinks = [
               to="/blog"
               class="group inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:text-primary-400"
             >
-              查���全部文章
+              查看全部文章
               <UIcon
                 name="i-lucide-arrow-right"
                 class="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
@@ -418,8 +430,16 @@ const exploreLinks = [
             >
               <NuxtLink
                 :to="featuredUpdate.to"
-                class="group flex h-full min-h-72 flex-col justify-between rounded-2xl border border-slate-200/70 bg-white/60 p-6 shadow-[0_1px_0_rgba(255,255,255,0.4)_inset] backdrop-blur-md transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_1px_0_rgba(255,255,255,0.06)_inset] dark:hover:border-primary-400/40 dark:hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.35)]"
+                class="group relative flex h-full min-h-72 flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/70 bg-white/60 p-6 shadow-[0_1px_0_rgba(255,255,255,0.4)_inset] backdrop-blur-md transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_1px_0_rgba(255,255,255,0.06)_inset] dark:hover:border-primary-400/40 dark:hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.35)]"
               >
+                <DecorCorners inset="1rem" />
+                <span class="absolute -right-9 top-5 flex w-32 -rotate-45 items-center justify-center gap-1 bg-primary-500 py-1 text-[11px] font-semibold text-white shadow-md">
+                  <UIcon
+                    name="i-lucide-pin"
+                    class="size-3"
+                  />
+                  精选
+                </span>
                 <div>
                   <div class="mb-4 flex items-center gap-2 text-xs">
                     <span class="rounded-full bg-primary-50 px-2.5 py-1 font-semibold text-primary-700 ring-1 ring-primary-200/70 dark:bg-primary-500/10 dark:text-primary-300 dark:ring-primary-400/20">
@@ -512,10 +532,16 @@ const exploreLinks = [
         class="relative py-12 md:py-16"
       >
         <UContainer>
-          <div class="grid gap-8 rounded-3xl border border-slate-200/70 bg-white/50 p-6 backdrop-blur-md md:p-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center dark:border-white/10 dark:bg-white/[0.03]">
+          <div class="relative grid gap-8 overflow-hidden rounded-3xl border border-slate-200/70 bg-white/50 p-6 backdrop-blur-md md:p-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center dark:border-white/10 dark:bg-white/[0.03]">
+            <DecorCorners />
+            <UIcon
+              name="i-lucide-braces"
+              class="pointer-events-none absolute -bottom-8 -left-8 hidden size-40 text-slate-900/[0.03] md:block dark:text-white/[0.04]"
+              aria-hidden="true"
+            />
             <div>
-              <p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 dark:text-primary-400">
-                内容方向
+              <p class="mb-2 flex items-center gap-1.5 font-mono text-xs font-semibold uppercase tracking-[0.1em] text-primary-600 dark:text-primary-400">
+                <span class="text-slate-400 dark:text-gray-500">//</span> 内容方向
               </p>
               <h2
                 id="writing-topics-title"
@@ -558,9 +584,15 @@ const exploreLinks = [
         class="relative py-12 md:py-16"
       >
         <UContainer>
-          <div class="mb-7">
-            <p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 dark:text-primary-400">
-              不止于博客
+          <div class="relative mb-7">
+            <span
+              class="pointer-events-none absolute -top-6 right-0 hidden select-none font-mono text-6xl font-bold text-slate-900/[0.04] md:block dark:text-white/[0.04]"
+              aria-hidden="true"
+            >
+              02
+            </span>
+            <p class="mb-2 flex items-center gap-1.5 font-mono text-xs font-semibold uppercase tracking-[0.1em] text-primary-600 dark:text-primary-400">
+              <span class="text-slate-400 dark:text-gray-500">//</span> 不止于博客
             </p>
             <h2
               id="explore-title"
@@ -583,6 +615,12 @@ const exploreLinks = [
                 class="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white/60 p-5 backdrop-blur-md transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:border-white/10 dark:bg-white/[0.04]"
                 :class="link.hoverShadow"
               >
+                <span
+                  class="pointer-events-none absolute right-3 top-3 select-none font-mono text-[11px] text-slate-400/70 dark:text-gray-500/70"
+                  aria-hidden="true"
+                >
+                  {{ String(index + 1).padStart(2, '0') }}
+                </span>
                 <span
                   class="flex size-11 shrink-0 items-center justify-center rounded-xl ring-1"
                   :class="link.accent"
@@ -613,23 +651,40 @@ const exploreLinks = [
         class="relative py-12 md:py-14"
       >
         <UContainer>
-          <div class="mb-7">
-            <p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 dark:text-primary-400">
-              常用工具
-            </p>
-            <h2
-              id="tech-stack-title"
-              class="text-2xl font-bold text-slate-950 dark:text-white"
+          <div class="relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white/40 p-6 backdrop-blur-md md:p-8 dark:border-white/10 dark:bg-white/[0.02]">
+            <DecorCorners />
+            <span
+              class="pointer-events-none absolute -bottom-10 -right-6 hidden select-none font-mono text-7xl font-bold text-slate-900/[0.03] md:block dark:text-white/[0.04]"
+              aria-hidden="true"
             >
-              核心技术栈
-            </h2>
+              03
+            </span>
+            <div class="relative mb-7">
+              <p class="mb-2 flex items-center gap-1.5 font-mono text-xs font-semibold uppercase tracking-[0.1em] text-primary-600 dark:text-primary-400">
+                <span class="text-slate-400 dark:text-gray-500">//</span> 常用工具
+              </p>
+              <h2
+                id="tech-stack-title"
+                class="text-2xl font-bold text-slate-950 dark:text-white"
+              >
+                核心技术栈
+              </h2>
+            </div>
+            <TechStack compact />
           </div>
-          <TechStack compact />
         </UContainer>
       </section>
 
       <section class="relative pb-14 md:pb-18">
         <UContainer>
+          <div class="relative mx-auto max-w-2xl">
+            <span
+              class="pointer-events-none absolute -top-8 right-2 hidden select-none font-mono text-5xl font-bold text-slate-900/[0.05] md:block dark:text-white/[0.06]"
+              aria-hidden="true"
+            >
+              04
+            </span>
+          </div>
           <div class="relative mx-auto max-w-2xl overflow-hidden rounded-2xl bg-slate-950 ring-1 ring-white/10 shadow-2xl shadow-primary-900/20">
             <div class="pointer-events-none absolute inset-0 -z-1">
               <div class="absolute left-1/2 top-1/2 size-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-500/25 blur-[110px]" />
@@ -647,7 +702,10 @@ const exploreLinks = [
 
             <div class="relative px-6 py-10 text-center md:px-12 md:py-12">
               <p class="font-mono text-xs text-primary-300">
-                <span class="text-emerald-400">$</span> ./contact --me
+                <span class="text-emerald-400">$</span> ./contact --me<span
+                  class="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-primary-300 align-middle"
+                  aria-hidden="true"
+                />
               </p>
               <h2 class="mt-3 text-2xl font-bold text-white md:text-3xl">
                 一起做点有意思的东西
