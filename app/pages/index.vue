@@ -314,14 +314,13 @@ const exploreLinks = [
 
       <section
         aria-label="个人简介与数据"
-        class="relative -mt-12 md:-mt-16"
+        class="relative z-10 -mt-8 md:-mt-10"
       >
         <UContainer>
           <Motion
             :initial="{ opacity: 0, y: 16 }"
-            :while-in-view="{ opacity: 1, y: 0 }"
-            :transition="{ duration: 0.35 }"
-            :viewport="{ once: true, margin: '-60px' }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="{ duration: 0.4, delay: 0.15 }"
             class="relative flex flex-col items-center gap-6 overflow-hidden rounded-3xl border border-slate-200/70 bg-white/70 p-6 shadow-xl shadow-slate-900/5 backdrop-blur-xl md:flex-row md:items-center md:justify-between md:p-8 dark:border-white/10 dark:bg-white/[0.05] dark:shadow-black/20"
           >
             <div
