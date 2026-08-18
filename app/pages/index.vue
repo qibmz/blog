@@ -263,240 +263,257 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
       </template>
     </UPageHero>
 
-    <section
-      id="recent-articles"
-      aria-labelledby="recent-articles-title"
-      class="scroll-mt-20 py-14 md:py-18"
-    >
-      <UContainer>
-        <div class="mb-8 flex items-end justify-between gap-4">
-          <div>
-            <p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 dark:text-primary-400">
-              近期更新
-            </p>
-            <h2
-              id="recent-articles-title"
-              class="text-3xl font-bold text-slate-950 dark:text-white"
-            >
-              最新文章
-            </h2>
-          </div>
-          <NuxtLink
-            to="/blog"
-            class="group inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:text-primary-400"
-          >
-            查看全部文章
-            <UIcon
-              name="i-lucide-arrow-right"
-              class="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
-            />
-          </NuxtLink>
-        </div>
+    <div class="relative overflow-hidden">
+      <!-- 延续 Hero 的氛围光斑，贯穿后续所有区块 -->
+      <div class="pointer-events-none absolute inset-x-0 top-0 -z-1 h-[1400px] overflow-hidden">
+        <div class="absolute left-1/2 top-[-10%] size-[900px] -translate-x-1/2 rounded-full bg-primary-400/10 blur-[140px] dark:bg-primary-500/15" />
+        <div class="absolute -left-40 top-[420px] size-[600px] rounded-full bg-primary-300/10 blur-[120px] dark:bg-primary-400/10" />
+        <div class="absolute -right-40 top-[900px] size-[700px] rounded-full bg-primary-500/10 blur-[130px] dark:bg-primary-600/10" />
+      </div>
 
-        <div
-          v-if="recentUpdates.length"
-          class="grid gap-4 lg:grid-cols-12"
-        >
-          <Motion
-            v-if="featuredUpdate"
-            :initial="{ opacity: 0, y: 16 }"
-            :while-in-view="{ opacity: 1, y: 0 }"
-            :transition="{ duration: 0.3 }"
-            :viewport="{ once: true, margin: '-80px' }"
-            class="lg:col-span-7"
-          >
+      <section
+        id="recent-articles"
+        aria-labelledby="recent-articles-title"
+        class="relative scroll-mt-20 py-14 md:py-18"
+      >
+        <UContainer>
+          <div class="mb-8 flex items-end justify-between gap-4">
+            <div>
+              <p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 dark:text-primary-400">
+                近期更新
+              </p>
+              <h2
+                id="recent-articles-title"
+                class="text-3xl font-bold text-slate-950 dark:text-white"
+              >
+                最新文章
+              </h2>
+            </div>
             <NuxtLink
-              :to="featuredUpdate.to"
-              class="group flex h-full min-h-72 flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-[border-color,box-shadow] duration-200 hover:border-primary-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-primary-800"
+              to="/blog"
+              class="group inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:text-primary-400"
             >
-              <div>
-                <div class="mb-4 flex items-center gap-2 text-xs">
-                  <span class="rounded-full bg-primary-50 px-2.5 py-1 font-semibold text-primary-700 dark:bg-primary-950/50 dark:text-primary-300">
-                    {{ featuredUpdate.category }}
-                  </span>
-                  <span class="font-medium text-slate-500 dark:text-gray-400">最新发布</span>
-                </div>
-                <h3 class="text-balance text-2xl font-bold leading-tight text-slate-950 transition-colors duration-200 group-hover:text-primary-700 dark:text-white dark:group-hover:text-primary-300">
-                  {{ featuredUpdate.title }}
-                </h3>
-                <p
-                  v-if="featuredUpdate.description"
-                  class="mt-4 line-clamp-3 text-base leading-7 text-slate-600 dark:text-gray-400"
-                >
-                  {{ featuredUpdate.description }}
-                </p>
-              </div>
-              <div class="mt-8 flex items-center justify-between gap-4 text-sm">
-                <span class="inline-flex items-center gap-1.5 text-slate-500 dark:text-gray-400">
-                  <UIcon
-                    name="i-lucide-calendar"
-                    class="size-4"
-                  />
-                  {{ featuredUpdate.date }}
-                </span>
-                <span class="inline-flex items-center gap-1 font-semibold text-primary-600 dark:text-primary-400">
-                  阅读全文
-                  <UIcon
-                    name="i-lucide-arrow-right"
-                    class="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
-                  />
-                </span>
-              </div>
+              查看全部文章
+              <UIcon
+                name="i-lucide-arrow-right"
+                class="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
+              />
             </NuxtLink>
-          </Motion>
+          </div>
 
-          <div class="grid gap-4 sm:grid-cols-2 lg:col-span-5">
+          <div
+            v-if="recentUpdates.length"
+            class="grid gap-4 lg:grid-cols-12"
+          >
             <Motion
-              v-for="(update, index) in restUpdates"
-              :key="update.title"
-              :initial="{ opacity: 0, y: 12 }"
+              v-if="featuredUpdate"
+              :initial="{ opacity: 0, y: 16 }"
               :while-in-view="{ opacity: 1, y: 0 }"
-              :transition="{ duration: 0.25, delay: index * 0.05 }"
+              :transition="{ duration: 0.3 }"
               :viewport="{ once: true, margin: '-80px' }"
+              class="lg:col-span-7"
             >
               <NuxtLink
-                :to="update.to"
-                class="group flex h-full min-h-48 flex-col rounded-2xl border border-slate-200 bg-white p-5 transition-[border-color,box-shadow] duration-200 hover:border-primary-300 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-primary-800"
+                :to="featuredUpdate.to"
+                class="group flex h-full min-h-72 flex-col justify-between rounded-2xl border border-slate-200/70 bg-white/60 p-6 shadow-[0_1px_0_rgba(255,255,255,0.4)_inset] backdrop-blur-md transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_1px_0_rgba(255,255,255,0.06)_inset] dark:hover:border-primary-400/40 dark:hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.35)]"
               >
-                <span class="mb-3 text-xs font-semibold text-primary-700 dark:text-primary-300">
-                  {{ update.category }}
-                </span>
-                <h3 class="line-clamp-3 text-base font-semibold leading-snug text-slate-950 transition-colors duration-200 group-hover:text-primary-700 dark:text-white dark:group-hover:text-primary-300">
-                  {{ update.title }}
-                </h3>
-                <p
-                  v-if="update.description"
-                  class="mt-2 line-clamp-2 text-sm leading-6 text-slate-600 dark:text-gray-400"
-                >
-                  {{ update.description }}
-                </p>
-                <span class="mt-auto inline-flex items-center gap-1.5 pt-4 text-xs text-slate-500 dark:text-gray-400">
-                  <UIcon
-                    name="i-lucide-calendar"
-                    class="size-3.5"
-                  />
-                  {{ update.date }}
-                </span>
+                <div>
+                  <div class="mb-4 flex items-center gap-2 text-xs">
+                    <span class="rounded-full bg-primary-50 px-2.5 py-1 font-semibold text-primary-700 ring-1 ring-primary-200/70 dark:bg-primary-500/10 dark:text-primary-300 dark:ring-primary-400/20">
+                      {{ featuredUpdate.category }}
+                    </span>
+                    <span class="font-medium text-slate-500 dark:text-gray-400">最新发布</span>
+                  </div>
+                  <h3 class="text-balance text-2xl font-bold leading-tight text-slate-950 transition-colors duration-200 group-hover:text-primary-700 dark:text-white dark:group-hover:text-primary-300">
+                    {{ featuredUpdate.title }}
+                  </h3>
+                  <p
+                    v-if="featuredUpdate.description"
+                    class="mt-4 line-clamp-3 text-base leading-7 text-slate-600 dark:text-gray-400"
+                  >
+                    {{ featuredUpdate.description }}
+                  </p>
+                </div>
+                <div class="mt-8 flex items-center justify-between gap-4 text-sm">
+                  <span class="inline-flex items-center gap-1.5 text-slate-500 dark:text-gray-400">
+                    <UIcon
+                      name="i-lucide-calendar"
+                      class="size-4"
+                    />
+                    {{ featuredUpdate.date }}
+                  </span>
+                  <span class="inline-flex items-center gap-1 font-semibold text-primary-600 dark:text-primary-400">
+                    阅读全文
+                    <UIcon
+                      name="i-lucide-arrow-right"
+                      class="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                    />
+                  </span>
+                </div>
               </NuxtLink>
             </Motion>
+
+            <div class="grid gap-4 sm:grid-cols-2 lg:col-span-5">
+              <Motion
+                v-for="(update, index) in restUpdates"
+                :key="update.title"
+                :initial="{ opacity: 0, y: 12 }"
+                :while-in-view="{ opacity: 1, y: 0 }"
+                :transition="{ duration: 0.25, delay: index * 0.05 }"
+                :viewport="{ once: true, margin: '-80px' }"
+              >
+                <NuxtLink
+                  :to="update.to"
+                  class="group flex h-full min-h-48 flex-col rounded-2xl border border-slate-200/70 bg-white/60 p-5 backdrop-blur-md transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-primary-400/40 dark:hover:shadow-[0_0_30px_-10px_rgba(59,130,246,0.3)]"
+                >
+                  <span class="mb-3 text-xs font-semibold text-primary-700 dark:text-primary-300">
+                    {{ update.category }}
+                  </span>
+                  <h3 class="line-clamp-3 text-base font-semibold leading-snug text-slate-950 transition-colors duration-200 group-hover:text-primary-700 dark:text-white dark:group-hover:text-primary-300">
+                    {{ update.title }}
+                  </h3>
+                  <p
+                    v-if="update.description"
+                    class="mt-2 line-clamp-2 text-sm leading-6 text-slate-600 dark:text-gray-400"
+                  >
+                    {{ update.description }}
+                  </p>
+                  <span class="mt-auto inline-flex items-center gap-1.5 pt-4 text-xs text-slate-500 dark:text-gray-400">
+                    <UIcon
+                      name="i-lucide-calendar"
+                      class="size-3.5"
+                    />
+                    {{ update.date }}
+                  </span>
+                </NuxtLink>
+              </Motion>
+            </div>
           </div>
-        </div>
 
-        <div
-          v-else
-          class="rounded-2xl border border-slate-200 bg-white py-14 text-center text-slate-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400"
-        >
-          <UIcon
-            name="i-lucide-file-text"
-            class="mx-auto mb-3 size-10"
-          />
-          <p>暂无文章，敬请期待</p>
-        </div>
-      </UContainer>
-    </section>
+          <div
+            v-else
+            class="rounded-2xl border border-slate-200/70 bg-white/60 py-14 text-center text-slate-600 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-400"
+          >
+            <UIcon
+              name="i-lucide-file-text"
+              class="mx-auto mb-3 size-10"
+            />
+            <p>暂无文章，敬请期待</p>
+          </div>
+        </UContainer>
+      </section>
 
-    <section
-      id="writing-topics"
-      aria-labelledby="writing-topics-title"
-      class="border-y border-slate-200 bg-white/70 py-12 dark:border-gray-800 dark:bg-gray-900/40"
-    >
-      <UContainer>
-        <div class="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-          <div>
+      <section
+        id="writing-topics"
+        aria-labelledby="writing-topics-title"
+        class="relative py-12 md:py-16"
+      >
+        <UContainer>
+          <div class="grid gap-8 rounded-3xl border border-slate-200/70 bg-white/50 p-6 backdrop-blur-md md:p-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center dark:border-white/10 dark:bg-white/[0.03]">
+            <div>
+              <p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 dark:text-primary-400">
+                内容方向
+              </p>
+              <h2
+                id="writing-topics-title"
+                class="text-2xl font-bold text-slate-950 dark:text-white"
+              >
+                我主要写这些
+              </h2>
+              <p class="mt-3 max-w-lg text-sm leading-6 text-slate-600 dark:text-gray-400">
+                记录真实开发中遇到的问题、取舍和可以复用的解决方案。
+              </p>
+            </div>
+            <ul class="grid gap-3 sm:grid-cols-2">
+              <li
+                v-for="topic in writingTopics"
+                :key="topic.label"
+                class="group flex items-center gap-3 rounded-xl border border-slate-200/70 bg-white/70 px-4 py-3 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-md dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-primary-400/40 dark:hover:shadow-[0_0_24px_-8px_rgba(59,130,246,0.35)]"
+              >
+                <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600 ring-1 ring-primary-200/70 dark:bg-primary-500/10 dark:text-primary-300 dark:ring-primary-400/20">
+                  <UIcon
+                    :name="topic.icon"
+                    class="size-5"
+                  />
+                </span>
+                <div>
+                  <h3 class="text-sm font-semibold text-slate-900 dark:text-white">
+                    {{ topic.label }}
+                  </h3>
+                  <p class="mt-0.5 text-xs text-slate-600 dark:text-gray-400">
+                    {{ topic.description }}
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </UContainer>
+      </section>
+
+      <section
+        aria-labelledby="tech-stack-title"
+        class="relative py-12 md:py-14"
+      >
+        <UContainer>
+          <div class="mb-7">
             <p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 dark:text-primary-400">
-              内容方向
+              常用工具
             </p>
             <h2
-              id="writing-topics-title"
+              id="tech-stack-title"
               class="text-2xl font-bold text-slate-950 dark:text-white"
             >
-              我主要写这些
+              核心技术栈
             </h2>
-            <p class="mt-3 max-w-lg text-sm leading-6 text-slate-600 dark:text-gray-400">
-              记录真实开发中遇到的问题、取舍和可以复用的解决方案。
-            </p>
           </div>
-          <ul class="grid gap-3 sm:grid-cols-2">
-            <li
-              v-for="topic in writingTopics"
-              :key="topic.label"
-              class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900"
-            >
-              <UIcon
-                :name="topic.icon"
-                class="size-5 shrink-0 text-primary-600 dark:text-primary-400"
-              />
-              <div>
-                <h3 class="text-sm font-semibold text-slate-900 dark:text-white">
-                  {{ topic.label }}
-                </h3>
-                <p class="mt-0.5 text-xs text-slate-600 dark:text-gray-400">
-                  {{ topic.description }}
-                </p>
+          <TechStack compact />
+        </UContainer>
+      </section>
+
+      <section class="relative pb-14 md:pb-18">
+        <UContainer>
+          <div class="relative overflow-hidden rounded-3xl bg-slate-950 px-6 py-10 text-center ring-1 ring-white/10 md:px-12 md:py-14">
+            <div class="pointer-events-none absolute inset-0 -z-1">
+              <div class="absolute left-1/2 top-1/2 size-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-500/25 blur-[110px]" />
+              <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent_55%)]" />
+            </div>
+            <div class="relative">
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary-300">
+                保持联系
+              </p>
+              <h2 class="mt-3 text-2xl font-bold text-white md:text-3xl">
+                一起做点有意思的东西
+              </h2>
+              <p class="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-300">
+                无论是技术交流、项目合作还是随便聊聊，欢迎通过下面的方式找到我。
+              </p>
+              <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <UButton
+                  :to="`mailto:${contactEmail}`"
+                  size="lg"
+                  color="primary"
+                  variant="solid"
+                  icon="i-lucide-mail"
+                  class="min-h-11 rounded-xl px-6 shadow-[0_0_30px_-8px_rgba(59,130,246,0.6)]"
+                >
+                  发邮件给我
+                </UButton>
+                <UButton
+                  :to="githubUrl"
+                  target="_blank"
+                  size="lg"
+                  color="neutral"
+                  variant="outline"
+                  icon="i-simple-icons-github"
+                  class="min-h-11 rounded-xl border-white/20 px-6 text-white hover:bg-white/10"
+                >
+                  GitHub
+                </UButton>
               </div>
-            </li>
-          </ul>
-        </div>
-      </UContainer>
-    </section>
-
-    <section
-      aria-labelledby="tech-stack-title"
-      class="py-12 md:py-14"
-    >
-      <UContainer>
-        <div class="mb-7">
-          <p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 dark:text-primary-400">
-            常用工具
-          </p>
-          <h2
-            id="tech-stack-title"
-            class="text-2xl font-bold text-slate-950 dark:text-white"
-          >
-            核心技术栈
-          </h2>
-        </div>
-        <TechStack compact />
-      </UContainer>
-    </section>
-
-    <section class="pb-14 md:pb-18">
-      <UContainer>
-        <div class="rounded-2xl bg-slate-950 px-6 py-10 text-center ring-1 ring-slate-900 md:px-12 md:py-12 dark:bg-gray-900 dark:ring-gray-800">
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary-400">
-            保持联系
-          </p>
-          <h2 class="mt-3 text-2xl font-bold text-white md:text-3xl">
-            一起做点有意思的东西
-          </h2>
-          <p class="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-300">
-            无论是技术交流、项目合作还是随便聊聊，欢迎通过下面的方式找到我。
-          </p>
-          <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <UButton
-              :to="`mailto:${contactEmail}`"
-              size="lg"
-              color="primary"
-              variant="solid"
-              icon="i-lucide-mail"
-              class="min-h-11 rounded-xl px-6"
-            >
-              发邮件给我
-            </UButton>
-            <UButton
-              :to="githubUrl"
-              target="_blank"
-              size="lg"
-              color="neutral"
-              variant="outline"
-              icon="i-simple-icons-github"
-              class="min-h-11 rounded-xl px-6"
-            >
-              GitHub
-            </UButton>
+            </div>
           </div>
-        </div>
-      </UContainer>
-    </section>
+        </UContainer>
+      </section>
+    </div>
   </div>
 </template>
