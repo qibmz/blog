@@ -193,6 +193,19 @@ describe('modelSupportsThinking', () => {
   })
 })
 
+describe('modelSupportsCustomTools', () => {
+  it('should return true for DeepSeek', async () => {
+    const { modelSupportsCustomTools } = await import('../models')
+    expect(modelSupportsCustomTools('deepseek-v4-pro')).toBe(true)
+  })
+
+  it('should return false for MiMo', async () => {
+    const { modelSupportsCustomTools } = await import('../models')
+    expect(modelSupportsCustomTools('mimo-v2.5-pro')).toBe(false)
+    expect(modelSupportsCustomTools('mimo-v2.5')).toBe(false)
+  })
+})
+
 describe('modelSupportsWebSearch', () => {
   it('should return true for MiMo chat models (provider fallback)', async () => {
     const { mockDbFindFirstModel } = await import('./setup')

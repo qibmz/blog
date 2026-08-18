@@ -6,6 +6,9 @@ const mockCheckDailyLimit = vi.fn()
 const mockGetModel = vi.fn(() => ({ provider: 'mock', modelId: 'mock' }))
 const mockModelSupportsImages = vi.fn(async () => true)
 const mockModelSupportsWebSearch = vi.fn(async () => false)
+const mockModelSupportsThinking = vi.fn(() => true)
+const mockModelSupportsCustomTools = vi.fn(() => true)
+const mockIsStepCount = vi.fn((n: number) => ({ _type: 'isStepCount', n }))
 const mockStreamText = vi.fn()
 const mockGenerateText = vi.fn()
 const mockConvertToModelMessages = vi.fn((msgs: unknown[]) => msgs)
@@ -23,7 +26,7 @@ const mockToUIMessageStream = vi.fn(() => new ReadableStream({
 const mockCreateUIMessageStream = vi.fn((opts: any) => ({
   _type: 'ui-message-stream',
   _execute: opts.execute,
-  _onFinish: opts.onFinish
+  _onEnd: opts.onEnd
 }))
 const mockCreateUIMessageStreamResponse = vi.fn(({ stream }: any) =>
   new Response(JSON.stringify({ stream }), {
@@ -42,8 +45,9 @@ vi.mock('../../utils/models', () => ({
   DEFAULT_MODEL: 'deepseek-v4-pro',
   MODEL_OPTIONS: [],
   modelSupportsImages: mockModelSupportsImages,
-  modelSupportsThinking: vi.fn(() => true),
-  modelSupportsWebSearch: mockModelSupportsWebSearch
+  modelSupportsThinking: mockModelSupportsThinking,
+  modelSupportsWebSearch: mockModelSupportsWebSearch,
+  modelSupportsCustomTools: mockModelSupportsCustomTools
 }))
 
 vi.mock('../../utils/webSearch', async (importOriginal) => {
@@ -65,13 +69,17 @@ vi.mock('ai', () => ({
   consumeStream: mockConsumeStream,
   generateText: (args: any) => mockGenerateText(args),
   smoothStream: () => mockSmoothStream(),
-  streamText: (args: any) => mockStreamText(args)
+  streamText: (args: any) => mockStreamText(args),
+  isStepCount: (n: number) => mockIsStepCount(n),
+  tool: (def: unknown) => def
 }))
 
 beforeEach(() => {
   vi.clearAllMocks()
   mockGetRequestAbortSignal.mockReturnValue(mockAbortSignal)
   mockModelSupportsWebSearch.mockResolvedValue(false)
+  mockModelSupportsThinking.mockReturnValue(true)
+  mockModelSupportsCustomTools.mockReturnValue(true)
   mockAwaitMimoSources.mockResolvedValue([])
 })
 
@@ -294,7 +302,7 @@ describe('POST /api/chats/:id', () => {
           messages: [{
             id: 'msg-1',
             role: 'user',
-            parts: [{ type: 'file', url: 'data:image/png;base64,xxx', mediaType: 'image/png' }]
+            parts: [{ type: 'file', url: 'https://img.qibmz.com/chat/u1/a.png', mediaType: 'image/png' }]
           }]
         }
         return typeof validateFn === 'function' ? validateFn(body) : body
@@ -330,7 +338,7 @@ describe('POST /api/chats/:id', () => {
             id: 'msg-1',
             role: 'user',
             parts: [
-              { type: 'file', url: 'data:image/png;base64,xxx', mediaType: 'image/png' },
+              { type: 'file', url: 'https://img.qibmz.com/chat/u1/a.png', mediaType: 'image/png' },
               { type: 'text', text: '这是什么图' }
             ]
           }]
@@ -349,7 +357,7 @@ describe('POST /api/chats/:id', () => {
           id: 'msg-1',
           role: 'user',
           parts: [
-            { type: 'file', url: 'data:image/png;base64,xxx', mediaType: 'image/png' },
+            { type: 'file', url: 'https://img.qibmz.com/chat/u1/a.png', mediaType: 'image/png' },
             { type: 'text', text: '这是什么图' }
           ]
         })
@@ -436,8 +444,8 @@ describe('POST /api/chats/:id', () => {
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
-    const onFinish = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onFinish
-    await onFinish({
+    const onEnd = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onEnd
+    await onEnd({
       isAborted: false,
       responseMessage: {
         id: 'assistant-1',
@@ -469,8 +477,8 @@ describe('POST /api/chats/:id', () => {
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
-    const onFinish = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onFinish
-    await onFinish({
+    const onEnd = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onEnd
+    await onEnd({
       isAborted: true,
       responseMessage: {
         id: 'assistant-1',
@@ -496,8 +504,8 @@ describe('POST /api/chats/:id', () => {
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
-    const onFinish = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onFinish
-    await onFinish({
+    const onEnd = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onEnd
+    await onEnd({
       isAborted: true,
       responseMessage: {
         id: 'assistant-1',
@@ -509,7 +517,7 @@ describe('POST /api/chats/:id', () => {
     expect(mockDb.insert).not.toHaveBeenCalled()
   })
 
-  it('should swallow assistant persistence errors in onFinish', async () => {
+  it('should swallow assistant persistence errors in onEnd', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     mockDbFindFirst.mockResolvedValue({
       id: 'chat-1',
@@ -532,8 +540,8 @@ describe('POST /api/chats/:id', () => {
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
-    const onFinish = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onFinish
-    await expect(onFinish({
+    const onEnd = mockCreateUIMessageStream.mock.calls[0]?.[0]?.onEnd
+    await expect(onEnd({
       isAborted: false,
       responseMessage: {
         id: 'assistant-1',
@@ -585,12 +593,16 @@ describe('POST /api/chats/:id', () => {
     expect(mockStreamText).toHaveBeenCalledWith(
       expect.objectContaining({
         providerOptions: expect.objectContaining({
-          mimo: expect.objectContaining({ [MIMO_WEB_SEARCH_FLAG]: true })
+          mimo: expect.objectContaining({
+            [MIMO_WEB_SEARCH_FLAG]: true,
+            // 联网时强制关思考，避免 tool + thinking 叠加卡顿
+            thinking: { type: 'disabled' }
+          })
         })
       })
     )
 
-    await streamOpts.onFinish({
+    await streamOpts.onEnd({
       isAborted: false,
       responseMessage: {
         id: 'assistant-1',
@@ -603,7 +615,7 @@ describe('POST /api/chats/:id', () => {
     const valuesCalls = mockDb.insert.mock.results
       .map(result => result.value?.values)
       .filter(Boolean)
-      .flatMap(valuesFn => valuesFn.mock.calls.map(call => call[0]))
+      .flatMap(valuesFn => valuesFn.mock.calls.map((call: unknown[]) => call[0]))
     const assistantInsert = valuesCalls.find(payload => payload?.role === 'assistant')
     expect(assistantInsert).toEqual(expect.objectContaining({
       role: 'assistant',
@@ -612,5 +624,95 @@ describe('POST /api/chats/:id', () => {
         { type: 'sources', sources: [{ url: 'https://example.com/a', title: 'Source A' }] }
       ]
     }))
+  })
+
+  it('should disable thinking even when thinkingMode is true if web search is enabled', async () => {
+    mockModelSupportsWebSearch.mockResolvedValue(true)
+    mockModelSupportsThinking.mockReturnValue(true)
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: 'Existing Chat',
+      model: 'mimo-v2.5-pro'
+    })
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
+        const body = {
+          model: 'mimo-v2.5-pro',
+          options: { thinkingMode: true, webSearch: true },
+          messages: [
+            { id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] }
+          ]
+        }
+        return typeof validateFn === 'function' ? validateFn(body) : body
+      }
+    )
+
+    const { default: handler } = await import('../chats/[id].post')
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+
+    const streamOpts = mockCreateUIMessageStream.mock.calls[0]?.[0]
+    await streamOpts.execute({ writer: { merge: vi.fn() } })
+
+    expect(mockStreamText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerOptions: expect.objectContaining({
+          mimo: expect.objectContaining({
+            thinking: { type: 'disabled' }
+          })
+        })
+      })
+    )
+  })
+
+  it('should pass chart tool and stopWhen for models that support custom tools', async () => {
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: 'Existing Chat',
+      model: 'deepseek-v4-pro'
+    })
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+
+    const { default: handler } = await import('../chats/[id].post')
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+
+    const executeFn = mockCreateUIMessageStream.mock.calls[0]?.[0]?.execute
+    await executeFn({ writer: { merge: vi.fn() } })
+
+    expect(mockStreamText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tools: expect.objectContaining({ chart: expect.anything() }),
+        stopWhen: { _type: 'isStepCount', n: 5 }
+      })
+    )
+  })
+
+  it('should omit chart tool for models without custom tool support', async () => {
+    mockModelSupportsCustomTools.mockReturnValue(false)
+    mockDbFindFirst.mockResolvedValue({
+      id: 'chat-1',
+      userId: mockUser.id,
+      title: 'Existing Chat',
+      model: 'mimo-v2.5-pro'
+    })
+    mockStreamText.mockReturnValue({
+      toUIMessageStream: mockToUIMessageStream
+    })
+
+    const { default: handler } = await import('../chats/[id].post')
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+
+    const executeFn = mockCreateUIMessageStream.mock.calls[0]?.[0]?.execute
+    await executeFn({ writer: { merge: vi.fn() } })
+
+    const args = mockStreamText.mock.calls[0]?.[0]
+    expect(args.tools).toBeUndefined()
+    expect(args.stopWhen).toBeUndefined()
   })
 })

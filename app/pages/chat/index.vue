@@ -15,7 +15,7 @@ const greeting = hour < 12 ? '早上好，Master' : hour < 18 ? '下午好，Mas
 const { loggedIn } = useUserSession()
 
 const { model: selectedModel, models: modelOptions } = useModels()
-const { thinkingMode, webSearch } = useChatOptions()
+const { thinkingMode, webSearch, toggleThinkingMode, toggleWebSearch } = useChatOptions()
 const pendingChat = usePendingChat()
 
 // ─── 图片上传 ────────────────────────────────
@@ -139,14 +139,6 @@ function onSubmit() {
   createChat(input.value)
 }
 
-function toggleThinkingMode() {
-  thinkingMode.value = !thinkingMode.value
-}
-
-function toggleWebSearch() {
-  webSearch.value = !webSearch.value
-}
-
 function goToLogin() {
   navigateTo('/login')
 }
@@ -241,12 +233,18 @@ function goToLogin() {
                   />
                   <UButton
                     label="深度思考"
-                    icon="i-lucide-brain"
                     :variant="thinkingMode ? 'soft' : 'ghost'"
                     :color="thinkingMode ? 'primary' : 'neutral'"
                     size="sm"
                     @click="toggleThinkingMode"
-                  />
+                  >
+                    <template #leading>
+                      <ChatThinkingMatrix
+                        :playing="thinkingMode"
+                        :class="thinkingMode ? 'text-primary' : undefined"
+                      />
+                    </template>
+                  </UButton>
                   <USelectMenu
                     v-model="selectedModel"
                     :items="modelOptions"

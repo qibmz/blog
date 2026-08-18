@@ -11,7 +11,8 @@ export default defineNuxtConfig({
     '@nuxtjs/sitemap',
     'nuxt-auth-utils',
     'motion-v/nuxt',
-    '@vercel/analytics/nuxt'
+    '@vercel/analytics/nuxt',
+    'nuxt-echarts'
   ],
   devtools: {
     enabled: true
@@ -55,6 +56,11 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
+    r2AccountId: process.env.R2_ACCOUNT_ID || '',
+    r2AccessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+    r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+    r2BucketName: process.env.R2_BUCKET_NAME || '',
+    r2PublicBaseUrl: process.env.R2_PUBLIC_BASE_URL || 'https://img.qibmz.com',
     public: {
       binanceWs: process.env.NUXT_PUBLIC_BINANCE_WS || 'wss://data-stream.binance.vision',
       binanceApi: process.env.NUXT_PUBLIC_BINANCE_API || 'https://api.binance.com',
@@ -97,6 +103,17 @@ export default defineNuxtConfig({
     esbuild: {
       drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : []
     }
+  },
+
+  echarts: {
+    renderer: ['canvas'],
+    charts: ['LineChart', 'BarChart', 'PieChart'],
+    components: [
+      'GridComponent',
+      'TooltipComponent',
+      'LegendComponent',
+      'ToolboxComponent'
+    ]
   },
 
   eslint: {

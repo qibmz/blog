@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { Chat } from '@ai-sdk/vue'
-import { DefaultChatTransport, isReasoningUIPart, isTextUIPart } from 'ai'
+import { useChat } from '@ai-sdk/vue'
+import { DefaultChatTransport, getToolName, isReasoningUIPart, isTextUIPart, isToolUIPart } from 'ai'
 import { isPartStreaming } from '@nuxt/ui/utils/ai'
 import type { UIMessage, FileUIPart } from 'ai'
 import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
 import { modelShowsWebSearch } from '#shared/utils/modelCapability'
+import type { ChartUIToolInvocation } from '#shared/utils/tools/chart'
 
 definePageMeta({ layout: 'chat' })
 
@@ -43,7 +44,7 @@ if (optimistic) {
 }
 
 const { model: selectedModel, models: modelOptions } = useModels()
-const { thinkingMode, webSearch } = useChatOptions()
+const { thinkingMode, webSearch, toggleThinkingMode, toggleWebSearch } = useChatOptions()
 
 // ─── 图片上传 ────────────────────────────────
 const {
@@ -115,14 +116,6 @@ useSeoMeta({ title: computed(() => `${chatTitle.value} — AI Chat`) })
 
 const input = ref('')
 
-function toggleThinkingMode() {
-  thinkingMode.value = !thinkingMode.value
-}
-
-function toggleWebSearch() {
-  webSearch.value = !webSearch.value
-}
-
 function getMessageSources(message: UIMessage) {
   const parts = message.parts ?? []
   for (const part of parts) {
@@ -157,7 +150,7 @@ function getMessageSources(message: UIMessage) {
   return []
 }
 
-const chat = new Chat({
+const { messages, status, sendMessage, regenerate, stop } = useChat({
   id,
   messages: chatData.value!.messages as unknown as UIMessage[],
   transport: new DefaultChatTransport({
@@ -183,39 +176,67 @@ const chat = new Chat({
   onFinish: async ({ isError }) => {
     if (isError) return
     refreshNuxtData('sidebar-chats')
-    // 流已带 data-sources 时无需依赖 refresh；此处兜底同步落库后的 sources
-    await syncSourcesFromServer()
+    // 流结束兜底：同步落库后的 sources / chart tool（避免 UI 卡在 input-streaming）
+    await syncAssistantFromServer()
   }
 })
 
-/** 按序把服务端最后一条助手消息的 sources 合并进本地 chat.messages（id 可能不一致） */
-async function syncSourcesFromServer() {
-  for (let attempt = 0; attempt < 3; attempt++) {
+function isIncompleteChartPart(part: UIMessage['parts'][number]) {
+  if (!isToolUIPart(part) || getToolName(part) !== 'chart') return false
+  return part.state !== 'output-available' && part.state !== 'output-error'
+}
+
+function hasCompleteChartPart(parts: UIMessage['parts'] = []) {
+  return parts.some(part =>
+    isToolUIPart(part) && getToolName(part) === 'chart' && part.state === 'output-available'
+  )
+}
+
+/** 按序把服务端最后一条助手消息合并进本地（chart / sources；id 可能不一致） */
+async function syncAssistantFromServer() {
+  for (let attempt = 0; attempt < 5; attempt++) {
     await refreshChat()
     const dbAssistants = (chatData.value?.messages ?? []).filter(m => m.role === 'assistant')
     const lastDb = dbAssistants.at(-1) as UIMessage | undefined
-    const lastLive = chat.messages.filter(m => m.role === 'assistant').at(-1)
+    const lastLive = messages.value.filter(m => m.role === 'assistant').at(-1)
     if (!lastDb || !lastLive) {
       await new Promise(r => setTimeout(r, 150 * (attempt + 1)))
       continue
     }
-    const sources = getMessageSources(lastDb)
-    if (sources.length === 0) {
-      await new Promise(r => setTimeout(r, 150 * (attempt + 1)))
-      continue
+
+    const liveHasIncompleteChart = (lastLive.parts ?? []).some(isIncompleteChartPart)
+    const dbHasCompleteChart = hasCompleteChartPart(lastDb.parts)
+    const dbSources = getMessageSources(lastDb)
+    const liveSources = getMessageSources(lastLive)
+
+    if (liveHasIncompleteChart && dbHasCompleteChart) {
+      lastLive.parts = structuredClone(lastDb.parts) as UIMessage['parts']
+      messages.value = [...messages.value]
+      return
     }
-    if (getMessageSources(lastLive).length > 0) return
-    const parts = (lastLive.parts ?? []).filter(p => (p as { type: string }).type !== 'data-sources')
-    lastLive.parts = [
-      ...parts,
-      { type: 'sources', sources } as unknown as UIMessage['parts'][number]
-    ]
-    return
+
+    if (dbSources.length > 0 && liveSources.length === 0) {
+      const parts = (lastLive.parts ?? []).filter(p => (p as { type: string }).type !== 'data-sources')
+      lastLive.parts = [
+        ...parts,
+        { type: 'sources', sources: dbSources } as unknown as UIMessage['parts'][number]
+      ]
+      messages.value = [...messages.value]
+      return
+    }
+
+    if (!liveHasIncompleteChart && (dbSources.length === 0 || liveSources.length > 0)) {
+      return
+    }
+
+    await new Promise(r => setTimeout(r, 150 * (attempt + 1)))
   }
 }
 
-const { copy, copied } = useClipboard()
-const toast = useToast()
+const { copy, copied } = useClipboard({ copiedDuring: 2000 })
+const copiedMessageId = ref<string | null>(null)
+/** 消息创建时间：DB / 乐观条目有 createdAt；流式新消息补本地时间戳 */
+const messageCreatedAt = ref<Record<string, string>>({})
 
 const feedbackState = ref<Record<string, { liked?: boolean, disliked?: boolean }>>({})
 const feedbackPulse = ref<Record<string, { like?: number, dislike?: number }>>({})
@@ -232,15 +253,79 @@ function isDisliked(messageId: string) {
   return !!feedbackState.value[messageId]?.disliked
 }
 
+function isCopied(messageId: string) {
+  return copied.value && copiedMessageId.value === messageId
+}
+
+function rememberCreatedAt(id: string, raw: unknown, overwrite = false) {
+  if (!id) return
+  if (messageCreatedAt.value[id] && !overwrite) return
+  if (raw instanceof Date) {
+    messageCreatedAt.value[id] = raw.toISOString()
+    return
+  }
+  if (typeof raw === 'string' && raw) {
+    messageCreatedAt.value[id] = raw
+  }
+}
+
+function formatMessageDate(message: UIMessage) {
+  const raw = messageCreatedAt.value[message.id]
+    ?? (message as { createdAt?: string | Date }).createdAt
+    ?? (message.metadata as { createdAt?: string } | undefined)?.createdAt
+  if (!raw) return null
+  const date = raw instanceof Date ? raw : new Date(raw)
+  if (Number.isNaN(date.getTime())) return null
+  return {
+    iso: date.toISOString(),
+    time: date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }),
+    full: date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    })
+  }
+}
+
 async function onCopy(message: UIMessage) {
   await copy(getTextContent(message.parts))
-  toast.add({
-    title: copied.value ? '已复制到剪贴板' : '复制失败，请重试',
-    icon: copied.value ? 'i-lucide-check' : 'i-lucide-x',
-    color: copied.value ? 'success' : 'error',
-    duration: 2000
-  })
+  copiedMessageId.value = copied.value ? message.id : null
 }
+
+watch(copied, (value) => {
+  if (!value) copiedMessageId.value = null
+})
+
+watch(
+  () => chatData.value?.messages,
+  (list) => {
+    for (const m of list ?? []) {
+      rememberCreatedAt(m.id, m.createdAt, true)
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  messages,
+  (list) => {
+    for (const m of list) {
+      const existing = (m as { createdAt?: string | Date }).createdAt
+        ?? (m.metadata as { createdAt?: string } | undefined)?.createdAt
+      if (existing) {
+        rememberCreatedAt(m.id, existing)
+      } else if (!messageCreatedAt.value[m.id]) {
+        messageCreatedAt.value[m.id] = new Date().toISOString()
+      }
+    }
+  },
+  { deep: true, immediate: true }
+)
 
 function toggleLike(message: UIMessage) {
   const fb = (feedbackState.value[message.id] ??= {})
@@ -292,12 +377,12 @@ function onSubmit() {
   if (isCompressing.value) return
 
   if (hasFiles) {
-    chat.sendMessage({
+    sendMessage({
       text: hasText ? input.value : '',
       files: [...readyParts.value]
     })
   } else {
-    chat.sendMessage({ text: input.value })
+    sendMessage({ text: input.value })
   }
   input.value = ''
   clearFiles()
@@ -332,13 +417,13 @@ onMounted(async () => {
       return
     }
     refreshNuxtData('sidebar-chats')
-    nextTick(() => chat.sendMessage())
+    nextTick(() => sendMessage())
     return
   }
 
-  const messages = chatData.value?.messages ?? []
-  if (messages.at(-1)?.role === 'user') {
-    nextTick(() => chat.sendMessage())
+  const existing = chatData.value?.messages ?? []
+  if (existing.at(-1)?.role === 'user') {
+    nextTick(() => sendMessage())
   }
 })
 </script>
@@ -381,19 +466,18 @@ onMounted(async () => {
         <div class="flex flex-1">
           <UContainer class="flex-1 flex flex-col gap-4 sm:gap-6">
             <UChatMessages
-              :messages="chat.messages"
+              :messages="messages"
               :assistant="assistantConfig"
-              :user="{ ui: { container: '!pb-0' } }"
-              :status="chat.status"
+              :status="status"
               :spacing-offset="160"
               auto-scroll-icon="i-lucide-chevron-down"
-              :should-auto-scroll="chat.status === 'streaming' || chat.status === 'submitted'"
+              :should-auto-scroll="status === 'streaming' || status === 'submitted'"
               class="pt-(--ui-header-height) pb-4 sm:pb-6"
             >
               <template #content="{ message }">
                 <template
                   v-for="(part, index) in (message as UIMessage).parts"
-                  :key="`${(message as UIMessage).id}-${part.type}-${index}`"
+                  :key="`${(message as UIMessage).id}-${part.type}-${index}-${isToolUIPart(part) ? `${getToolName(part)}-${part.state}` : ''}`"
                 >
                   <UChatReasoning
                     v-if="isReasoningUIPart(part)"
@@ -402,14 +486,18 @@ onMounted(async () => {
                     chevron="leading"
                   >
                     <ChatComark
-                      :markdown="part.text"
+                      :value="part.text"
                       :streaming="isPartStreaming(part)"
                     />
                   </UChatReasoning>
+                  <ChatToolChart
+                    v-else-if="isToolUIPart(part) && getToolName(part) === 'chart'"
+                    :invocation="(part as ChartUIToolInvocation)"
+                  />
                   <template v-else-if="isTextUIPart(part)">
                     <ChatComark
                       v-if="(message as UIMessage).role === 'assistant'"
-                      :markdown="part.text"
+                      :value="part.text"
                       :streaming="isPartStreaming(part)"
                     />
                     <p
@@ -428,13 +516,13 @@ onMounted(async () => {
 
               <template #actions="{ message }">
                 <template v-if="(message as UIMessage).role === 'assistant'">
-                  <UTooltip text="复制">
+                  <UTooltip :text="isCopied((message as UIMessage).id) ? '已复制' : '复制'">
                     <UButton
-                      icon="i-lucide-copy"
+                      :icon="isCopied((message as UIMessage).id) ? 'i-lucide-check' : 'i-lucide-copy'"
                       size="sm"
-                      color="neutral"
+                      :color="isCopied((message as UIMessage).id) ? 'success' : 'neutral'"
                       variant="ghost"
-                      aria-label="复制"
+                      :aria-label="isCopied((message as UIMessage).id) ? '已复制' : '复制'"
                       @click="onCopy(message as UIMessage)"
                     />
                   </UTooltip>
@@ -481,10 +569,42 @@ onMounted(async () => {
                     </Motion>
                   </UTooltip>
                 </template>
+
+                <template v-else-if="(message as UIMessage).role === 'user'">
+                  <template
+                    v-for="formattedDate in [formatMessageDate(message as UIMessage)]"
+                    :key="formattedDate?.iso ?? 'no-date'"
+                  >
+                    <UTooltip
+                      v-if="formattedDate"
+                      :text="formattedDate.full"
+                    >
+                      <time
+                        :datetime="formattedDate.iso"
+                        class="text-xs text-muted mr-1.5"
+                      >
+                        {{ formattedDate.time }}
+                      </time>
+                    </UTooltip>
+                  </template>
+                  <UTooltip :text="isCopied((message as UIMessage).id) ? '已复制' : '复制'">
+                    <UButton
+                      :icon="isCopied((message as UIMessage).id) ? 'i-lucide-check' : 'i-lucide-copy'"
+                      size="sm"
+                      :color="isCopied((message as UIMessage).id) ? 'success' : 'neutral'"
+                      variant="ghost"
+                      :aria-label="isCopied((message as UIMessage).id) ? '已复制' : '复制'"
+                      @click="onCopy(message as UIMessage)"
+                    />
+                  </UTooltip>
+                </template>
               </template>
 
               <template #indicator>
-                <UChatShimmer text="思考中..." />
+                <div class="flex items-center gap-2 text-muted">
+                  <ChatThinkingMatrix />
+                  <UChatShimmer text="思考中..." />
+                </div>
               </template>
 
               <template #files="{ parts: msgFileParts }">
@@ -543,12 +663,18 @@ onMounted(async () => {
                   />
                   <UButton
                     label="深度思考"
-                    icon="i-lucide-brain"
                     :variant="thinkingMode ? 'soft' : 'ghost'"
                     :color="thinkingMode ? 'primary' : 'neutral'"
                     size="sm"
                     @click="toggleThinkingMode"
-                  />
+                  >
+                    <template #leading>
+                      <ChatThinkingMatrix
+                        :playing="thinkingMode"
+                        :class="thinkingMode ? 'text-primary' : undefined"
+                      />
+                    </template>
+                  </UButton>
                   <USelectMenu
                     v-model="selectedModel"
                     :items="modelOptions"
@@ -565,11 +691,11 @@ onMounted(async () => {
                     </template>
                   </USelectMenu>
                   <UChatPromptSubmit
-                    :status="chat.status"
+                    :status="status"
                     color="neutral"
                     size="sm"
-                    @stop="chat.stop()"
-                    @reload="chat.regenerate()"
+                    @stop="stop()"
+                    @reload="regenerate()"
                   />
                 </div>
               </template>

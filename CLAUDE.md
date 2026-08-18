@@ -11,10 +11,12 @@
 - Lint：`pnpm lint`（eslint --fix）/ 类型检查：`pnpm typecheck` / 测试：`pnpm test`
 - 数据库迁移：`npx drizzle-kit generate` 生成迁移文件
   - **测试服（develop / Vercel Preview）：** `scripts/prebuild-migrate.js` 在部署时自动执行 `drizzle-kit push --force` + seed，无需手动干预
-  - **正式服（main / Production）：** 用 Neon CLI 对 **main** 分支执行 migration SQL（不自动 push）
-    ```bash
-    npx neonctl psql main --project-id <NEON_PROJECT_ID> -- --set ON_ERROR_STOP=on --single-transaction -f server/db/migrations/xxx.sql
-    ```
+  - **正式服（main / Production）：** 不自动 push，用下列任一方式对正式库执行 migration SQL
+    1. **推荐（Cursor Agent + Neon 插件）：** 安装并登录 Neon Postgres 插件后，可让 Agent 用 MCP 操作正式库（项目名 `blog-postgres`）。流程：`prepare_database_migration` 在临时分支跑 SQL → 校验 → 用户确认 → `complete_database_migration` 合入正式分支。也可用于查表结构、执行只读 SQL 等。正式库变更必须先经用户确认。
+    2. **CLI：**
+       ```bash
+       npx neonctl psql main --project-id <NEON_PROJECT_ID> -- --set ON_ERROR_STOP=on --single-transaction -f server/db/migrations/xxx.sql
+       ```
     Seed（如有）：先在环境中设置 `DATABASE_URL`（勿把凭据写进命令行），再执行  
     `SEED_TARGET=production npx tsx server/db/seed-models.ts`（会有 3 秒取消窗口）
 - **提交前检查**：`pnpm lint && pnpm test` 全部通过再提交
@@ -70,7 +72,8 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 - 配置：`drizzle.config.ts`（使用 `DATABASE_URL` 环境变量）
 - **迁移流程：**
   - develop / Preview：prebuild 自动 `drizzle-kit push --force` + seed
-  - main / Production：手动 `npx neonctl psql main --project-id <NEON_PROJECT_ID> -- --set ON_ERROR_STOP=on --single-transaction -f server/db/migrations/xxx.sql`（正式库禁止自动 push）
+  - main / Production：禁止自动 push。可用 **Cursor Neon Postgres 插件（MCP）** 让 Agent 在临时分支验证后合入正式库，或手动 `npx neonctl psql main --project-id <NEON_PROJECT_ID> -- --set ON_ERROR_STOP=on --single-transaction -f server/db/migrations/xxx.sql`
+  - 正式项目：Vercel org 下的 `blog-postgres`（Agent 可通过 Neon MCP `list_projects` 查找）
 - **Seed 脚本：** `server/db/seed-models.ts` — 幂等；Preview 由 prebuild 自动执行，Production 在 seed 数据变更后于环境中设置 `DATABASE_URL`，再执行 `SEED_TARGET=production npx tsx server/db/seed-models.ts`（勿把凭据写进命令行）
 
 **API 接口**（除 `GET /api/chats` 使用 `getUserSession` 做未登录优雅降级外，均需通过 `requireUserSession(event)` 认证）：
@@ -87,7 +90,9 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 
 **AI 提供商：** DeepSeek 和 MiMo（小米），配置在 `server/utils/models.ts`。使用 `@ai-sdk/deepseek` 和 `@ai-sdk/openai-compatible`。API 密钥：`DEEPSEEK_API_KEY`、`MIMO_API_KEY`。
 
-**流式回复：** 使用 `createUIMessageStream` + `createUIMessageStreamResponse`（`ai` 包）构建 SSE 流。DeepSeek 模型通过 `providerOptions.deepseek.thinking` 启用推理过程，前端 `UChatReasoning` 组件展示思维链。**不要使用 `smoothStream()`**，它会缓冲导致延迟感。
+**流式回复：** 使用 `createUIMessageStream` + `createUIMessageStreamResponse` + `result.toUIMessageStream()`（`ai` 包）构建 SSE 流。`streamText` / `generateText` 用 `instructions`（勿用已弃用的 `system`），流结束回调用 `onEnd`。DeepSeek 模型通过 `providerOptions.deepseek.thinking` 启用推理过程，前端 `UChatReasoning` 组件展示思维链。**不要使用 `smoothStream()`**，它会缓冲导致延迟感。**不要用独立的 `toUIMessageStream({ stream: result.stream })` 替代 `result.toUIMessageStream()`**，后者会带上 tools 且与 merge 兼容。
+
+**图表 tool：** DeepSeek 支持自定义 function calling。`shared/utils/tools/chart.ts` 定义 `chartTool`（`type`: line / area / bar / donut），`streamText` 在 `modelSupportsCustomTools` 为 true 时传入 `tools: { chart }` + `stopWhen: isStepCount(5)`。前端 `ChatToolChart` 用 `nuxt-echarts`（`VChart`）按 type 渲染，支持导出 PNG。MiMo 的 openai-compatible 会丢掉自定义 tools，暂不开放。
 
 **自动标题生成：** 首次对话时，服务端通过 `generateText` 异步生成标题（`event.waitUntil` 确保 serverless 环境完整执行），不阻塞流式响应。客户端 `onFinish` 中调用 `refreshNuxtData('sidebar-chats')` 刷新侧边栏。
 
@@ -98,12 +103,14 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 **客户端组件/组合式函数：**
 - `app/layouts/chat.vue` — 侧边栏布局，聊天历史导航、重命名/置顶/删除操作、剩余次数展示、用户信息
 - `app/pages/chat/index.vue` — 新建聊天页，提示输入 + 模型选择 + 快捷建议
-- `app/pages/chat/[id].vue` — 聊天详情，`@ai-sdk/vue` `Chat` + `DefaultChatTransport` 流式通信
-- `app/components/chat/ChatComark.ts` — 通过 `@comark/nuxt` `defineComarkComponent` + Shiki 渲染 AI 回复，注册了 python/sql/go/rust 额外语言
+- `app/pages/chat/[id].vue` — 聊天详情，`@ai-sdk/vue` `useChat` + `DefaultChatTransport` 流式通信
+- `app/components/chat/ChatComark.ts` — 通过 `@comark/nuxt` `defineMarkdownComponent` + Shiki 渲染 AI 回复（`:value` 传 markdown），注册了 html/css/python/sql/go/rust/java/c/cpp/ruby/php/swift/kotlin/diff/dockerfile/xml/toml/graphql 额外语言
+- `app/components/chat/ChatThinkingMatrix.vue` — 思考中点阵动画（indicator / 深度思考开关）
+- `app/components/chat/ChatToolChart.vue` — DeepSeek chart tool 渲染（line / area / bar / donut，`nuxt-echarts`，可导出 PNG）
 - `app/components/chat/ChatSearch.vue` — 命令面板模态框，搜索历史聊天
 - `app/composables/useApi.ts` — 全局 API 封装（`useAPI` composable），内置 401 跳转 + toast 错误提示
 - `app/composables/useModels.ts` — 模型选择，`useCookie` 持久化，刷新页面不丢失
-- `app/composables/useChatOptions.ts` — 思考模式开关，`useCookie` 持久化
+- `app/composables/useChatOptions.ts` — 思考 / 联网开关（互斥），`useCookie` 持久化
 - `app/composables/useChatList.ts` — 聊天列表分组（按日期归组）
 - `app/utils/error.ts` — `normalizeError()` 统一解析不同来源的错误消息
 

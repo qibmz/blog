@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { DEFAULT_MODEL, modelSupportsImages } from '../utils/models'
 import { checkDailyLimit } from '../utils/rateLimiter'
 import { isUniqueViolation, raiseConflict } from '../utils/errors'
+import { assertAllowedChatFileUrls } from '../utils/r2'
 import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
 import { z } from 'zod'
 
@@ -26,6 +27,7 @@ export default defineEventHandler(async (event) => {
   if (hasImageParts && !(await modelSupportsImages(modelValue))) {
     throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
   }
+  assertAllowedChatFileUrls(message.parts)
 
   // Note: check-then-insert 非事务性，并发请求可能绕过限制
   await checkDailyLimit(user.id)

@@ -3,12 +3,15 @@ import { and, eq } from 'drizzle-orm'
 import {
   getModel,
   DEFAULT_MODEL,
+  modelSupportsCustomTools,
   modelSupportsImages,
   modelSupportsThinking,
   modelSupportsWebSearch
 } from '../../utils/models'
+import { chartTool } from '#shared/utils/tools/chart'
 import { checkDailyLimit } from '../../utils/rateLimiter'
 import { getRequestAbortSignal } from '../../utils/requestAbort'
+import { assertAllowedChatFileUrls } from '../../utils/r2'
 import {
   awaitMimoSources,
   bindMimoRequestContext,
@@ -24,6 +27,7 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   generateText,
+  isStepCount,
   streamText,
   type UIMessage
 } from 'ai'
@@ -61,6 +65,9 @@ export default defineEventHandler(async (event) => {
   if (hasImageParts && !(await modelSupportsImages(modelValue))) {
     throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
   }
+  for (const msg of messages) {
+    assertAllowedChatFileUrls(msg.parts)
+  }
 
   const chat = await db.query.chats.findFirst({
     where: and(eq(schema.chats.id, id), eq(schema.chats.userId, user.id))
@@ -91,7 +98,7 @@ export default defineEventHandler(async (event) => {
     if (userText && !alreadyRefined) {
       const titlePromise = generateText({
         model,
-        system: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。',
+        instructions: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。',
         prompt: JSON.stringify(messages[0])
       }).then(async ({ text: title }) => {
         const safeTitle = title.trim()
@@ -121,13 +128,20 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // MiMo 官方建议：调用 tool（含 web_search）时关闭 thinking，否则易卡顿且不稳定
+  const webSearchEnabled = options?.webSearch === true
+    && await modelSupportsWebSearch(modelValue)
+
   const canThink = modelSupportsThinking(modelValue)
-  const thinkingType = canThink && options?.thinkingMode !== false
+  const thinkingType = canThink
+    && options?.thinkingMode !== false
+    && !webSearchEnabled
     ? 'enabled' as const
     : 'disabled' as const
 
-  const webSearchEnabled = options?.webSearch === true
-    && await modelSupportsWebSearch(modelValue)
+  const tools = modelSupportsCustomTools(modelValue)
+    ? { chart: chartTool }
+    : undefined
 
   const abortSignal = getRequestAbortSignal(event)
   const mimoCtx = { webSearch: webSearchEnabled, sources: [] as ChatSource[] }
@@ -137,9 +151,16 @@ export default defineEventHandler(async (event) => {
     execute: async ({ writer }) => {
       const result = streamText({
         model,
-        system: '你是迦勒底的人工智能助手。回答友好、简洁、有帮助；语气可轻度带有《Fate/Grand Order》风格（如称呼用户为 Master、偶尔用「契约」「灵基」等轻松比喻），但不要过度角色扮演，也不要强行把无关问题硬扯到 FGO。优先把问题讲清楚。',
-        messages: await convertToModelMessages(messages as UIMessage[]),
+        instructions: `你是迦勒底的人工智能助手。回答友好、简洁、有帮助；语气可轻度带有《Fate/Grand Order》风格（如称呼用户为 Master、偶尔用「契约」「灵基」等轻松比喻），但不要过度角色扮演，也不要强行把无关问题硬扯到 FGO。优先把问题讲清楚。
+
+**图表：**
+- 用户要求画图、看趋势、对比数据或占比时，调用 chart 工具
+- type 按场景选择：趋势用 line/area，分类对比用 bar，占比构成用 donut
+- donut 每个扇区用不同颜色（data.color 或多样 series.color）
+- 不要只用 markdown 表格代替可视化`,
+        messages: await convertToModelMessages(messages as UIMessage[], tools ? { tools } : undefined),
         abortSignal,
+        ...(tools ? { tools, stopWhen: isStepCount(5) } : {}),
         providerOptions: {
           deepseek: {
             thinking: { type: thinkingType }
@@ -152,12 +173,13 @@ export default defineEventHandler(async (event) => {
       })
 
       // finish 前注入 data-sources，客户端即时可见（勿只靠落库后 refresh）
+      // 使用 result.toUIMessageStream()：会带上 tools，且与 createUIMessageStream.merge 兼容
       writer.merge(withWebSearchSources(
-        result.toUIMessageStream(),
+        result.toUIMessageStream({ sendReasoning: true }),
         () => awaitMimoSources(mimoCtx)
       ))
     },
-    onFinish: async ({ responseMessage, isAborted }) => {
+    onEnd: async ({ responseMessage, isAborted }) => {
       let parts = Array.isArray(responseMessage.parts) ? [...responseMessage.parts] : []
       // 中断且无实质内容时不落库，避免空助手消息；有半截内容则保留
       if (isAborted && !hasPersistableParts(parts)) return
@@ -190,7 +212,7 @@ export default defineEventHandler(async (event) => {
 
   return createUIMessageStreamResponse({
     stream,
-    // 确保客户端 abort 时 onFinish 仍会执行（含 isAborted）
+    // 确保客户端 abort 时 onEnd 仍会执行（含 isAborted）
     consumeSseStream: consumeStream
   })
 })

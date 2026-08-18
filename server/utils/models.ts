@@ -78,6 +78,8 @@ export interface ProviderConfig {
   supportsThinking?: (modelId: string) => boolean
   /** 检测 model ID 是否支持联网搜索 */
   supportsWebSearch?: (modelId: string) => boolean
+  /** 是否支持自定义 function calling（如 chart tool） */
+  supportsCustomTools?: (modelId: string) => boolean
 }
 
 const MIMO_CHAT_MODELS = ['mimo-v2.5-pro', 'mimo-v2.5'] as const
@@ -97,7 +99,8 @@ export const PROVIDER_REGISTRY: ProviderConfig[] = [
     getInstance: id => deepseek(id),
     supportsImages: () => false, // DeepSeek 无视觉模型
     supportsThinking: () => true,
-    supportsWebSearch: () => false
+    supportsWebSearch: () => false,
+    supportsCustomTools: () => true
   },
   {
     name: 'MiMo',
@@ -118,7 +121,9 @@ export const PROVIDER_REGISTRY: ProviderConfig[] = [
     },
     supportsThinking: id => isMimoChatModel(id),
     // 参考：https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/text-generation/tool-calling/web-search
-    supportsWebSearch: id => isMimoChatModel(id)
+    supportsWebSearch: id => isMimoChatModel(id),
+    // openai-compatible 会丢掉自定义 tools，chart 等仅 DeepSeek 可用
+    supportsCustomTools: () => false
   }
   // ── 在此继续追加 ──────────────────────────────────────────────────────────
 ]
@@ -179,6 +184,11 @@ export async function modelSupportsImages(modelId: string): Promise<boolean> {
 /** 检测 model ID 是否支持深度思考（Provider 规则） */
 export function modelSupportsThinking(modelId: string): boolean {
   return findProvider(modelId)?.supportsThinking?.(modelId) ?? true
+}
+
+/** 检测 model ID 是否支持自定义 function calling（如 chart tool） */
+export function modelSupportsCustomTools(modelId: string): boolean {
+  return findProvider(modelId)?.supportsCustomTools?.(modelId) ?? false
 }
 
 /** 检测 model ID 是否支持联网搜索（DB 优先，Provider fallback） */
