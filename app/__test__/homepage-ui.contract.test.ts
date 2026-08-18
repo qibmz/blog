@@ -41,14 +41,51 @@ describe('homepage UI contracts', () => {
     expect(stack).toBeGreaterThan(topics)
   })
 
-  it('removes portfolio-template sections and the fake RSS action', () => {
+  it('keeps a compact whoami card without fake RSS or CountUp widgets', () => {
     const source = readProjectFile('app/pages/index.vue')
 
-    expect(source).not.toContain('const stats =')
+    expect(source).toContain('$ whoami')
+    expect(source).toContain('data-home-profile')
     expect(source).not.toContain('const highlights =')
     expect(source).not.toContain('<CountUp')
     expect(source).not.toContain('i-lucide-rss')
     expect(source).not.toContain('技术专长')
+  })
+
+  it('keeps the profile card above the hero without clipping it', () => {
+    const source = readProjectFile('app/pages/index.vue')
+    const afterHero = source.slice(source.indexOf('</UPageHero>'))
+    const profileStart = afterHero.indexOf('data-home-profile')
+    const profileMarkup = afterHero.slice(profileStart, profileStart + 280)
+
+    expect(source).toContain('data-home-hero')
+    expect(source).toContain('data-home-profile')
+    expect(source).toContain('relative isolate z-0')
+    expect(afterHero).toContain('<div class="relative z-10">')
+    expect(profileMarkup).toContain('relative z-20 -mt-12 md:-mt-16')
+    expect(profileMarkup).not.toContain('overflow-hidden')
+  })
+
+  it('renders the featured article label as an inline badge instead of a corner ribbon', () => {
+    const source = readProjectFile('app/pages/index.vue')
+
+    expect(source).toContain('精选')
+    expect(source).toContain('i-lucide-sparkles')
+    expect(source).not.toContain('-rotate-45')
+    expect(source).not.toContain('i-lucide-pin')
+  })
+
+  it('uses richer scroll reveals than a plain fade-up', () => {
+    const reveal = readProjectFile('app/components/ScrollReveal.vue')
+    const homepage = readProjectFile('app/pages/index.vue')
+
+    expect(reveal).toContain('filter: \'blur(')
+    expect(reveal).toContain('scale:')
+    expect(reveal).toContain('usePreferredReducedMotion()')
+    expect(reveal).toContain('inViewOptions')
+    expect(reveal).toContain('margin: \'-80px\'')
+    expect(homepage).toContain('<ScrollReveal')
+    expect(homepage).not.toContain(':while-in-view="{ opacity: 1, y: 0 }"')
   })
 
   it('uses the approved content-first introduction', () => {
@@ -69,14 +106,17 @@ describe('homepage UI contracts', () => {
   it('stops decorative hero motion when reduced motion is preferred', () => {
     const homepage = readProjectFile('app/pages/index.vue')
     const typewriter = readProjectFile('app/components/TypewriterText.vue')
+    const reveal = readProjectFile('app/components/ScrollReveal.vue')
 
     expect(homepage).toContain('motion-reduce:animate-none')
     expect(typewriter).toContain('usePreferredReducedMotion()')
     expect(typewriter).toContain('preferredMotion.value === \'reduce\'')
     expect(typewriter).toContain('motion-reduce:animate-none')
+    expect(reveal).toContain('usePreferredReducedMotion()')
+    expect(reveal).toContain('reduceMotion.value')
   })
 
-  it('loads matching light and dark hero media through one video element', () => {
+  it('preloads matching light and dark hero media using separate video elements', () => {
     const source = readProjectFile('app/pages/index.vue')
 
     expect(source).toContain('video: \'/video/hero-bg-light.mp4\'')
@@ -85,9 +125,12 @@ describe('homepage UI contracts', () => {
     expect(source).toContain('video: \'/video/hero-bg-dark.mp4\'')
     expect(source).toContain('poster: \'/video/hero-bg-dark-poster.webp\'')
     expect(source).toContain('posterSm: \'/video/hero-bg-dark-poster-sm.webp\'')
-    expect(source.match(/<video/g)).toHaveLength(1)
+    expect(source.match(/<video/g)).toHaveLength(2)
+    expect(source).toContain('videoRefLight')
+    expect(source).toContain('videoRefDark')
+    expect(source).toContain('ensureHeroVideoLoaded')
+    expect(source).toContain('requestIdleCallback')
     expect(source).toContain('watch(currentHeroTheme')
-    expect(source).toContain('source.getAttribute(\'src\') !== currentHeroMedia.value.video')
   })
 
   it('uses the light video without a dark full-screen mask', () => {
@@ -107,5 +150,14 @@ describe('homepage UI contracts', () => {
     expect(source).toContain('min-h-[calc(560px+var(--ui-header-height))]')
     expect(source).toContain('md:min-h-[calc(600px+var(--ui-header-height))]')
     expect(source).toContain('pt-[calc(var(--ui-header-height)+2.5rem)]')
+  })
+
+  it('renders footer with light-mode background', () => {
+    const footer = readProjectFile('app/components/AppFooter.vue')
+
+    expect(footer).toContain('bg-slate-50')
+    expect(footer).toContain('dark:bg-slate-950')
+    // only allow dark override, forbid a plain (light-mode) bg-slate-950 class
+    expect(footer).not.toContain(' bg-slate-950')
   })
 })

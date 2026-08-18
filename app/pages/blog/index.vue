@@ -86,14 +86,34 @@ useSeoMeta({
           :image="post.image"
           :date="post.dateLabel"
           :authors="post.authors"
-          :badge="post.badge"
           :orientation="index === 0 ? 'horizontal' : 'vertical'"
           :class="[index === 0 && 'col-span-full']"
           variant="naked"
           :ui="{
             description: 'line-clamp-2'
           }"
-        />
+        >
+          <template #badge>
+            <div class="flex flex-wrap items-center gap-2">
+              <UBadge
+                v-if="index === 0 && safePage === 1"
+                color="primary"
+                variant="subtle"
+                size="sm"
+                icon="i-lucide-sparkles"
+              >
+                精选
+              </UBadge>
+              <UBadge
+                v-if="post.badge"
+                color="neutral"
+                variant="subtle"
+                size="sm"
+                v-bind="typeof post.badge === 'string' ? { label: post.badge } : post.badge"
+              />
+            </div>
+          </template>
+        </UBlogPost>
       </UBlogPosts>
 
       <UPagination

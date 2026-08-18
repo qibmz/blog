@@ -134,10 +134,10 @@ const displayedStack = computed(() => {
         v-for="(item, index) in displayedStack"
         :key="item.name"
         tag="div"
-        :initial="{ opacity: 0, y: 8 }"
+        :initial="{ opacity: 0, y: 16 }"
         :while-in-view="{ opacity: 1, y: 0 }"
-        :transition="{ duration: 0.25, delay: index * 0.025 }"
-        :viewport="{ once: true, margin: '-80px' }"
+        :transition="{ duration: 0.5, delay: Math.min(index, 8) * 0.04, ease: [0.16, 1, 0.3, 1] }"
+        :in-view-options="{ once: true, margin: '-80px' }"
       >
         <a
           :href="item.url"
