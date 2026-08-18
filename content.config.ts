@@ -126,6 +126,8 @@ export const collections = {
           label: z.string().optional(),
           variant: z.string().optional()
         }).optional(),
+        highlights: z.array(z.string()).optional(),
+        tags: z.array(z.string()).optional(),
         ui: z.object({
           container: z.string().optional()
         }).optional()
