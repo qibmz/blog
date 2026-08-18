@@ -76,7 +76,13 @@ export const collections = {
   }),
   docs: defineCollection({
     source: '1.docs/**/*',
-    type: 'page'
+    type: 'page',
+    schema: z.object({
+      // 真实 skill 标识（如 component-first-guardian）
+      name: z.string().optional(),
+      // 由 @nuxt/content 构建时自动填充源文件原始 markdown（含 frontmatter）
+      rawbody: z.string().optional()
+    })
   }),
   blog: defineCollection({
     source: '3.blog.yml',
