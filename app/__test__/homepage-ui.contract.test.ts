@@ -126,6 +126,10 @@ describe('homepage UI contracts', () => {
     expect(source).toContain('poster: \'/video/hero-bg-dark-poster.webp\'')
     expect(source).toContain('posterSm: \'/video/hero-bg-dark-poster-sm.webp\'')
     expect(source.match(/<video/g)).toHaveLength(2)
+    expect(source).toContain('v-if="currentHeroTheme === \'light\' && !videoReadyLight"')
+    expect(source).toContain('v-if="currentHeroTheme === \'dark\' && !videoReadyDark"')
+    expect(source).not.toContain('v-show="currentHeroTheme === \'light\' && !videoReadyLight"')
+    expect(source).not.toContain('v-show="currentHeroTheme === \'dark\' && !videoReadyDark"')
     expect(source).toContain('videoRefLight')
     expect(source).toContain('videoRefDark')
     expect(source).toContain('ensureHeroVideoLoaded')
@@ -157,6 +161,8 @@ describe('homepage UI contracts', () => {
 
     expect(footer).toContain('bg-slate-50')
     expect(footer).toContain('dark:bg-slate-950')
+    expect(footer).toContain('Built with qibmz')
+    expect(footer).not.toContain('qbimz')
     // only allow dark override, forbid a plain (light-mode) bg-slate-950 class
     expect(footer).not.toContain(' bg-slate-950')
   })

@@ -39,6 +39,7 @@ async function copyCode() {
         <span class="ml-2 truncate font-mono text-xs text-slate-500 dark:text-slate-400">{{ title }}</span>
       </div>
       <UButton
+        v-if="code"
         :label="copied ? '已复制' : '复制'"
         :icon="copied ? 'i-lucide-check' : 'i-lucide-clipboard-copy'"
         variant="ghost"

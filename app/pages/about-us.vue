@@ -368,7 +368,7 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
             <div class="relative px-6 py-10 text-center md:px-12 md:py-12">
               <p class="font-mono text-xs text-primary-700 dark:text-primary-300">
                 <span class="text-emerald-400">$</span> ./contact --me<span
-                  class="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-primary-300 align-middle"
+                  class="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-primary-300 align-middle motion-reduce:animate-none"
                   aria-hidden="true"
                 />
               </p>

@@ -205,7 +205,7 @@ const exploreLinks = [
       <template #top>
         <div class="absolute inset-0 -z-1 overflow-hidden">
           <img
-            v-show="currentHeroTheme === 'light' && !videoReadyLight"
+            v-if="currentHeroTheme === 'light' && !videoReadyLight"
             src="/video/hero-bg-light-poster.webp"
             srcset="/video/hero-bg-light-poster-sm.webp 640w, /video/hero-bg-light-poster.webp 1280w"
             sizes="100vw"
@@ -218,7 +218,7 @@ const exploreLinks = [
             class="absolute inset-0 h-full w-full object-cover brightness-100 contrast-100 saturate-100 block dark:hidden"
           >
           <img
-            v-show="currentHeroTheme === 'dark' && !videoReadyDark"
+            v-if="currentHeroTheme === 'dark' && !videoReadyDark"
             src="/video/hero-bg-dark-poster.webp"
             srcset="/video/hero-bg-dark-poster-sm.webp 640w, /video/hero-bg-dark-poster.webp 1280w"
             sizes="100vw"
@@ -762,7 +762,7 @@ const exploreLinks = [
               <div class="relative px-6 py-10 text-center md:px-12 md:py-12">
                 <p class="font-mono text-xs text-primary-700 dark:text-primary-300">
                   <span class="text-emerald-400">$</span> ./contact --me<span
-                    class="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-primary-300 align-middle"
+                    class="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-primary-300 align-middle motion-reduce:animate-none"
                     aria-hidden="true"
                   />
                 </p>

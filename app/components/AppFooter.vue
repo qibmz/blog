@@ -114,7 +114,7 @@ const socialLinks = [
 
       <div class="mt-10 flex flex-col items-center justify-between gap-4 border-t border-slate-200/70 pt-6 dark:border-white/10 sm:flex-row">
         <p class="text-xs text-slate-500 dark:text-slate-400">
-          Built with qbimz • © {{ new Date().getFullYear() }}
+          Built with qibmz • © {{ new Date().getFullYear() }}
         </p>
         <UButton
           to="https://github.com/qibmz"
