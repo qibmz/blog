@@ -6,28 +6,65 @@ seo:
 navigation:
   icon: i-lucide-user
 
+contact:
+  email: 1583326640@qq.com
+
 versions:
   - title: '杭州铂森企业管理有限公司深圳分公司'
-    description: '独立完成自研项目的 UniApp 跨端开发，覆盖 iOS 及微信小程序平台，主要采用 Vibe Coding 方式进行开发，探索 AI 辅助编程在移动端产品中的实践与落地。'
+    description: '负责公司自研产品移动端从 0 到 1 的开发，基于 UniApp 一套代码覆盖 iOS 与微信小程序双端。开发过程中深度实践 Vibe Coding 工作流，将 AI 辅助编程融入需求拆解、代码生成与联调排错全流程，大幅提升单人交付效率，持续探索 AI 时代前端工程师的提效路径。'
     image: 'https://picsum.photos/id/20/512/288'
     badge: {
       label: '2026.03-至今',
       variant: 'solid'
     }
+    highlights:
+      - '独立完成自研产品 UniApp 跨端架构搭建与核心功能开发，一套代码同时交付 iOS 与微信小程序'
+      - '主导落地 Vibe Coding 开发流程：以 AI 对话驱动需求拆解与代码生成，配合人工审查把控质量与边界'
+      - '沉淀 AI 辅助编程的踩坑与提效经验，输出内部实践文档，反哺团队开发方式'
+    tags:
+      - 'UniApp'
+      - 'Vue 3'
+      - 'Vite'
+      - '微信小程序'
+      - 'iOS'
+      - 'Vibe Coding'
 
   - title: '深圳酷龙软件技术有限公司'
-    description: '负责区块链 DApp 前端开发，使用 Web3 技术栈实现去中心化应用的用户界面和交互功能。'
+    description: '负责区块链去中心化应用（DApp）的前端开发，使用 Web3 技术栈实现钱包连接、链上交互与数据展示，保障用户资产交互流程的安全与顺畅，并针对链上数据异步的特性优化加载与错误处理体验。'
     image: 'https://picsum.photos/id/15/512/288'
     badge: {
       label: '2025.06-2026.02',
       variant: 'subtle'
     }
+    highlights:
+      - '基于 Wagmi / Viem 实现钱包连接与合约交互，封装统一的链上操作与交易状态反馈'
+      - '实现 DApp 核心页面（资产、交易、NFT 等）的界面与交互，完成链上数据的前端渲染与展示'
+      - '处理链上请求的异步、重试与异常场景，保证节点波动下的可用性'
+    tags:
+      - 'Web3.js'
+      - 'Wagmi'
+      - 'Viem'
+      - 'DApp'
+      - '钱包连接'
+      - '智能合约'
 
   - title: '深圳市微行销信息技术有限公司'
-    description: '专注前端开发，负责电商和本地生活服务类项目的Web及移动端界面实现和用户体验优化。'
+    description: '负责电商与本地生活类项目的 Web 端及移动端（H5 / 小程序）界面实现与体验优化，同时负责后台管理系统的前端开发，参与多端项目从 0 到 1 的搭建与持续迭代，通过组件化复用与性能优化保障业务快速上线和稳定运行。'
     image: 'https://picsum.photos/id/10/512/288'
     badge: {
       label: '2023.03-2025.06',
       variant: 'subtle'
     }
-
+    highlights:
+      - '负责电商与本地生活项目 H5 / 小程序多端页面开发，覆盖商品、交易、营销等核心业务链路'
+      - '负责后台管理系统前端开发与迭代，支撑商品、订单、会员等运营管理场景'
+      - '推动组件复用与前端工程化建设，沉淀公共组件与工具方法，减少重复开发、提升迭代效率'
+      - '持续进行性能与体验优化：首屏加载与交互细节打磨，提升用户转化与留存'
+    tags:
+      - 'Vue 3'
+      - 'UniApp'
+      - 'Element Plus'
+      - '后台管理'
+      - 'uview'
+      - 'Wot UI'
+      - 'ECharts'

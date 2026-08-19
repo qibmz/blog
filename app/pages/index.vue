@@ -28,22 +28,59 @@ const heroMedia = {
 } as const
 
 const currentHeroTheme = computed(() => colorMode.value === 'dark' ? 'dark' : 'light')
-const currentHeroMedia = computed(() => heroMedia[currentHeroTheme.value])
-const videoRef = useTemplateRef('videoRef')
-const videoReady = ref(false)
+const videoRefLight = useTemplateRef('videoRefLight')
+const videoRefDark = useTemplateRef('videoRefDark')
+const videoReadyLight = ref(false)
+const videoReadyDark = ref(false)
 const reduceMotion = ref(false)
 
-function loadHeroVideo() {
-  if (reduceMotion.value || !videoRef.value) return
+type HeroTheme = keyof typeof heroMedia
 
-  const source = videoRef.value.querySelector('source')
-  const nextVideo = currentHeroMedia.value.video
+function getVideoEl(theme: HeroTheme) {
+  return theme === 'light' ? videoRefLight.value : videoRefDark.value
+}
 
-  if (!source || source.getAttribute('src') === nextVideo) return
+function getVideoReady(theme: HeroTheme) {
+  return theme === 'light' ? videoReadyLight : videoReadyDark
+}
 
-  videoReady.value = false
+function ensureHeroVideoLoaded(theme: HeroTheme) {
+  if (reduceMotion.value) return
+
+  const videoEl = getVideoEl(theme)
+  if (!videoEl) return
+
+  const source = videoEl.querySelector('source')
+  if (!source) return
+
+  const nextVideo = heroMedia[theme].video
+  const readyRef = getVideoReady(theme)
+
+  if (source.getAttribute('src') === nextVideo && readyRef.value) return
+
+  readyRef.value = false
   source.src = nextVideo
-  videoRef.value.load()
+  videoEl.load()
+}
+
+function playHeroIfCurrent(theme: HeroTheme) {
+  if (reduceMotion.value) return
+  if (currentHeroTheme.value !== theme) return
+
+  const videoEl = getVideoEl(theme)
+  videoEl?.play().catch(() => {
+    // Autoplay was blocked or interrupted; poster remains visible
+  })
+}
+
+function onLightVideoReady() {
+  videoReadyLight.value = true
+  playHeroIfCurrent('light')
+}
+
+function onDarkVideoReady() {
+  videoReadyDark.value = true
+  playHeroIfCurrent('dark')
 }
 
 onMounted(() => {
@@ -51,33 +88,34 @@ onMounted(() => {
   reduceMotion.value = motionQuery.matches
 
   if (!motionQuery.matches) {
-    if (typeof requestIdleCallback !== 'undefined') {
-      requestIdleCallback(loadHeroVideo, { timeout: 2000 })
-    } else {
-      setTimeout(loadHeroVideo, 200)
+    const schedule = (fn: () => void, timeoutMs: number) => {
+      if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(fn, { timeout: timeoutMs })
+      } else {
+        setTimeout(fn, timeoutMs)
+      }
     }
+
+    // 空闲时先预取当前 theme；再预取另外一个 theme，避免切换时替换 source 导致卡顿
+    const firstTheme = currentHeroTheme.value
+    const otherTheme: HeroTheme = firstTheme === 'dark' ? 'light' : 'dark'
+
+    schedule(() => ensureHeroVideoLoaded(firstTheme), 150)
+    schedule(() => ensureHeroVideoLoaded(otherTheme), 600)
   }
 })
 
 watch(currentHeroTheme, () => {
-  videoReady.value = false
-  loadHeroVideo()
+  // 切换时只做显隐/播放，不替换 source；video 还没准备好则触发一次加载
+  if (reduceMotion.value) return
+  if (currentHeroTheme.value === 'light') {
+    if (!videoReadyLight.value) ensureHeroVideoLoaded('light')
+    playHeroIfCurrent('light')
+  } else {
+    if (!videoReadyDark.value) ensureHeroVideoLoaded('dark')
+    playHeroIfCurrent('dark')
+  }
 })
-
-function onVideoReady() {
-  const source = videoRef.value?.querySelector('source')
-  if (!source) return
-
-  if (
-    source.getAttribute('src') !== currentHeroMedia.value.video
-    || !videoRef.value?.currentSrc.endsWith(currentHeroMedia.value.video)
-  ) return
-
-  videoReady.value = true
-  videoRef.value?.play().catch(() => {
-    // Autoplay was blocked or interrupted; poster remains visible
-  })
-}
 
 const typingTexts = ['前端开发者', 'Web3 Builder', 'UniApp 跨平台']
 
@@ -108,6 +146,47 @@ const writingTopics = [
 
 const githubUrl = 'https://github.com/qibmz'
 const contactEmail = (page.value as unknown as { contact?: { email?: string } })?.contact?.email || '1583326640@qq.com'
+
+const stats = computed(() => [
+  { label: '技术文章', value: String(posts.value?.length || 0), suffix: '篇' },
+  { label: '深耕方向', value: '3', suffix: '年+' },
+  { label: '技术栈', value: '27', suffix: '项' }
+])
+
+const exploreLinks = [
+  {
+    label: '备忘录',
+    description: '零散的技术笔记与代码速查',
+    icon: 'i-lucide-notebook-pen',
+    to: '/docs',
+    accent: 'text-sky-500 bg-sky-50 ring-sky-200/70 dark:text-sky-300 dark:bg-sky-500/10 dark:ring-sky-400/20',
+    hoverShadow: 'hover:border-sky-300 hover:shadow-[0_0_32px_-8px_rgba(14,165,233,0.35)] dark:hover:border-sky-400/40'
+  },
+  {
+    label: 'AI Chat',
+    description: '和 AI 聊聊技术方案与思路',
+    icon: 'i-lucide-bot',
+    to: '/chat',
+    accent: 'text-violet-500 bg-violet-50 ring-violet-200/70 dark:text-violet-300 dark:bg-violet-500/10 dark:ring-violet-400/20',
+    hoverShadow: 'hover:border-violet-300 hover:shadow-[0_0_32px_-8px_rgba(139,92,246,0.35)] dark:hover:border-violet-400/40'
+  },
+  {
+    label: 'Demos',
+    description: 'K 线图、海报设计器等实验',
+    icon: 'i-lucide-flask-conical',
+    to: '/playground',
+    accent: 'text-amber-500 bg-amber-50 ring-amber-200/70 dark:text-amber-300 dark:bg-amber-500/10 dark:ring-amber-400/20',
+    hoverShadow: 'hover:border-amber-300 hover:shadow-[0_0_32px_-8px_rgba(245,158,11,0.35)] dark:hover:border-amber-400/40'
+  },
+  {
+    label: '关于我',
+    description: '工作经历与技术方向',
+    icon: 'i-lucide-user-round',
+    to: '/about-us',
+    accent: 'text-primary-500 bg-primary-50 ring-primary-200/70 dark:text-primary-300 dark:bg-primary-500/10 dark:ring-primary-400/20',
+    hoverShadow: 'hover:border-primary-300 hover:shadow-[0_0_32px_-8px_rgba(59,130,246,0.35)] dark:hover:border-primary-400/40'
+  }
+]
 </script>
 
 <template>
@@ -117,16 +196,16 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
   >
     <UPageHero
       data-home-hero
-      class="relative isolate -mt-(--ui-header-height) min-h-[calc(560px+var(--ui-header-height))] overflow-hidden md:min-h-[calc(600px+var(--ui-header-height))]"
+      class="relative isolate z-0 -mt-(--ui-header-height) min-h-[calc(560px+var(--ui-header-height))] overflow-hidden md:min-h-[calc(600px+var(--ui-header-height))]"
       :ui="{
         container: 'min-h-[calc(560px+var(--ui-header-height))] md:min-h-[calc(600px+var(--ui-header-height))] py-0 sm:py-0 lg:py-0',
-        wrapper: 'max-w-3xl mx-auto px-6 pt-[calc(var(--ui-header-height)+2.5rem)] pb-10 flex flex-col justify-center'
+        wrapper: 'max-w-3xl mx-auto px-6 pt-[calc(var(--ui-header-height)+2.5rem)] pb-20 md:pb-24 flex flex-col justify-center'
       }"
     >
       <template #top>
         <div class="absolute inset-0 -z-1 overflow-hidden">
           <img
-            v-if="!videoReady"
+            v-if="currentHeroTheme === 'light' && !videoReadyLight"
             src="/video/hero-bg-light-poster.webp"
             srcset="/video/hero-bg-light-poster-sm.webp 640w, /video/hero-bg-light-poster.webp 1280w"
             sizes="100vw"
@@ -139,7 +218,7 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
             class="absolute inset-0 h-full w-full object-cover brightness-100 contrast-100 saturate-100 block dark:hidden"
           >
           <img
-            v-if="!videoReady"
+            v-if="currentHeroTheme === 'dark' && !videoReadyDark"
             src="/video/hero-bg-dark-poster.webp"
             srcset="/video/hero-bg-dark-poster-sm.webp 640w, /video/hero-bg-dark-poster.webp 1280w"
             sizes="100vw"
@@ -149,18 +228,31 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
             fetchpriority="high"
             alt=""
             aria-hidden="true"
-            class="absolute inset-0 h-full w-full object-cover brightness-90 contrast-100 saturate-100 hidden dark:block"
+            class="absolute inset-0 h-full w-full object-cover brightness-90 contrast-100 saturate-100 block dark:block"
           >
           <video
-            v-show="videoReady"
-            ref="videoRef"
+            v-show="currentHeroTheme === 'light' && videoReadyLight"
+            ref="videoRefLight"
             autoplay
             loop
             muted
             playsinline
             preload="none"
-            class="absolute inset-0 h-full w-full object-cover brightness-100 contrast-100 saturate-100 dark:brightness-90 dark:contrast-100 dark:saturate-100"
-            @loadeddata="onVideoReady"
+            class="absolute inset-0 h-full w-full object-cover brightness-100 contrast-100 saturate-100"
+            @loadeddata="onLightVideoReady"
+          >
+            <source type="video/mp4">
+          </video>
+          <video
+            v-show="currentHeroTheme === 'dark' && videoReadyDark"
+            ref="videoRefDark"
+            autoplay
+            loop
+            muted
+            playsinline
+            preload="none"
+            class="absolute inset-0 h-full w-full object-cover brightness-90 contrast-100 saturate-100"
+            @loadeddata="onDarkVideoReady"
           >
             <source type="video/mp4">
           </video>
@@ -169,10 +261,9 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
       </template>
 
       <template #headline>
-        <Motion
-          :initial="{ opacity: 0, y: 10 }"
-          :animate="{ opacity: 1, y: 0 }"
-          :transition="{ duration: 0.35 }"
+        <ScrollReveal
+          mode="load"
+          variant="soft"
           class="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-1.5 ring-1 ring-slate-900/10 backdrop-blur-md dark:bg-slate-950/45 dark:ring-white/20"
         >
           <span class="relative flex size-2">
@@ -180,7 +271,7 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
             <span class="relative inline-flex size-2 rounded-full bg-emerald-400" />
           </span>
           <span class="text-xs font-medium text-slate-700 dark:text-slate-100">持续更新中 · 开放技术合作</span>
-        </Motion>
+        </ScrollReveal>
       </template>
 
       <template #title>
@@ -200,10 +291,10 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
 
       <template #links>
         <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <Motion
-            :initial="{ opacity: 0, y: 12 }"
-            :animate="{ opacity: 1, y: 0 }"
-            :transition="{ duration: 0.35, delay: 0.2 }"
+          <ScrollReveal
+            mode="load"
+            variant="soft"
+            :delay="0.12"
           >
             <UButton
               to="#recent-articles"
@@ -215,11 +306,11 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
             >
               阅读最新文章
             </UButton>
-          </Motion>
-          <Motion
-            :initial="{ opacity: 0, y: 12 }"
-            :animate="{ opacity: 1, y: 0 }"
-            :transition="{ duration: 0.35, delay: 0.3 }"
+          </ScrollReveal>
+          <ScrollReveal
+            mode="load"
+            variant="soft"
+            :delay="0.2"
           >
             <UButton
               to="/about-us"
@@ -231,13 +322,13 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
             >
               关于我
             </UButton>
-          </Motion>
+          </ScrollReveal>
         </div>
 
-        <Motion
-          :initial="{ opacity: 0 }"
-          :animate="{ opacity: 1 }"
-          :transition="{ duration: 0.35, delay: 0.4 }"
+        <ScrollReveal
+          mode="load"
+          variant="soft"
+          :delay="0.28"
           class="mt-5 flex items-center justify-center gap-2"
         >
           <UButton
@@ -259,244 +350,459 @@ const contactEmail = (page.value as unknown as { contact?: { email?: string } })
             aria-label="发送邮件"
             class="min-h-11 min-w-11 rounded-xl text-slate-800 hover:bg-white/70 dark:text-white dark:hover:bg-white/10"
           />
-        </Motion>
+        </ScrollReveal>
       </template>
     </UPageHero>
 
-    <section
-      id="recent-articles"
-      aria-labelledby="recent-articles-title"
-      class="scroll-mt-20 py-14 md:py-18"
-    >
-      <UContainer>
-        <div class="mb-8 flex items-end justify-between gap-4">
-          <div>
-            <p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 dark:text-primary-400">
-              近期更新
-            </p>
-            <h2
-              id="recent-articles-title"
-              class="text-3xl font-bold text-slate-950 dark:text-white"
-            >
-              最新文章
-            </h2>
-          </div>
-          <NuxtLink
-            to="/blog"
-            class="group inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:text-primary-400"
-          >
-            查看全部文章
-            <UIcon
-              name="i-lucide-arrow-right"
-              class="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
-            />
-          </NuxtLink>
-        </div>
+    <div class="relative z-10">
+      <!-- 延续 Hero 的氛围光斑，贯穿后续所有区块 -->
+      <div class="pointer-events-none absolute inset-x-0 top-0 -z-1 h-[1400px] overflow-hidden">
+        <div class="absolute left-1/2 top-[-10%] size-[900px] -translate-x-1/2 rounded-full bg-primary-400/10 blur-[140px] dark:bg-primary-500/15" />
+        <div class="absolute -left-40 top-[420px] size-[600px] rounded-full bg-primary-300/10 blur-[120px] dark:bg-primary-400/10" />
+        <div class="absolute -right-40 top-[900px] size-[700px] rounded-full bg-primary-500/10 blur-[130px] dark:bg-primary-600/10" />
+      </div>
 
-        <div
-          v-if="recentUpdates.length"
-          class="grid gap-4 lg:grid-cols-12"
-        >
-          <Motion
-            v-if="featuredUpdate"
-            :initial="{ opacity: 0, y: 16 }"
-            :while-in-view="{ opacity: 1, y: 0 }"
-            :transition="{ duration: 0.3 }"
-            :viewport="{ once: true, margin: '-80px' }"
-            class="lg:col-span-7"
+      <section
+        data-home-profile
+        aria-label="个人简介与数据"
+        class="relative z-20 -mt-12 md:-mt-16"
+      >
+        <UContainer>
+          <ScrollReveal
+            mode="load"
+            variant="scale"
+            :delay="0.15"
           >
-            <NuxtLink
-              :to="featuredUpdate.to"
-              class="group flex h-full min-h-72 flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-[border-color,box-shadow] duration-200 hover:border-primary-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-primary-800"
-            >
-              <div>
-                <div class="mb-4 flex items-center gap-2 text-xs">
-                  <span class="rounded-full bg-primary-50 px-2.5 py-1 font-semibold text-primary-700 dark:bg-primary-950/50 dark:text-primary-300">
-                    {{ featuredUpdate.category }}
+            <div class="relative flex flex-col items-center gap-6 overflow-hidden rounded-3xl border border-slate-200/70 bg-white/80 p-6 shadow-xl shadow-slate-900/10 backdrop-blur-xl md:flex-row md:items-center md:justify-between md:p-8 dark:border-white/10 dark:bg-gray-950/80 dark:shadow-black/40">
+              <div
+                class="pointer-events-none absolute inset-0 -z-1 opacity-[0.35] [mask-image:linear-gradient(to_bottom,black,transparent)] dark:opacity-[0.12]"
+                aria-hidden="true"
+                style="background-image: radial-gradient(currentColor 1px, transparent 1px); background-size: 16px 16px; color: rgb(100 116 139);"
+              />
+              <DecorCorners />
+              <div class="flex items-center gap-4">
+                <span class="relative shrink-0">
+                  <span class="absolute -inset-0.5 rounded-full bg-linear-to-br from-primary-400 to-primary-600 opacity-70 blur-[6px]" />
+                  <NuxtImg
+                    src="/image/avatar.avif"
+                    alt="qibmz 头像"
+                    width="64"
+                    height="64"
+                    class="relative size-16 rounded-full object-cover ring-2 ring-white dark:ring-gray-950"
+                  />
+                  <span class="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-emerald-400 ring-2 ring-white dark:ring-gray-950">
+                    <span class="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-70 motion-reduce:animate-none" />
                   </span>
-                  <span class="font-medium text-slate-500 dark:text-gray-400">最新发布</span>
+                </span>
+                <div>
+                  <p class="font-mono text-xs text-primary-600 dark:text-primary-400">
+                    $ whoami
+                  </p>
+                  <h2 class="mt-0.5 text-lg font-bold text-slate-950 dark:text-white">
+                    qibmz · 前端开发者
+                  </h2>
+                  <p class="mt-1 max-w-xs text-sm leading-6 text-slate-600 dark:text-gray-400">
+                    事已至此 先吃饭吧
+                  </p>
                 </div>
-                <h3 class="text-balance text-2xl font-bold leading-tight text-slate-950 transition-colors duration-200 group-hover:text-primary-700 dark:text-white dark:group-hover:text-primary-300">
-                  {{ featuredUpdate.title }}
-                </h3>
-                <p
-                  v-if="featuredUpdate.description"
-                  class="mt-4 line-clamp-3 text-base leading-7 text-slate-600 dark:text-gray-400"
-                >
-                  {{ featuredUpdate.description }}
-                </p>
               </div>
-              <div class="mt-8 flex items-center justify-between gap-4 text-sm">
-                <span class="inline-flex items-center gap-1.5 text-slate-500 dark:text-gray-400">
-                  <UIcon
-                    name="i-lucide-calendar"
-                    class="size-4"
-                  />
-                  {{ featuredUpdate.date }}
-                </span>
-                <span class="inline-flex items-center gap-1 font-semibold text-primary-600 dark:text-primary-400">
-                  阅读全文
-                  <UIcon
-                    name="i-lucide-arrow-right"
-                    class="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
-                  />
-                </span>
-              </div>
-            </NuxtLink>
-          </Motion>
 
-          <div class="grid gap-4 sm:grid-cols-2 lg:col-span-5">
-            <Motion
-              v-for="(update, index) in restUpdates"
-              :key="update.title"
-              :initial="{ opacity: 0, y: 12 }"
-              :while-in-view="{ opacity: 1, y: 0 }"
-              :transition="{ duration: 0.25, delay: index * 0.05 }"
-              :viewport="{ once: true, margin: '-80px' }"
+              <div class="flex items-center gap-4 md:gap-6">
+                <template
+                  v-for="(stat, index) in stats"
+                  :key="stat.label"
+                >
+                  <div
+                    v-if="index > 0"
+                    class="h-8 w-px shrink-0 bg-slate-200 dark:bg-white/10"
+                  />
+                  <div class="text-center">
+                    <p class="text-2xl font-bold text-slate-950 tabular-nums dark:text-white">
+                      {{ stat.value }}<span class="text-sm font-semibold text-primary-500">{{ stat.suffix }}</span>
+                    </p>
+                    <p class="mt-0.5 text-xs text-slate-500 dark:text-gray-400">
+                      {{ stat.label }}
+                    </p>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </ScrollReveal>
+        </UContainer>
+      </section>
+
+      <section
+        id="recent-articles"
+        aria-labelledby="recent-articles-title"
+        class="relative scroll-mt-20 py-14 md:py-18"
+      >
+        <UContainer>
+          <ScrollReveal
+            variant="soft"
+            class="relative mb-8 flex items-end justify-between gap-4"
+          >
+            <span
+              class="pointer-events-none absolute -top-6 right-0 hidden select-none font-mono text-6xl font-bold text-slate-900/[0.04] md:block dark:text-white/[0.04]"
+              aria-hidden="true"
+            >
+              01
+            </span>
+            <div>
+              <p class="mb-2 flex items-center gap-1.5 font-mono text-xs font-semibold uppercase tracking-[0.1em] text-primary-600 dark:text-primary-400">
+                <span class="text-slate-400 dark:text-gray-500">//</span> 近期更新
+              </p>
+              <h2
+                id="recent-articles-title"
+                class="text-3xl font-bold text-slate-950 dark:text-white"
+              >
+                最新文章
+              </h2>
+            </div>
+            <NuxtLink
+              to="/blog"
+              class="group inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:text-primary-400"
+            >
+              查看全部文章
+              <UIcon
+                name="i-lucide-arrow-right"
+                class="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
+              />
+            </NuxtLink>
+          </ScrollReveal>
+
+          <div
+            v-if="recentUpdates.length"
+            class="grid gap-4 lg:grid-cols-12"
+          >
+            <ScrollReveal
+              v-if="featuredUpdate"
+              variant="scale"
+              class="h-full lg:col-span-7"
             >
               <NuxtLink
-                :to="update.to"
-                class="group flex h-full min-h-48 flex-col rounded-2xl border border-slate-200 bg-white p-5 transition-[border-color,box-shadow] duration-200 hover:border-primary-300 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-primary-800"
+                :to="featuredUpdate.to"
+                class="group relative flex h-full min-h-72 flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/70 bg-white/60 p-6 shadow-[0_1px_0_rgba(255,255,255,0.4)_inset] backdrop-blur-md transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:border-white/10 dark:bg-white/[0.04] dark:shadow-[0_1px_0_rgba(255,255,255,0.06)_inset] dark:hover:border-primary-400/40 dark:hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.35)]"
               >
-                <span class="mb-3 text-xs font-semibold text-primary-700 dark:text-primary-300">
-                  {{ update.category }}
-                </span>
-                <h3 class="line-clamp-3 text-base font-semibold leading-snug text-slate-950 transition-colors duration-200 group-hover:text-primary-700 dark:text-white dark:group-hover:text-primary-300">
-                  {{ update.title }}
-                </h3>
-                <p
-                  v-if="update.description"
-                  class="mt-2 line-clamp-2 text-sm leading-6 text-slate-600 dark:text-gray-400"
-                >
-                  {{ update.description }}
-                </p>
-                <span class="mt-auto inline-flex items-center gap-1.5 pt-4 text-xs text-slate-500 dark:text-gray-400">
-                  <UIcon
-                    name="i-lucide-calendar"
-                    class="size-3.5"
-                  />
-                  {{ update.date }}
-                </span>
+                <DecorCorners inset="1rem" />
+                <div>
+                  <div class="mb-4 flex flex-wrap items-center gap-2 text-xs">
+                    <UBadge
+                      color="primary"
+                      variant="subtle"
+                      size="sm"
+                      icon="i-lucide-sparkles"
+                    >
+                      精选
+                    </UBadge>
+                    <span class="rounded-full bg-white/80 px-2.5 py-1 font-medium text-slate-600 ring-1 ring-slate-200/80 dark:bg-white/5 dark:text-gray-300 dark:ring-white/10">
+                      {{ featuredUpdate.category }}
+                    </span>
+                    <span class="font-medium text-slate-500 dark:text-gray-400">最新发布</span>
+                  </div>
+                  <h3 class="text-balance text-2xl font-bold leading-tight text-slate-950 transition-colors duration-200 group-hover:text-primary-700 dark:text-white dark:group-hover:text-primary-300">
+                    {{ featuredUpdate.title }}
+                  </h3>
+                  <p
+                    v-if="featuredUpdate.description"
+                    class="mt-4 line-clamp-3 text-base leading-7 text-slate-600 dark:text-gray-400"
+                  >
+                    {{ featuredUpdate.description }}
+                  </p>
+                </div>
+                <div class="mt-8 flex items-center justify-between gap-4 text-sm">
+                  <span class="inline-flex items-center gap-1.5 text-slate-500 dark:text-gray-400">
+                    <UIcon
+                      name="i-lucide-calendar"
+                      class="size-4"
+                    />
+                    {{ featuredUpdate.date }}
+                  </span>
+                  <span class="inline-flex items-center gap-1 font-semibold text-primary-600 dark:text-primary-400">
+                    阅读全文
+                    <UIcon
+                      name="i-lucide-arrow-right"
+                      class="size-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                    />
+                  </span>
+                </div>
               </NuxtLink>
-            </Motion>
-          </div>
-        </div>
+            </ScrollReveal>
 
-        <div
-          v-else
-          class="rounded-2xl border border-slate-200 bg-white py-14 text-center text-slate-600 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400"
-        >
-          <UIcon
-            name="i-lucide-file-text"
-            class="mx-auto mb-3 size-10"
-          />
-          <p>暂无文章，敬请期待</p>
-        </div>
-      </UContainer>
-    </section>
-
-    <section
-      id="writing-topics"
-      aria-labelledby="writing-topics-title"
-      class="border-y border-slate-200 bg-white/70 py-12 dark:border-gray-800 dark:bg-gray-900/40"
-    >
-      <UContainer>
-        <div class="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-          <div>
-            <p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 dark:text-primary-400">
-              内容方向
-            </p>
-            <h2
-              id="writing-topics-title"
-              class="text-2xl font-bold text-slate-950 dark:text-white"
-            >
-              我主要写这些
-            </h2>
-            <p class="mt-3 max-w-lg text-sm leading-6 text-slate-600 dark:text-gray-400">
-              记录真实开发中遇到的问题、取舍和可以复用的解决方案。
-            </p>
+            <div class="grid gap-4 sm:grid-cols-2 lg:col-span-5">
+              <ScrollReveal
+                v-for="(update, index) in restUpdates"
+                :key="update.title"
+                variant="up"
+                :delay="0.08 * (index + 1)"
+                class="h-full"
+              >
+                <NuxtLink
+                  :to="update.to"
+                  class="group flex h-full min-h-48 flex-col rounded-2xl border border-slate-200/70 bg-white/60 p-5 backdrop-blur-md transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-primary-400/40 dark:hover:shadow-[0_0_30px_-10px_rgba(59,130,246,0.3)]"
+                >
+                  <span class="mb-3 text-xs font-semibold text-primary-700 dark:text-primary-300">
+                    {{ update.category }}
+                  </span>
+                  <h3 class="line-clamp-3 text-base font-semibold leading-snug text-slate-950 transition-colors duration-200 group-hover:text-primary-700 dark:text-white dark:group-hover:text-primary-300">
+                    {{ update.title }}
+                  </h3>
+                  <p
+                    v-if="update.description"
+                    class="mt-2 line-clamp-2 text-sm leading-6 text-slate-600 dark:text-gray-400"
+                  >
+                    {{ update.description }}
+                  </p>
+                  <span class="mt-auto inline-flex items-center gap-1.5 pt-4 text-xs text-slate-500 dark:text-gray-400">
+                    <UIcon
+                      name="i-lucide-calendar"
+                      class="size-3.5"
+                    />
+                    {{ update.date }}
+                  </span>
+                </NuxtLink>
+              </ScrollReveal>
+            </div>
           </div>
-          <ul class="grid gap-3 sm:grid-cols-2">
-            <li
-              v-for="topic in writingTopics"
-              :key="topic.label"
-              class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900"
-            >
+
+          <div
+            v-else
+            class="rounded-2xl border border-slate-200/70 bg-white/60 py-14 text-center text-slate-600 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.04] dark:text-gray-400"
+          >
+            <UIcon
+              name="i-lucide-file-text"
+              class="mx-auto mb-3 size-10"
+            />
+            <p>暂无文章，敬请期待</p>
+          </div>
+        </UContainer>
+      </section>
+
+      <section
+        id="writing-topics"
+        aria-labelledby="writing-topics-title"
+        class="relative py-12 md:py-16"
+      >
+        <UContainer>
+          <ScrollReveal variant="scale">
+            <div class="relative grid gap-8 overflow-hidden rounded-3xl border border-slate-200/70 bg-white/50 p-6 backdrop-blur-md md:p-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-center dark:border-white/10 dark:bg-white/[0.03]">
+              <DecorCorners />
               <UIcon
-                :name="topic.icon"
-                class="size-5 shrink-0 text-primary-600 dark:text-primary-400"
+                name="i-lucide-braces"
+                class="pointer-events-none absolute -bottom-8 -left-8 hidden size-40 text-slate-900/[0.03] md:block dark:text-white/[0.04]"
+                aria-hidden="true"
               />
               <div>
-                <h3 class="text-sm font-semibold text-slate-900 dark:text-white">
-                  {{ topic.label }}
-                </h3>
-                <p class="mt-0.5 text-xs text-slate-600 dark:text-gray-400">
-                  {{ topic.description }}
+                <p class="mb-2 flex items-center gap-1.5 font-mono text-xs font-semibold uppercase tracking-[0.1em] text-primary-600 dark:text-primary-400">
+                  <span class="text-slate-400 dark:text-gray-500">//</span> 内容方向
+                </p>
+                <h2
+                  id="writing-topics-title"
+                  class="text-2xl font-bold text-slate-950 dark:text-white"
+                >
+                  我主要写这些
+                </h2>
+                <p class="mt-3 max-w-lg text-sm leading-6 text-slate-600 dark:text-gray-400">
+                  记录真实开发中遇到的问题、取舍和可以复用的解决方案。
                 </p>
               </div>
-            </li>
-          </ul>
-        </div>
-      </UContainer>
-    </section>
+              <ul class="grid gap-3 sm:grid-cols-2">
+                <li
+                  v-for="topic in writingTopics"
+                  :key="topic.label"
+                  class="group flex items-center gap-3 rounded-xl border border-slate-200/70 bg-white/70 px-4 py-3 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-md dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-primary-400/40 dark:hover:shadow-[0_0_24px_-8px_rgba(59,130,246,0.35)]"
+                >
+                  <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600 ring-1 ring-primary-200/70 dark:bg-primary-500/10 dark:text-primary-300 dark:ring-primary-400/20">
+                    <UIcon
+                      :name="topic.icon"
+                      class="size-5"
+                    />
+                  </span>
+                  <div>
+                    <h3 class="text-sm font-semibold text-slate-900 dark:text-white">
+                      {{ topic.label }}
+                    </h3>
+                    <p class="mt-0.5 text-xs text-slate-600 dark:text-gray-400">
+                      {{ topic.description }}
+                    </p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </ScrollReveal>
+        </UContainer>
+      </section>
 
-    <section
-      aria-labelledby="tech-stack-title"
-      class="py-12 md:py-14"
-    >
-      <UContainer>
-        <div class="mb-7">
-          <p class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 dark:text-primary-400">
-            常用工具
-          </p>
-          <h2
-            id="tech-stack-title"
-            class="text-2xl font-bold text-slate-950 dark:text-white"
+      <section
+        aria-labelledby="explore-title"
+        class="relative py-12 md:py-16"
+      >
+        <UContainer>
+          <ScrollReveal
+            variant="soft"
+            class="relative mb-7"
           >
-            核心技术栈
-          </h2>
-        </div>
-        <TechStack compact />
-      </UContainer>
-    </section>
-
-    <section class="pb-14 md:pb-18">
-      <UContainer>
-        <div class="rounded-2xl bg-slate-950 px-6 py-10 text-center ring-1 ring-slate-900 md:px-12 md:py-12 dark:bg-gray-900 dark:ring-gray-800">
-          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary-400">
-            保持联系
-          </p>
-          <h2 class="mt-3 text-2xl font-bold text-white md:text-3xl">
-            一起做点有意思的东西
-          </h2>
-          <p class="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-300">
-            无论是技术交流、项目合作还是随便聊聊，欢迎通过下面的方式找到我。
-          </p>
-          <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <UButton
-              :to="`mailto:${contactEmail}`"
-              size="lg"
-              color="primary"
-              variant="solid"
-              icon="i-lucide-mail"
-              class="min-h-11 rounded-xl px-6"
+            <span
+              class="pointer-events-none absolute -top-6 right-0 hidden select-none font-mono text-6xl font-bold text-slate-900/[0.04] md:block dark:text-white/[0.04]"
+              aria-hidden="true"
             >
-              发邮件给我
-            </UButton>
-            <UButton
-              :to="githubUrl"
-              target="_blank"
-              size="lg"
-              color="neutral"
-              variant="outline"
-              icon="i-simple-icons-github"
-              class="min-h-11 rounded-xl px-6"
+              02
+            </span>
+            <p class="mb-2 flex items-center gap-1.5 font-mono text-xs font-semibold uppercase tracking-[0.1em] text-primary-600 dark:text-primary-400">
+              <span class="text-slate-400 dark:text-gray-500">//</span> 不止于博客
+            </p>
+            <h2
+              id="explore-title"
+              class="text-2xl font-bold text-slate-950 dark:text-white"
             >
-              GitHub
-            </UButton>
+              探索更多
+            </h2>
+          </ScrollReveal>
+          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <ScrollReveal
+              v-for="(link, index) in exploreLinks"
+              :key="link.label"
+              variant="up"
+              :delay="0.08 * index"
+              class="h-full"
+            >
+              <NuxtLink
+                :to="link.to"
+                class="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/70 bg-white/60 p-5 backdrop-blur-md transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-1 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-500 dark:border-white/10 dark:bg-white/[0.04]"
+                :class="link.hoverShadow"
+              >
+                <span
+                  class="pointer-events-none absolute right-3 top-3 select-none font-mono text-[11px] text-slate-400/70 dark:text-gray-500/70"
+                  aria-hidden="true"
+                >
+                  {{ String(index + 1).padStart(2, '0') }}
+                </span>
+                <span
+                  class="flex size-11 shrink-0 items-center justify-center rounded-xl ring-1"
+                  :class="link.accent"
+                >
+                  <UIcon
+                    :name="link.icon"
+                    class="size-5"
+                  />
+                </span>
+                <h3 class="mt-4 text-base font-semibold text-slate-950 dark:text-white">
+                  {{ link.label }}
+                </h3>
+                <p class="mt-1.5 text-sm leading-6 text-slate-600 dark:text-gray-400">
+                  {{ link.description }}
+                </p>
+                <UIcon
+                  name="i-lucide-arrow-up-right"
+                  class="mt-auto ml-auto size-4 shrink-0 pt-3 text-slate-400 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 dark:text-gray-500"
+                />
+              </NuxtLink>
+            </ScrollReveal>
           </div>
-        </div>
-      </UContainer>
-    </section>
+        </UContainer>
+      </section>
+
+      <section
+        aria-labelledby="tech-stack-title"
+        class="relative py-12 md:py-14"
+      >
+        <UContainer>
+          <ScrollReveal variant="scale">
+            <div class="relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white/40 p-6 backdrop-blur-md md:p-8 dark:border-white/10 dark:bg-white/[0.02]">
+              <DecorCorners />
+              <span
+                class="pointer-events-none absolute -bottom-10 -right-6 hidden select-none font-mono text-7xl font-bold text-slate-900/[0.03] md:block dark:text-white/[0.04]"
+                aria-hidden="true"
+              >
+                03
+              </span>
+              <div class="relative mb-7">
+                <p class="mb-2 flex items-center gap-1.5 font-mono text-xs font-semibold uppercase tracking-[0.1em] text-primary-600 dark:text-primary-400">
+                  <span class="text-slate-400 dark:text-gray-500">//</span> 常用工具
+                </p>
+                <h2
+                  id="tech-stack-title"
+                  class="text-2xl font-bold text-slate-950 dark:text-white"
+                >
+                  核心技术栈
+                </h2>
+              </div>
+              <TechStack compact />
+            </div>
+          </ScrollReveal>
+        </UContainer>
+      </section>
+
+      <section class="relative pb-14 md:pb-18">
+        <UContainer>
+          <ScrollReveal
+            variant="scale"
+            class="relative mx-auto max-w-2xl"
+          >
+            <span
+              class="pointer-events-none absolute -top-8 right-2 hidden select-none font-mono text-5xl font-bold text-slate-900/[0.05] md:block dark:text-white/[0.06]"
+              aria-hidden="true"
+            >
+              04
+            </span>
+            <div class="relative overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-slate-200/70 shadow-2xl shadow-slate-200/20 dark:bg-slate-950 dark:ring-white/10 dark:shadow-primary-900/20">
+              <div class="pointer-events-none absolute inset-0 -z-1">
+                <div class="absolute left-1/2 top-1/2 size-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary-500/25 blur-[110px]" />
+                <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent_55%)] dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent_55%)]" />
+                <div class="absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:20px_20px] opacity-20 dark:opacity-40" />
+              </div>
+
+              <!-- 终端标题栏 -->
+              <div class="relative flex items-center gap-2 border-b border-slate-200/70 bg-slate-900/[0.03] px-4 py-3 dark:border-white/10 dark:bg-white/[0.03]">
+                <span class="size-2.5 rounded-full bg-red-400/80" />
+                <span class="size-2.5 rounded-full bg-amber-400/80" />
+                <span class="size-2.5 rounded-full bg-emerald-400/80" />
+                <span class="ml-2 font-mono text-xs text-slate-400">contact.sh</span>
+              </div>
+
+              <div class="relative px-6 py-10 text-center md:px-12 md:py-12">
+                <p class="font-mono text-xs text-primary-700 dark:text-primary-300">
+                  <span class="text-emerald-400">$</span> ./contact --me<span
+                    class="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-primary-300 align-middle motion-reduce:animate-none"
+                    aria-hidden="true"
+                  />
+                </p>
+                <h2 class="mt-3 text-2xl font-bold text-slate-900 dark:text-white md:text-3xl">
+                  一起做点有意思的东西
+                </h2>
+                <p class="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  无论是技术交流、项目合作还是随便聊聊，欢迎通过下面的方式找到我。
+                </p>
+                <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+                  <UButton
+                    :to="`mailto:${contactEmail}`"
+                    size="lg"
+                    color="primary"
+                    variant="solid"
+                    icon="i-lucide-mail"
+                    class="min-h-11 rounded-xl px-6 shadow-[0_0_30px_-8px_rgba(59,130,246,0.6)]"
+                  >
+                    发邮件给我
+                  </UButton>
+                  <UButton
+                    :to="githubUrl"
+                    target="_blank"
+                    size="lg"
+                    color="neutral"
+                    variant="outline"
+                    icon="i-simple-icons-github"
+                    class="min-h-11 rounded-xl border-slate-200/70 px-6 text-slate-900 hover:bg-slate-100 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+                  >
+                    GitHub
+                  </UButton>
+                </div>
+                <p class="mt-8 font-mono text-[11px] text-slate-500">
+                  <span class="text-emerald-400">➜</span> 响应速度：通常 24 小时内回复
+                </p>
+              </div>
+            </div>
+          </ScrollReveal>
+        </UContainer>
+      </section>
+    </div>
   </div>
 </template>

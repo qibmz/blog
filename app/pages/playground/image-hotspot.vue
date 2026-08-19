@@ -14,12 +14,14 @@ definePageMeta({
 
 const title = '图片热区编辑器'
 const description = '拖拽绘制热区，导出百分比 JSON，供 C 端活动页快速接入'
+const seoTitle = '图片热区编辑器：拖拽绘制矩形 / 多边形并导出百分比 JSON'
+const seoDescription = '在线绘制图片热区，支持矩形和多边形，坐标按百分比导出 JSON，方便活动页、运营配置和 C 端快速接入。'
 
 useSeoMeta({
-  title,
-  description,
-  ogTitle: title,
-  ogDescription: description
+  title: seoTitle,
+  description: seoDescription,
+  ogTitle: seoTitle,
+  ogDescription: seoDescription
 })
 
 const toast = useToast()

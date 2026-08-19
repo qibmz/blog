@@ -1,6 +1,6 @@
 <script setup lang="ts">
-const title = 'Playground'
-const description = '交互式组件演示与技术探索'
+const title = '前端组件演示 Playground：数字滚动、币安 K 线、图片热区与海报设计器'
+const description = 'Vue / Nuxt 在线演示合集，包含数字滚动动画、Binance 实时 K 线、图片热区编辑器和海报设计器，可直接试用并导出 JSON 配置。'
 
 useSeoMeta({
   title,

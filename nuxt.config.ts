@@ -129,7 +129,6 @@ export default defineNuxtConfig({
   sitemap: {
     xsl: false,
     exclude: [
-      '/playground/**',
       '/api/**'
     ]
   }

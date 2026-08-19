@@ -134,18 +134,18 @@ const displayedStack = computed(() => {
         v-for="(item, index) in displayedStack"
         :key="item.name"
         tag="div"
-        :initial="{ opacity: 0, y: 8 }"
+        :initial="{ opacity: 0, y: 16 }"
         :while-in-view="{ opacity: 1, y: 0 }"
-        :transition="{ duration: 0.25, delay: index * 0.025 }"
-        :viewport="{ once: true, margin: '-80px' }"
+        :transition="{ duration: 0.5, delay: Math.min(index, 8) * 0.04, ease: [0.16, 1, 0.3, 1] }"
+        :in-view-options="{ once: true, margin: '-80px' }"
       >
         <a
           :href="item.url"
           target="_blank"
           rel="noopener noreferrer"
-          class="group flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2.5 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+          class="group flex min-h-11 items-center gap-2.5 rounded-xl px-3 py-2.5 transition-[border-color,box-shadow,background-color,transform] duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
           :class="compact
-            ? 'border border-slate-200 bg-white hover:border-primary-300 hover:bg-primary-50/40 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-primary-800'
+            ? 'border border-slate-200/70 bg-white/60 backdrop-blur-md hover:-translate-y-0.5 hover:border-primary-300 hover:bg-primary-50/40 hover:shadow-md dark:border-white/10 dark:bg-white/[0.04] dark:hover:border-primary-400/40 dark:hover:shadow-[0_0_24px_-8px_rgba(59,130,246,0.35)]'
             : 'hover:bg-gray-100 dark:hover:bg-gray-800/60'"
         >
           <UIcon

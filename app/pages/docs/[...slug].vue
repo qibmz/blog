@@ -25,6 +25,9 @@ useSeoMeta({
   description,
   ogDescription: description
 })
+
+// 真实 skill 文档（frontmatter 含 name）直接渲染原始 md 源码，而非排版后的富文本
+const isSkillSource = computed(() => Boolean(page.value?.name))
 </script>
 
 <template>
@@ -35,8 +38,15 @@ useSeoMeta({
     />
 
     <UPageBody>
+      <!-- 真实 skill：直接渲染原始 md 源码 -->
+      <TerminalWindow
+        v-if="isSkillSource"
+        :title="`${page.name}.md`"
+        :code="page.rawbody"
+      />
+
       <ContentRenderer
-        v-if="page.body"
+        v-else-if="page.body"
         :value="page"
       />
 
@@ -48,7 +58,7 @@ useSeoMeta({
     </UPageBody>
 
     <template
-      v-if="page?.body?.toc?.links?.length"
+      v-if="!isSkillSource && page?.body?.toc?.links?.length"
       #right
     >
       <UContentToc
