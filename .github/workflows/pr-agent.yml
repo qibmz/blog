@@ -1,0 +1,43 @@
+# PR-Agent：用 DeepSeek 做 PR 自动 review（自带 API key，不走 Cursor Bugbot）
+# 文档：https://qodo-merge-docs.qodo.ai/installation/github/
+name: PR Agent
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+  issue_comment:
+    types: [created]
+
+jobs:
+  pr_agent_job:
+    if: ${{ github.event.sender.type != 'Bot' && (github.event_name != 'issue_comment' || github.event.issue.pull_request) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    name: Run PR Agent
+    steps:
+      # 读取仓库根目录 .pr_agent.toml（忽略规则等）
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            .pr_agent.toml
+          sparse-checkout-cone-mode: false
+
+      - name: PR Agent
+        uses: the-pr-agent/pr-agent@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          config.model: 'deepseek/deepseek-v4-flash'
+          config.fallback_models: '["deepseek/deepseek-v4-flash"]'
+          # 默认不含 synchronize，推送更新会跳过；显式打开
+          github_action_config.pr_actions: '["opened", "reopened", "ready_for_review", "synchronize"]'
+          github_action_config.auto_review: 'true'
+          github_action_config.auto_describe: 'true'
+          github_action_config.auto_improve: 'false'
+          pr_reviewer.extra_instructions: >-
+            Reply in Chinese (简体中文). Focus on Nuxt 4 / Vue 3 / Nitro / Drizzle.
+            Flag security issues in server/**, especially auth and DB queries.
+            Ignore lockfile-only noise.
