@@ -32,6 +32,8 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           config.model: 'deepseek/deepseek-v4-flash'
           config.fallback_models: '["deepseek/deepseek-v4-flash"]'
+          # 默认不含 synchronize，推送更新会跳过；显式打开
+          github_action_config.pr_actions: '["opened", "reopened", "ready_for_review", "synchronize"]'
           github_action_config.auto_review: 'true'
           github_action_config.auto_describe: 'true'
           github_action_config.auto_improve: 'false'
