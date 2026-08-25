@@ -79,7 +79,9 @@ export default defineNuxtConfig({
     '/docs': { redirect: '/docs/getting-started', prerender: false }
   },
   experimental: {
-    viewTransition: true
+    // 仅 chat 页按需开启（见 pages/chat）；全局开启时 blog↔docs 换 layout + await
+    // 内容易触发 View Transition「DOM update timeout」未捕获报错
+    viewTransition: false
   },
 
   compatibilityDate: '2024-07-11',

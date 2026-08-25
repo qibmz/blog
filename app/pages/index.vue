@@ -158,7 +158,7 @@ const exploreLinks = [
     label: '备忘录',
     description: '零散的技术笔记与代码速查',
     icon: 'i-lucide-notebook-pen',
-    to: '/docs',
+    to: '/docs/getting-started',
     accent: 'text-sky-500 bg-sky-50 ring-sky-200/70 dark:text-sky-300 dark:bg-sky-500/10 dark:ring-sky-400/20',
     hoverShadow: 'hover:border-sky-300 hover:shadow-[0_0_32px_-8px_rgba(14,165,233,0.35)] dark:hover:border-sky-400/40'
   },

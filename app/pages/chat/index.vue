@@ -3,7 +3,7 @@ import type { UIMessage } from 'ai'
 import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
 import { modelShowsWebSearch } from '#shared/utils/modelCapability'
 
-definePageMeta({ layout: 'chat' })
+definePageMeta({ layout: 'chat', viewTransition: true })
 
 useSeoMeta({ title: 'AI Chat' })
 

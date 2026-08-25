@@ -7,7 +7,7 @@ import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
 import { modelShowsWebSearch } from '#shared/utils/modelCapability'
 import type { ChartUIToolInvocation } from '#shared/utils/tools/chart'
 
-definePageMeta({ layout: 'chat' })
+definePageMeta({ layout: 'chat', viewTransition: true })
 
 const route = useRoute()
 const id = route.params.id as string

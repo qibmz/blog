@@ -2,7 +2,7 @@
 const siteLinks = [
   { label: '首页', to: '/' },
   { label: '博客', to: '/blog' },
-  { label: '备忘录', to: '/docs' },
+  { label: '备忘录', to: '/docs/getting-started' },
   { label: 'Demos', to: '/playground' }
 ]
 
