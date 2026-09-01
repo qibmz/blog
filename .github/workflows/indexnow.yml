@@ -1,0 +1,39 @@
+# Production 部署成功后，把变更 URL 提交给 IndexNow（Bing 等）
+# 依赖 Vercel ↔ GitHub 回写 deployment_status；不依赖 Vercel Pro Webhook
+name: IndexNow
+
+on:
+  deployment_status:
+
+concurrency:
+  group: indexnow-${{ github.event.deployment.sha }}
+  cancel-in-progress: true
+
+jobs:
+  submit:
+    name: submit-urls
+    if: >
+      github.event.deployment_status.state == 'success' &&
+      (
+        github.event.deployment_status.environment == 'Production' ||
+        github.event.deployment_status.environment == 'production'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+          fetch-depth: 2
+
+      # 给 CDN / 边缘生效留一点时间，再让搜索引擎验 key、抓页
+      - name: Wait for edge
+        run: sleep 45
+
+      - name: Verify IndexNow key file
+        run: |
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "https://blog.qibmz.com/3f0a252b63eb49cf800c230d2a89c047.txt")
+          echo "key file HTTP $code"
+          test "$code" = "200"
+
+      - name: Submit changed URLs
+        run: node scripts/indexnow.mjs --base HEAD^ --head HEAD
