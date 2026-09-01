@@ -59,8 +59,6 @@ jobs:
   build:
     name: build
     runs-on: ubuntu-latest
-    env:
-      NUXT_SESSION_PASSWORD: ci-test-session-password-min-32-chars-long
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -71,4 +69,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+      # CI 仅校验可构建；密钥按次生成，勿用于生产。生产由 Vercel 单独配置 NUXT_SESSION_PASSWORD。
+      - name: Build
+        run: |
+          export NUXT_SESSION_PASSWORD="$(openssl rand -base64 48)"
+          pnpm build
