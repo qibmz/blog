@@ -6,7 +6,7 @@ const items = computed(() => [{
   active: route.path === '/'
 }, {
   label: '备忘录',
-  to: '/docs',
+  to: '/docs/getting-started',
   active: route.path.startsWith('/docs')
 }, {
   label: '博客',

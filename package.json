@@ -10,6 +10,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint . --fix",
+    "lint:ci": "eslint .",
     "typecheck": "nuxt typecheck",
     "test": "vitest run",
     "prepare": "husky"
@@ -51,6 +52,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.4.2",
+    "@commitlint/config-conventional": "^20.4.2",
     "@iconify-json/logos": "^1.2.12",
     "@nuxt/eslint": "^1.17.0",
     "@nuxt/test-utils": "^4.1.0",
