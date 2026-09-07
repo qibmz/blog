@@ -2,6 +2,10 @@
 
 给 Claude Code 的项目指引。
 
+行为约束与「先复用、勿另起炉灶」以根目录 `AGENTS.md` 为准；本文件补充架构与细节。
+
+@AGENTS.md
+
 ## 快速开始
 
 - 包管理器：`pnpm`（lockfile `pnpm-lock.yaml`）
