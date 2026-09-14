@@ -14,8 +14,8 @@ versions:
     description: '负责公司自研产品移动端从 0 到 1 的开发，基于 UniApp 一套代码覆盖 iOS 与微信小程序双端。开发过程中深度实践 Vibe Coding 工作流，将 AI 辅助编程融入需求拆解、代码生成与联调排错全流程，大幅提升单人交付效率，持续探索 AI 时代前端工程师的提效路径。'
     image: 'https://picsum.photos/id/20/512/288'
     badge: {
-      label: '2026.03-至今',
-      variant: 'solid'
+      label: '2026.03-2026.09',
+      variant: 'subtle'
     }
     highlights:
       - '独立完成自研产品 UniApp 跨端架构搭建与核心功能开发，一套代码同时交付 iOS 与微信小程序'
