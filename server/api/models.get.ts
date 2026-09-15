@@ -1,22 +1,41 @@
-import { defineEventHandler } from 'h3'
+import { defineEventHandler, getQuery } from 'h3'
 import { inArray } from 'drizzle-orm'
 import {
   PROVIDER_REGISTRY,
-  FALLBACK_MODELS,
-  DEFAULT_MODEL,
+  pickDefaultModel,
   modelIdToLabel,
   type ModelOption
 } from '../utils/models'
 
 // ─── 纯 API 驱动的模型列表 ────────────────────────────────────────────────────
-// 从各 Provider 的 GET /models 实时获取可用模型，不再维护静态列表。
-// 每个 Provider 独立容错：某家 API 失败时不影响其他 Provider。
-// 结果缓存 5 分钟，避免每次请求都调用外部 API。
+// 从各 Provider 的 GET /models 实时获取可用模型。
+// 每个 Provider 独立容错；短缓存 + ?fresh=1 强制刷新。
 
-const CACHE_TTL_MS = 5 * 60 * 1000
+const CACHE_TTL_MS = 60 * 1000
 
-let _cachedModels: ModelOption[] | null = null
+export type ModelsApiError = { provider: string, message: string }
+
+export type ModelsApiResponse = {
+  models: ModelOption[]
+  default: string
+  errors?: ModelsApiError[]
+  fetchedAt: number
+  stale?: boolean
+}
+
+type CachePayload = ModelsApiResponse
+
+let _cache: CachePayload | null = null
 let _cacheExpiry = 0
+/** 上次非空成功快照（仅当本次全挂时作 stale 兜底） */
+let _lastSuccess: CachePayload | null = null
+
+/** 仅供测试重置进程内缓存 */
+export function __resetModelsCacheForTests() {
+  _cache = null
+  _cacheExpiry = 0
+  _lastSuccess = null
+}
 
 type CapabilityRow = {
   id: string
@@ -24,7 +43,12 @@ type CapabilityRow = {
   supportsWebSearch: boolean
 }
 
-async function fetchAvailableModels(): Promise<ModelOption[]> {
+type FetchResult = {
+  models: ModelOption[]
+  errors: ModelsApiError[]
+}
+
+async function fetchAvailableModels(): Promise<FetchResult> {
   const results = await Promise.allSettled(
     PROVIDER_REGISTRY.map(async (provider) => {
       const res = await $fetch<{ data: { id: string }[] }>(provider.modelsUrl, {
@@ -35,7 +59,7 @@ async function fetchAvailableModels(): Promise<ModelOption[]> {
     })
   )
 
-  // 第一阶段：收集所有匹配的模型 ID
+  const errors: ModelsApiError[] = []
   const allModelIds: string[] = []
   const providerModelMap = new Map<number, string[]>()
 
@@ -51,11 +75,14 @@ async function fetchAvailableModels(): Promise<ModelOption[]> {
         )
       allModelIds.push(...matched)
       providerModelMap.set(i, matched)
+    } else {
+      const reason = result.reason
+      const message = reason instanceof Error ? reason.message : String(reason)
+      errors.push({ provider: provider.name, message })
+      console.warn(`[models] ${provider.name} /models failed:`, message)
     }
-    // API 失败：该 provider 不出现在列表中（不做 fallback，保持列表干净）
   })
 
-  // 第二阶段：批量 DB 查询
   const dbMap = new Map<string, CapabilityRow>()
   let dbOk = false
   if (allModelIds.length > 0) {
@@ -77,8 +104,8 @@ async function fetchAvailableModels(): Promise<ModelOption[]> {
     }
   }
 
-  // 第三阶段：构建 ModelOption[]
   const modelOptions: ModelOption[] = []
+  const missingIds: { id: string, supportsImages: boolean, supportsWebSearch: boolean }[] = []
 
   PROVIDER_REGISTRY.forEach((provider, i) => {
     const ids = providerModelMap.get(i)
@@ -92,13 +119,12 @@ async function fetchAvailableModels(): Promise<ModelOption[]> {
       if (row) {
         supportsImages = row.supportsImages
         supportsWebSearch = row.supportsWebSearch
-      } else if (dbOk) {
-        console.warn(`[models] DB miss for ${id}, model should be seeded`)
-        supportsImages = provider.supportsImages?.(id) ?? false
-        supportsWebSearch = provider.supportsWebSearch?.(id) ?? false
       } else {
         supportsImages = provider.supportsImages?.(id) ?? false
         supportsWebSearch = provider.supportsWebSearch?.(id) ?? false
+        if (dbOk) {
+          missingIds.push({ id, supportsImages, supportsWebSearch })
+        }
       }
 
       modelOptions.push({
@@ -112,19 +138,85 @@ async function fetchAvailableModels(): Promise<ModelOption[]> {
     }
   })
 
-  return modelOptions
-}
-
-export default defineEventHandler(async () => {
-  if (_cachedModels && Date.now() < _cacheExpiry) {
-    return { models: _cachedModels, default: DEFAULT_MODEL }
+  // 懒插入能力行（不阻塞响应；失败仅打日志）
+  if (missingIds.length > 0) {
+    void lazyInsertCapabilities(missingIds)
   }
 
-  const models = await fetchAvailableModels()
+  return { models: modelOptions, errors }
+}
 
-  // API 成功或有兜底都要缓存，避免反复重试宕机的 Provider
-  _cachedModels = models.length > 0 ? models : FALLBACK_MODELS
+async function lazyInsertCapabilities(
+  rows: { id: string, supportsImages: boolean, supportsWebSearch: boolean }[]
+) {
+  try {
+    const now = new Date()
+    await db
+      .insert(models)
+      .values(rows.map(r => ({
+        id: r.id,
+        supportsImages: r.supportsImages,
+        supportsWebSearch: r.supportsWebSearch,
+        createdAt: now,
+        updatedAt: now
+      })))
+      .onConflictDoNothing({ target: models.id })
+  } catch (err) {
+    console.warn('[models] lazy insert capabilities failed:', err)
+  }
+}
+
+function buildResponse(
+  modelList: ModelOption[],
+  errors: ModelsApiError[],
+  opts?: { stale?: boolean, fetchedAt?: number }
+): ModelsApiResponse {
+  const fetchedAt = opts?.fetchedAt ?? Date.now()
+  return {
+    models: modelList,
+    default: pickDefaultModel(modelList),
+    ...(errors.length ? { errors } : {}),
+    fetchedAt,
+    ...(opts?.stale ? { stale: true } : {})
+  }
+}
+
+export default defineEventHandler(async (event): Promise<ModelsApiResponse> => {
+  const query = getQuery(event)
+  const fresh = query.fresh === '1' || query.fresh === 'true'
+
+  if (!fresh && _cache && Date.now() < _cacheExpiry) {
+    return _cache
+  }
+
+  const { models: modelList, errors } = await fetchAvailableModels()
+
+  if (modelList.length > 0) {
+    const payload = buildResponse(modelList, errors)
+    _cache = payload
+    _cacheExpiry = Date.now() + CACHE_TTL_MS
+    _lastSuccess = payload
+    return payload
+  }
+
+  // 本次全挂：用上次成功快照（若有），并标记 stale；不把空失败结果当「成功列表」长缓存
+  if (_lastSuccess?.models.length) {
+    const stalePayload: ModelsApiResponse = {
+      ..._lastSuccess,
+      errors: errors.length
+        ? errors
+        : [{ provider: 'all', message: 'All providers failed; serving last successful snapshot' }],
+      fetchedAt: Date.now(),
+      stale: true
+    }
+    // 短缓存，避免狂打失败接口
+    _cache = stalePayload
+    _cacheExpiry = Date.now() + CACHE_TTL_MS
+    return stalePayload
+  }
+
+  const empty = buildResponse([], errors)
+  _cache = empty
   _cacheExpiry = Date.now() + CACHE_TTL_MS
-
-  return { models: _cachedModels, default: DEFAULT_MODEL }
+  return empty
 })

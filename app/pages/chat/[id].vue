@@ -43,7 +43,12 @@ if (optimistic) {
   throw createError({ statusCode: 404 })
 }
 
-const { model: selectedModel, models: modelOptions } = useModels()
+const {
+  model: selectedModel,
+  models: modelOptions,
+  refreshing: modelsRefreshing,
+  refreshModels
+} = useModels()
 const { thinkingMode, webSearch, toggleThinkingMode, toggleWebSearch } = useChatOptions()
 
 // ─── 图片上传 ────────────────────────────────
@@ -690,6 +695,15 @@ onMounted(async () => {
                       />
                     </template>
                   </USelectMenu>
+                  <UButton
+                    icon="i-lucide-refresh-cw"
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    :loading="modelsRefreshing"
+                    aria-label="刷新模型列表"
+                    @click="refreshModels"
+                  />
                   <UChatPromptSubmit
                     :status="status"
                     color="neutral"

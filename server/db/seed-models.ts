@@ -1,11 +1,11 @@
 /**
  * 模型能力元数据 Seed 脚本
  *
- * 全量初始化 models 表的能力数据，INSERT ... ON CONFLICT DO UPDATE 保证幂等。
+ * 仅写入「能力覆盖」初始行；列表本身以各家 /models API 为准。
+ * ON CONFLICT DO NOTHING：不覆盖生产库手工改过的能力字段。
+ *
  * Preview (develop): prebuild-migrate.js 自动执行
- * Production (main): schema 用
- *   `npx neonctl psql main --project-id <NEON_PROJECT_ID> -- --set ON_ERROR_STOP=on --single-transaction -f server/db/migrations/xxx.sql`
- *   seed 先在环境中设置 DATABASE_URL（勿把凭据写进命令行），再执行：
+ * Production (main): 先设置 DATABASE_URL，再
  *   `SEED_TARGET=production npx tsx server/db/seed-models.ts`
  */
 import { neon } from '@neondatabase/serverless'
@@ -13,7 +13,6 @@ import { drizzle } from 'drizzle-orm/neon-http'
 import * as schema from './schema'
 
 // ─── 生产环境安全保护 ────────────────────────────────────────────────────────
-// 本地默认 NODE_ENV=development，因此正式服 seed 需显式 SEED_TARGET=production
 if (process.env.NODE_ENV === 'production' || process.env.SEED_TARGET === 'production') {
   console.warn('⚠️  About to seed PRODUCTION database in 3s... Press Ctrl+C to cancel.')
   await new Promise(resolve => setTimeout(resolve, 3000))
@@ -27,12 +26,12 @@ if (!dbUrl) {
 
 const db = drizzle(neon(dbUrl), { schema })
 
-// ─── 全量模型能力数据 ─────────────────────────────────────────────────────────
-// 对话侧 MiMo 仅 mimo-v2.5-pro / mimo-v2.5；其余 seed 行作兼容/能力权威。
+// ─── 能力覆盖初始值（仅 insert，不覆盖已有行）───────────────────────────────
 const seedData: { id: string, supportsImages: boolean, supportsWebSearch: boolean }[] = [
-  // DeepSeek
+  // DeepSeek（官方推荐 deepseek-flash；旧 ID 保留兼容）
+  { id: 'deepseek-flash', supportsImages: true, supportsWebSearch: false },
   { id: 'deepseek-v4-pro', supportsImages: false, supportsWebSearch: false },
-  { id: 'deepseek-v4-flash', supportsImages: false, supportsWebSearch: false },
+  { id: 'deepseek-v4-flash', supportsImages: true, supportsWebSearch: false },
   // MiMo 当前对话模型
   { id: 'mimo-v2.5-pro', supportsImages: false, supportsWebSearch: true },
   { id: 'mimo-v2.5', supportsImages: true, supportsWebSearch: true },
@@ -44,7 +43,7 @@ const seedData: { id: string, supportsImages: boolean, supportsWebSearch: boolea
   { id: 'mimo-v2-omni-flash', supportsImages: false, supportsWebSearch: false }
 ]
 
-console.log(`[seed-models] Seeding ${seedData.length} models...`)
+console.log(`[seed-models] Seeding ${seedData.length} capability overrides (DO NOTHING on conflict)...`)
 
 for (const model of seedData) {
   await db
@@ -56,14 +55,7 @@ for (const model of seedData) {
       createdAt: new Date(),
       updatedAt: new Date()
     })
-    .onConflictDoUpdate({
-      target: schema.models.id,
-      set: {
-        supportsImages: model.supportsImages,
-        supportsWebSearch: model.supportsWebSearch,
-        updatedAt: new Date()
-      }
-    })
+    .onConflictDoNothing({ target: schema.models.id })
 }
 
 console.log('[seed-models] ✅ Seed complete')

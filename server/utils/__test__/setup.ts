@@ -85,7 +85,9 @@ export const mockDb = {
       then(onFulfilled: (v: unknown) => unknown, onRejected?: (e: unknown) => unknown) {
         return Promise.resolve().then(() => mockDbInsertValues()).then(onFulfilled, onRejected)
       },
-      returning: () => mockDbInsertReturning()
+      returning: () => mockDbInsertReturning(),
+      onConflictDoNothing: vi.fn(() => Promise.resolve()),
+      onConflictDoUpdate: vi.fn(() => Promise.resolve())
     }))
   })),
   update: mockDbUpdate,

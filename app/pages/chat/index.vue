@@ -14,7 +14,12 @@ const greeting = hour < 12 ? '早上好，Master' : hour < 18 ? '下午好，Mas
 
 const { loggedIn } = useUserSession()
 
-const { model: selectedModel, models: modelOptions } = useModels()
+const {
+  model: selectedModel,
+  models: modelOptions,
+  refreshing: modelsRefreshing,
+  refreshModels
+} = useModels()
 const { thinkingMode, webSearch, toggleThinkingMode, toggleWebSearch } = useChatOptions()
 const pendingChat = usePendingChat()
 
@@ -260,6 +265,15 @@ function goToLogin() {
                       />
                     </template>
                   </USelectMenu>
+                  <UButton
+                    icon="i-lucide-refresh-cw"
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    :loading="modelsRefreshing"
+                    aria-label="刷新模型列表"
+                    @click="refreshModels"
+                  />
                   <UChatPromptSubmit
                     status="ready"
                     color="neutral"

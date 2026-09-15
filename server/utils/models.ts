@@ -1,8 +1,8 @@
 /**
  * AI 模型 Provider 注册表
  *
- * 模型列表不再写死 —— 通过各 Provider 的 /models API 实时获取。
- * 新增 Provider 只需在 PROVIDER_REGISTRY 追加一条即可。
+ * 模型 ID 列表以各 Provider 的 /models API 为准。
+ * 本文件只负责：前缀过滤、能力规则、SDK 实例、默认模型推算。
  *
  * 官方 Provider 文档: https://ai-sdk.dev/providers/ai-sdk-providers
  * 兼容 OpenAI 接口的 Provider 文档: https://ai-sdk.dev/providers/openai-compatible-providers
@@ -30,10 +30,6 @@ const mimo = createOpenAICompatible({
   // openai-compatible 会把 tools 置为 undefined；用自定义字段再转回 tools
   transformRequestBody: applyMimoWebSearchToRequestBody
 })
-
-// ── 新增示例 ──────────────────────────────────────────────────────────────────
-// import { createOpenAI } from '@ai-sdk/openai'
-// const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 // ─── Provider 注册表 ──────────────────────────────────────────────────────────
 
@@ -88,6 +84,14 @@ function isMimoChatModel(id: string) {
   return (MIMO_CHAT_MODELS as readonly string[]).includes(id)
 }
 
+/** DeepSeek Flash / 含 flash 的多模态型号（V4.1-Flash） */
+export function deepseekSupportsImages(modelId: string): boolean {
+  const id = modelId.toLowerCase()
+  if (id === 'deepseek-flash') return true
+  if (id.includes('flash')) return true
+  return false
+}
+
 export const PROVIDER_REGISTRY: ProviderConfig[] = [
   {
     name: 'DeepSeek',
@@ -97,7 +101,7 @@ export const PROVIDER_REGISTRY: ProviderConfig[] = [
     headers: () => ({ Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}` }),
     exclude: [],
     getInstance: id => deepseek(id),
-    supportsImages: () => false, // DeepSeek 无视觉模型
+    supportsImages: deepseekSupportsImages,
     supportsThinking: () => true,
     supportsWebSearch: () => false,
     supportsCustomTools: () => true
@@ -128,28 +132,24 @@ export const PROVIDER_REGISTRY: ProviderConfig[] = [
   // ── 在此继续追加 ──────────────────────────────────────────────────────────
 ]
 
-// ─── 兜底模型列表（所有 Provider API 都不可用时使用）─────────────────────────
+/** 客户端未传 model、或列表为空时的首选默认 ID */
+export const PREFERRED_DEFAULT_MODEL = 'deepseek-flash'
 
-export const FALLBACK_MODELS: ModelOption[] = [
-  {
-    value: 'deepseek-v4-pro',
-    label: 'DeepSeek V4 Pro',
-    icon: 'i-simple-icons-deepseek',
-    supportsImages: false,
-    supportsThinking: true,
-    supportsWebSearch: false
-  },
-  {
-    value: 'mimo-v2.5-pro',
-    label: 'MiMo V2.5 Pro',
-    icon: 'i-simple-icons-xiaomi',
-    supportsImages: false,
-    supportsThinking: true,
-    supportsWebSearch: true
-  }
-]
+/** @deprecated 使用 pickDefaultModel(models)；保留作 chat API 无 body.model 时的兜底 */
+export const DEFAULT_MODEL = PREFERRED_DEFAULT_MODEL
 
-export const DEFAULT_MODEL = FALLBACK_MODELS[0]!.value
+/**
+ * 从实时列表推算默认模型：
+ * deepseek-flash → 任意 deepseek-* → 列表第一项 → PREFERRED_DEFAULT_MODEL
+ */
+export function pickDefaultModel(modelList: ModelOption[]): string {
+  if (!modelList.length) return PREFERRED_DEFAULT_MODEL
+  const flash = modelList.find(m => m.value === 'deepseek-flash')
+  if (flash) return flash.value
+  const deepseek = modelList.find(m => m.value.startsWith('deepseek-'))
+  if (deepseek) return deepseek.value
+  return modelList[0]!.value
+}
 
 // ─── 工具函数 ─────────────────────────────────────────────────────────────────
 

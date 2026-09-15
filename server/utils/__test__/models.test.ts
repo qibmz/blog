@@ -32,35 +32,33 @@ describe('PROVIDER_REGISTRY', () => {
   })
 })
 
-describe('FALLBACK_MODELS', () => {
-  it('should export a non-empty fallback list', async () => {
-    const { FALLBACK_MODELS } = await import('../models')
-    expect(FALLBACK_MODELS.length).toBeGreaterThan(0)
+describe('pickDefaultModel', () => {
+  it('should prefer deepseek-flash when present', async () => {
+    const { pickDefaultModel } = await import('../models')
+    expect(pickDefaultModel([
+      { value: 'deepseek-v4-pro', label: 'Pro', icon: 'i' },
+      { value: 'deepseek-flash', label: 'Flash', icon: 'i' }
+    ])).toBe('deepseek-flash')
   })
 
-  it('should have required fields for each fallback model', async () => {
-    const { FALLBACK_MODELS } = await import('../models')
-    for (const model of FALLBACK_MODELS) {
-      expect(model).toHaveProperty('value')
-      expect(model).toHaveProperty('label')
-      expect(model).toHaveProperty('icon')
-      expect(typeof model.value).toBe('string')
-      expect(typeof model.label).toBe('string')
-    }
-  })
-
-  it('should include DeepSeek and MiMo fallback models', async () => {
-    const { FALLBACK_MODELS } = await import('../models')
-    const values = FALLBACK_MODELS.map(m => m.value)
-    expect(values.some(v => v.includes('deepseek'))).toBe(true)
-    expect(values.some(v => v.includes('mimo'))).toBe(true)
+  it('should fall back to first deepseek-* then first item', async () => {
+    const { pickDefaultModel, PREFERRED_DEFAULT_MODEL } = await import('../models')
+    expect(pickDefaultModel([
+      { value: 'mimo-v2.5-pro', label: 'MiMo', icon: 'i' },
+      { value: 'deepseek-v4-pro', label: 'Pro', icon: 'i' }
+    ])).toBe('deepseek-v4-pro')
+    expect(pickDefaultModel([
+      { value: 'mimo-v2.5-pro', label: 'MiMo', icon: 'i' }
+    ])).toBe('mimo-v2.5-pro')
+    expect(pickDefaultModel([])).toBe(PREFERRED_DEFAULT_MODEL)
   })
 })
 
 describe('DEFAULT_MODEL', () => {
-  it('should be the first fallback model', async () => {
-    const { DEFAULT_MODEL, FALLBACK_MODELS } = await import('../models')
-    expect(DEFAULT_MODEL).toBe(FALLBACK_MODELS[0]!.value)
+  it('should prefer deepseek-flash', async () => {
+    const { DEFAULT_MODEL, PREFERRED_DEFAULT_MODEL } = await import('../models')
+    expect(DEFAULT_MODEL).toBe('deepseek-flash')
+    expect(DEFAULT_MODEL).toBe(PREFERRED_DEFAULT_MODEL)
   })
 })
 
@@ -81,9 +79,8 @@ describe('modelIdToLabel', () => {
 
 describe('getModel', () => {
   it('should return a model instance for a valid model value', async () => {
-    const { getModel, FALLBACK_MODELS } = await import('../models')
-    const firstModelValue = FALLBACK_MODELS[0]!.value
-    const instance = getModel(firstModelValue)
+    const { getModel, DEFAULT_MODEL } = await import('../models')
+    const instance = getModel(DEFAULT_MODEL)
     expect(instance).toBeDefined()
     expect(typeof instance).toBe('object')
   })
@@ -94,11 +91,10 @@ describe('getModel', () => {
     expect(instance).toBeDefined()
   })
 
-  it('should return the same type for any fallback model', async () => {
-    const { getModel, FALLBACK_MODELS } = await import('../models')
-    for (const model of FALLBACK_MODELS) {
-      const instance = getModel(model.value)
-      expect(instance).toBeDefined()
+  it('should return an instance for common DeepSeek and MiMo IDs', async () => {
+    const { getModel } = await import('../models')
+    for (const id of ['deepseek-flash', 'deepseek-v4-pro', 'mimo-v2.5-pro']) {
+      expect(getModel(id)).toBeDefined()
     }
   })
 })
@@ -138,10 +134,17 @@ describe('modelSupportsImages', () => {
     expect(mimo.include).toEqual(['mimo-v2.5-pro', 'mimo-v2.5'])
   })
 
-  it('should return false for DeepSeek models (provider fallback)', async () => {
+  it('should return false for DeepSeek Pro (provider fallback)', async () => {
     const { modelSupportsImages } = await import('../models')
     const result = await modelSupportsImages('deepseek-v4-pro')
     expect(result).toBe(false)
+  })
+
+  it('should return true for deepseek-flash (provider fallback)', async () => {
+    const { mockDbFindFirstModel } = await import('./setup')
+    mockDbFindFirstModel.mockResolvedValueOnce(null)
+    const { modelSupportsImages } = await import('../models')
+    expect(await modelSupportsImages('deepseek-flash')).toBe(true)
   })
 
   it('should return DB value when DB row exists (DB-first)', async () => {

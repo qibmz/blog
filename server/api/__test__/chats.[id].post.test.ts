@@ -42,7 +42,9 @@ vi.mock('../../utils/rateLimiter', () => ({
 
 vi.mock('../../utils/models', () => ({
   getModel: mockGetModel,
-  DEFAULT_MODEL: 'deepseek-v4-pro',
+  DEFAULT_MODEL: 'deepseek-flash',
+  PREFERRED_DEFAULT_MODEL: 'deepseek-flash',
+  pickDefaultModel: (list: { value: string }[]) => list[0]?.value ?? 'deepseek-flash',
   MODEL_OPTIONS: [],
   modelSupportsImages: mockModelSupportsImages,
   modelSupportsThinking: mockModelSupportsThinking,
