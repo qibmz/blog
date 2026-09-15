@@ -534,7 +534,9 @@ describe('POST /api/chats/:id', () => {
       values: vi.fn(() => {
         const pending = Promise.reject(new Error('db down'))
         return Object.assign(pending, {
-          returning: () => Promise.reject(new Error('db down'))
+          returning: () => Promise.reject(new Error('db down')),
+          onConflictDoNothing: vi.fn(() => Promise.reject(new Error('db down'))),
+          onConflictDoUpdate: vi.fn(() => Promise.reject(new Error('db down')))
         })
       })
     }))
