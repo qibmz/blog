@@ -165,3 +165,28 @@ describe('modelSupportsWebSearch (DB-only)', () => {
     expect(await modelSupportsWebSearch('mimo-v2.5')).toBe(false)
   })
 })
+
+describe('assertModelEnabled', () => {
+  it('should pass when model exists and enabled', async () => {
+    mockDbFindFirstModel.mockResolvedValueOnce({ id: 'deepseek-flash', enabled: true })
+    const { assertModelEnabled } = await import('../models')
+    await expect(assertModelEnabled('deepseek-flash')).resolves.toBeUndefined()
+  })
+
+  it('should throw 400 when model disabled', async () => {
+    mockDbFindFirstModel.mockResolvedValueOnce({ id: 'deepseek-flash', enabled: false })
+    const { assertModelEnabled } = await import('../models')
+    await expect(assertModelEnabled('deepseek-flash')).rejects.toMatchObject({
+      statusCode: 400,
+      statusMessage: '模型不可用或已禁用'
+    })
+  })
+
+  it('should throw 400 when model missing', async () => {
+    mockDbFindFirstModel.mockResolvedValueOnce(null)
+    const { assertModelEnabled } = await import('../models')
+    await expect(assertModelEnabled('nope')).rejects.toMatchObject({
+      statusCode: 400
+    })
+  })
+})

@@ -1,6 +1,6 @@
 import { defineEventHandler, readValidatedBody, createError } from 'h3'
 import { eq } from 'drizzle-orm'
-import { PREFERRED_DEFAULT_MODEL, modelSupportsImages } from '../utils/models'
+import { assertModelEnabled, PREFERRED_DEFAULT_MODEL, modelSupportsImages } from '../utils/models'
 import { checkDailyLimit } from '../utils/rateLimiter'
 import { isUniqueViolation, raiseConflict } from '../utils/errors'
 import { assertAllowedChatFileUrls } from '../utils/r2'
@@ -23,6 +23,7 @@ export default defineEventHandler(async (event) => {
 
   // 非视觉模型拒绝图片
   const modelValue = model ?? PREFERRED_DEFAULT_MODEL
+  await assertModelEnabled(modelValue)
   const hasImageParts = message.parts?.some(p => (p as { type: string }).type === 'file')
   if (hasImageParts && !(await modelSupportsImages(modelValue))) {
     throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })

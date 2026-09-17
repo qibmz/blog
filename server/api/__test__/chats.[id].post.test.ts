@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { createError } from 'h3'
 import { mockDbFindFirst, mockDbUpdate, mockDb, mockUser, mockReadValidatedBody } from '../../utils/__test__/setup'
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
@@ -12,7 +13,6 @@ const mockIsStepCount = vi.fn((n: number) => ({ _type: 'isStepCount', n }))
 const mockStreamText = vi.fn()
 const mockGenerateText = vi.fn()
 const mockConvertToModelMessages = vi.fn((msgs: unknown[]) => msgs)
-const mockSmoothStream = vi.fn(() => ({ _type: 'smoothStream' }))
 const mockConsumeStream = vi.fn()
 const mockAbortSignal = new AbortController().signal
 const mockGetRequestAbortSignal = vi.fn(() => mockAbortSignal)
@@ -40,7 +40,10 @@ vi.mock('../../utils/rateLimiter', () => ({
   DAILY_LIMIT: 5
 }))
 
+const mockAssertModelEnabled = vi.fn(async () => {})
+
 vi.mock('../../utils/models', () => ({
+  assertModelEnabled: mockAssertModelEnabled,
   getModel: mockGetModel,
   PREFERRED_DEFAULT_MODEL: 'deepseek-flash',
   pickDefaultModel: (list: { value: string }[]) => list[0]?.value ?? 'deepseek-flash',
@@ -69,7 +72,6 @@ vi.mock('ai', () => ({
   createUIMessageStreamResponse: mockCreateUIMessageStreamResponse,
   consumeStream: mockConsumeStream,
   generateText: (args: any) => mockGenerateText(args),
-  smoothStream: () => mockSmoothStream(),
   streamText: (args: any) => mockStreamText(args),
   toUIMessageStream: (args: any) => mockToUIMessageStream(args),
   isStepCount: (n: number) => mockIsStepCount(n),
@@ -106,6 +108,7 @@ function bodyWith(
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockAssertModelEnabled.mockResolvedValue(undefined)
   mockGetRequestAbortSignal.mockReturnValue(mockAbortSignal)
   mockModelSupportsImages.mockResolvedValue(true)
   mockModelSupportsWebSearch.mockResolvedValue(false)
@@ -180,11 +183,23 @@ describe('POST /api/chats/:id', () => {
     ])
   })
 
-  it('should not re-insert or rate-limit when first user message already in DB', async () => {
+  it('should reject disabled or unknown model before mutating history', async () => {
+    mockAssertModelEnabled.mockRejectedValueOnce(
+      createError({ statusCode: 400, statusMessage: '模型不可用或已禁用' })
+    )
+    const { default: handler } = await import('../chats/[id].post')
+    await expect(
+      handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+    ).rejects.toMatchObject({ statusCode: 400, statusMessage: '模型不可用或已禁用' })
+    expect(mockDb.insert).not.toHaveBeenCalled()
+    expect(mockDb.delete).not.toHaveBeenCalled()
+  })
+
+  it('should not re-insert but still rate-limit when first user message already in DB', async () => {
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
-    expect(mockCheckDailyLimit).not.toHaveBeenCalled()
+    expect(mockCheckDailyLimit).toHaveBeenCalledWith(mockUser.id)
     expect(mockDb.insert).not.toHaveBeenCalled()
   })
 
@@ -210,7 +225,7 @@ describe('POST /api/chats/:id', () => {
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
-    expect(mockCheckDailyLimit).not.toHaveBeenCalled()
+    expect(mockCheckDailyLimit).toHaveBeenCalledWith(mockUser.id)
     expect(mockDb.insert).not.toHaveBeenCalled()
     expect(mockDbUpdate).not.toHaveBeenCalled()
   })
@@ -311,13 +326,21 @@ describe('POST /api/chats/:id', () => {
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
     expect(mockCheckDailyLimit).toHaveBeenCalledWith(mockUser.id)
-    expect(mockDb.delete).toHaveBeenCalled()
+    expect(mockDb.delete).not.toHaveBeenCalled()
 
-    const executeFn = mockCreateUIMessageStream.mock.calls[0]?.[0]?.execute
+    const streamOpts = mockCreateUIMessageStream.mock.calls[0]?.[0]
+    const executeFn = streamOpts?.execute
     await executeFn({ writer: { merge: vi.fn() } })
     expect(mockConvertToModelMessages.mock.calls[0]?.[0]).toEqual([
       { id: 'db-1', role: 'user', parts: [...helloParts] }
     ])
+
+    // 成功落库新回复时才删除旧 assistant
+    await streamOpts?.onEnd({
+      responseMessage: { role: 'assistant', parts: [{ type: 'text', text: '新答复' }] },
+      isAborted: false
+    })
+    expect(mockDb.delete).toHaveBeenCalled()
   })
 
   it('should set provisional title for image-only first message without calling vision generateText', async () => {

@@ -65,7 +65,7 @@ UI 使用 `@nuxt/ui` 的 U 前缀组件（`UApp`、`UPage`、`UContentSearch` �
 
 ### AI Chat（`/chat/**`）
 
-Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 已注释掉），实际以客户端渲染为主。认证后的聊天数据通过 `useAPI` 获取。
+Chat 路由 SSR 已禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 已生效），以客户端渲染为主。认证后的聊天数据通过 `useAPI` 获取。
 
 **认证流程：** GitHub + Google OAuth，通过 `nuxt-auth-utils` 实现。路由：`server/routes/auth/github.get.ts` / `server/routes/auth/google.get.ts` → 设置用户 session → 重定向到 `/chat`。OAuth 登录统一调用 `login(provider: OAuthProvider)`。Session 使用 `NUXT_SESSION_PASSWORD` 环境变量加密。用户类型扩展见 `server/types/auth.d.ts`。**注意：** `login()` 内部使用 `window.location.href` 跳转到外部 OAuth 授权页面，这是正确做法，不要改成 `navigateTo()`。
 

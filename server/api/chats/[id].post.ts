@@ -1,6 +1,7 @@
 import { createError, defineEventHandler, getValidatedRouterParams, readValidatedBody } from 'h3'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import {
+  assertModelEnabled,
   getModel,
   PREFERRED_DEFAULT_MODEL,
   modelSupportsCustomTools,
@@ -113,14 +114,16 @@ export default defineEventHandler(async (event) => {
     throw raiseNotFound('Chat not found')
   }
 
+  await assertModelEnabled(modelValue)
+
   let history = (chat.messages ?? []).map(toUIMessage)
+  /** regenerate：先只从内存去掉末尾 assistant，成功落库新回复后再删 DB */
+  const pendingAssistantIds: string[] = []
 
   if (trigger === 'regenerate-message') {
-    // 去掉末尾助手消息再重生成；计一次提问
-    await checkDailyLimit(user.id)
     while (history.at(-1)?.role === 'assistant') {
       const last = history.pop()!
-      await db.delete(schema.messages).where(eq(schema.messages.id, last.id))
+      pendingAssistantIds.push(last.id)
     }
     if (history.at(-1)?.role !== 'user') {
       throw createError({ statusCode: 400, statusMessage: '没有可重新生成的用户消息' })
@@ -132,34 +135,23 @@ export default defineEventHandler(async (event) => {
 
     const lastDb = history.at(-1)
 
+    // 先算「落库后」历史，用于视觉校验（避免先写脏数据再 400）
+    let prospective = history
     if (lastDb?.role === 'user') {
-      // 末条仍是 user：等待助手中，禁止再插一条。语义不同则更新末条（中断后改写）
       if (!isSameUserParts(lastDb.parts, incoming.parts)) {
         const nextParts = Array.isArray(incoming.parts) ? incoming.parts : []
         assertAllowedChatFileUrls(nextParts)
-        await db.update(schema.messages)
-          .set({ parts: nextParts })
-          .where(eq(schema.messages.id, lastDb.id))
-        history = [
+        prospective = [
           ...history.slice(0, -1),
           {
             id: lastDb.id,
-            role: 'user',
+            role: 'user' as const,
             parts: nextParts as UIMessage['parts']
           }
         ]
       }
     } else {
-      // 末条是 assistant / 空会话：新一轮 user
-      if (history.length > 0) {
-        await checkDailyLimit(user.id)
-      }
-      await db.insert(schema.messages).values({
-        chatId: id,
-        role: 'user',
-        parts: Array.isArray(incoming.parts) ? incoming.parts : []
-      })
-      history = [
+      prospective = [
         ...history,
         {
           id: incoming.id,
@@ -168,16 +160,42 @@ export default defineEventHandler(async (event) => {
         }
       ]
     }
+
+    if (historyHasFileParts(prospective) && !(await modelSupportsImages(modelValue))) {
+      throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
+    }
+
+    if (lastDb?.role === 'user') {
+      // 末条仍是 user：等待助手中，禁止再插一条。语义不同则更新末条（中断后改写）
+      if (!isSameUserParts(lastDb.parts, incoming.parts)) {
+        const nextParts = Array.isArray(incoming.parts) ? incoming.parts : []
+        await db.update(schema.messages)
+          .set({ parts: nextParts })
+          .where(eq(schema.messages.id, lastDb.id))
+        history = prospective
+      }
+    } else {
+      // 末条是 assistant / 空会话：新一轮 user
+      await db.insert(schema.messages).values({
+        chatId: id,
+        role: 'user',
+        parts: Array.isArray(incoming.parts) ? incoming.parts : []
+      })
+      history = prospective
+    }
   }
 
   if (history.length === 0 || history.at(-1)?.role !== 'user') {
     throw createError({ statusCode: 400, statusMessage: '对话上下文无效' })
   }
 
-  // 整段历史（含 regenerate）只要有图，就必须是视觉模型
+  // regenerate 路径未走上面的 prospective 校验
   if (historyHasFileParts(history) && !(await modelSupportsImages(modelValue))) {
     throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
   }
+
+  // 每次发起补全都计次（含 pending user 重试、regenerate）
+  await checkDailyLimit(user.id)
 
   const model = getModel(modelValue)
 
@@ -289,6 +307,9 @@ export default defineEventHandler(async (event) => {
       }
 
       try {
+        if (pendingAssistantIds.length > 0) {
+          await db.delete(schema.messages).where(inArray(schema.messages.id, pendingAssistantIds))
+        }
         await db.insert(schema.messages).values({
           chatId: chat.id,
           role: responseMessage.role as 'user' | 'assistant',

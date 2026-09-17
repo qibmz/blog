@@ -7,6 +7,7 @@
 
 import { createDeepSeek } from '@ai-sdk/deepseek'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+import { createError } from 'h3'
 import { eq } from 'drizzle-orm'
 import type { LanguageModel } from 'ai'
 import { createMimoFetch, applyMimoWebSearchToRequestBody } from './webSearch'
@@ -119,4 +120,20 @@ export async function modelSupportsWebSearch(modelId: string): Promise<boolean> 
 /** 是否支持自定义 function calling（如 chart）：按 Provider */
 export function modelSupportsCustomTools(modelId: string): boolean {
   return findProvider(modelId)?.supportsCustomTools?.(modelId) ?? false
+}
+
+/** 校验模型存在且 enabled；禁用/未知 ID 抛 400 */
+export async function assertModelEnabled(modelId: string): Promise<void> {
+  let row: { id: string, enabled: boolean } | undefined
+  try {
+    row = await db.query.models.findFirst({
+      where: eq(schema.models.id, modelId),
+      columns: { id: true, enabled: true }
+    })
+  } catch {
+    throw createError({ statusCode: 500, statusMessage: '模型目录不可用' })
+  }
+  if (!row || !row.enabled) {
+    throw createError({ statusCode: 400, statusMessage: '模型不可用或已禁用' })
+  }
 }

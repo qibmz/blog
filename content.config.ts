@@ -41,7 +41,7 @@ export const collections = {
         links: z.array(createLinkSchema())
       })),
       contact: z.object({
-        email: z.string().email().optional()
+        email: z.email().optional()
       }).optional(),
       sections: z.array(
         createBaseSchema().extend({
@@ -110,7 +110,7 @@ export const collections = {
     type: 'page',
     schema: z.object({
       contact: z.object({
-        email: z.string().email().optional()
+        email: z.email().optional()
       }).optional(),
       hero: z.object(({
         title: z.string().optional(),
