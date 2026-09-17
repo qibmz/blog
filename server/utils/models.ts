@@ -12,7 +12,9 @@ import type { LanguageModel } from 'ai'
 import { createMimoFetch, applyMimoWebSearchToRequestBody } from './webSearch'
 
 const deepseek = createDeepSeek({
-  apiKey: process.env.DEEPSEEK_API_KEY
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  // strict tool calls 需 beta 端点（@ai-sdk/deepseek：baseURL 以 /beta 结尾）
+  baseURL: 'https://api.deepseek.com/beta'
 })
 
 const mimo = createOpenAICompatible({
