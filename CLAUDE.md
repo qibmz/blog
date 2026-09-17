@@ -89,10 +89,10 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 | `GET /api/chats/:id` | `server/api/chats/[id].get.ts` | 获取单个聊天及其消息 |
 | `POST /api/chats/:id` | `server/api/chats/[id].post.ts` | 发送消息、流式 AI 回复、写入 DB |
 | `PATCH /api/chats/:id` | `server/api/chats/[id].patch.ts` | 重命名/置顶/删除聊天（`action` 区分操作） |
-| `GET /api/models` | `server/api/models.get.ts` | 可用 AI 模型列表（缓存 5 分钟） |
+| `GET /api/models` | `server/api/models.get.ts` | 可用 AI 模型列表（只读 DB `enabled=true`，缓存 1 分钟） |
 | `GET /api/version` | `server/api/version.get.ts` | PostgreSQL 版本探针（用于连接诊断） |
 
-**AI 提供商：** DeepSeek 和 MiMo（小米），配置在 `server/utils/models.ts`。使用 `@ai-sdk/deepseek` 和 `@ai-sdk/openai-compatible`。API 密钥：`DEEPSEEK_API_KEY`、`MIMO_API_KEY`。
+**AI 提供商：** DeepSeek 和 MiMo（小米）。对话列表与能力（图片 / 思考 / 联网）全部以 DB `models` 表 + `seed-models.ts` 为准；`server/utils/models.ts` 只负责按 ID 前缀选 SDK 实例与自定义 tools。API 密钥：`DEEPSEEK_API_KEY`、`MIMO_API_KEY`。
 
 **流式回复：** 使用 `createUIMessageStream` + `createUIMessageStreamResponse` + `result.toUIMessageStream()`（`ai` 包）构建 SSE 流。`streamText` / `generateText` 用 `instructions`（勿用已弃用的 `system`），流结束回调用 `onEnd`。DeepSeek 模型通过 `providerOptions.deepseek.thinking` 启用推理过程，前端 `UChatReasoning` 组件展示思维链。**不要使用 `smoothStream()`**，它会缓冲导致延迟感。**不要用独立的 `toUIMessageStream({ stream: result.stream })` 替代 `result.toUIMessageStream()`**，后者会带上 tools 且与 merge 兼容。
 
@@ -154,9 +154,9 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 | `nuxt.config.ts` | 模块、runtimeConfig、routeRules、nitro 配置 |
 | `content.config.ts` | 内容 collection schemas（Zod）— 改动这里会影响内容页面 |
 | `server/db/schema.ts` | 数据库表 — 修改后需运行 `drizzle-kit generate` |
-| `server/db/seed-models.ts` | 模型能力元数据初始化 — 幂等 seed，按需更新 |
+| `server/db/seed-models.ts` | 模型目录权威源 — label/icon/能力/enabled/sortOrder，DO UPDATE |
 | `shared/types/chat.ts` | API 共享类型 — UIMessageSchema、PatchChatBodySchema、衍生 TS 类型 |
-| `server/utils/models.ts` | AI 模型注册 + 能力 fallback — `models` 表优先 |
+| `server/utils/models.ts` | SDK Provider 路由 + DB 能力只读查询 |
 | `server/utils/rateLimiter.ts` | 每日频率限制逻辑 |
 | `server/utils/errors.ts` | `raiseNotFound` / `raiseRateLimit` 错误工厂 |
 | `app/app.vue` | 根组件 — 全局导航数据、搜索、SEO 默认值 |

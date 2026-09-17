@@ -8,7 +8,7 @@
 import { vi } from 'vitest'
 
 // ─── Shared types auto-imports (from shared/types/) ─────────────────────────
-import { UIMessageSchema, PatchChatBodySchema } from '#shared/types/chat'
+import { UIMessageSchema, PatchChatBodySchema, PostChatBodySchema } from '#shared/types/chat'
 
 // ─── Mock schema ────────────────────────────────────────────────────────────
 export const mockSchema = {
@@ -30,8 +30,13 @@ export const mockSchema = {
   },
   models: {
     id: 'id',
+    label: 'label',
+    icon: 'icon',
     supportsImages: 'supports_images',
+    supportsThinking: 'supports_thinking',
     supportsWebSearch: 'supports_web_search',
+    enabled: 'enabled',
+    sortOrder: 'sort_order',
     createdAt: 'created_at',
     updatedAt: 'updated_at'
   }
@@ -58,13 +63,22 @@ export const mockDbUpdate = vi.fn(() => ({
 }))
 export const mockDbDelete = vi.fn()
 
+function makeWhereChain() {
+  return {
+    orderBy: vi.fn(() => mockDbSelectResult()),
+    then(onFulfilled: (v: unknown) => unknown, onRejected?: (e: unknown) => unknown) {
+      return Promise.resolve().then(() => mockDbSelectResult()).then(onFulfilled, onRejected)
+    }
+  }
+}
+
 export const mockDb = {
   select: vi.fn(() => {
     const fromObj = {
       innerJoin: vi.fn(() => ({
-        where: vi.fn(() => mockDbSelectResult())
+        where: vi.fn(() => makeWhereChain())
       })),
-      where: vi.fn(() => mockDbSelectResult())
+      where: vi.fn(() => makeWhereChain())
     }
     return {
       from: vi.fn(() => fromObj)
@@ -116,6 +130,7 @@ export function mockGetUserSession(_event: unknown) {
 export const mockEq = vi.fn((a: unknown, b: unknown) => ({ _type: 'eq', a, b }))
 export const mockAnd = vi.fn((...args: unknown[]) => ({ _type: 'and', args }))
 export const mockDesc = vi.fn((col: unknown) => ({ _type: 'desc', col }))
+export const mockAsc = vi.fn((col: unknown) => ({ _type: 'asc', col }))
 export const mockGte = vi.fn((a: unknown, b: unknown) => ({ _type: 'gte', a, b }))
 export const mockSql = vi.fn((_strings: TemplateStringsArray, ..._values: unknown[]) => ({ _type: 'sql' }))
 export const mockInArray = vi.fn((col: unknown, values: unknown[]) => ({ _type: 'inArray', col, values }))
@@ -134,14 +149,15 @@ export const mockReadValidatedBody = vi.fn(
   async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
     const body = {
       model: 'deepseek-v4-pro',
-      messages: [{ id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] }],
-      message: { id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] }
+      trigger: 'submit-message' as const,
+      message: { id: 'msg-1', role: 'user' as const, parts: [{ type: 'text', text: 'Hello' }] }
     }
     return typeof validateFn === 'function' ? validateFn(body) : body
   }
 )
 vi.stubGlobal('UIMessageSchema', UIMessageSchema)
 vi.stubGlobal('PatchChatBodySchema', PatchChatBodySchema)
+vi.stubGlobal('PostChatBodySchema', PostChatBodySchema)
 
 // ─── Server utils auto-imports (from server/utils/) ─────────────────────────
 // Errors
@@ -194,6 +210,7 @@ vi.stubGlobal('readValidatedBody', mockReadValidatedBody)
 vi.stubGlobal('eq', mockEq)
 vi.stubGlobal('and', mockAnd)
 vi.stubGlobal('desc', mockDesc)
+vi.stubGlobal('asc', mockAsc)
 vi.stubGlobal('gte', mockGte)
 vi.stubGlobal('sql', mockSql)
 vi.stubGlobal('inArray', mockInArray)
@@ -227,6 +244,7 @@ vi.mock('drizzle-orm', async () => {
     eq: mockEq,
     and: mockAnd,
     desc: mockDesc,
+    asc: mockAsc,
     gte: mockGte,
     sql: mockSql,
     inArray: mockInArray

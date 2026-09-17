@@ -166,7 +166,18 @@ const { messages, status, sendMessage, regenerate, stop } = useChat({
         thinkingMode: currentModel.value?.supportsThinking === false ? false : Boolean(thinkingMode.value),
         webSearch: showWebSearch.value ? Boolean(webSearch.value) : false
       }
-    })
+    }),
+    // 多轮上下文由服务端从 DB 组装；只传本轮触发信息
+    prepareSendMessagesRequest: ({ body, messages, trigger }) => {
+      const lastUser = [...messages].reverse().find(m => m.role === 'user')
+      return {
+        body: {
+          ...body,
+          trigger,
+          ...(trigger === 'submit-message' && lastUser ? { message: lastUser } : {})
+        }
+      }
+    }
   }),
   onError: (err) => {
     const msg = normalizeError(err)

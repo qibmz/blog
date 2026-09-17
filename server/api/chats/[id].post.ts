@@ -1,5 +1,5 @@
-import { defineEventHandler, getValidatedRouterParams, readValidatedBody } from 'h3'
-import { and, eq } from 'drizzle-orm'
+import { createError, defineEventHandler, getValidatedRouterParams, readValidatedBody } from 'h3'
+import { and, asc, eq } from 'drizzle-orm'
 import {
   getModel,
   DEFAULT_MODEL,
@@ -42,6 +42,49 @@ function hasPersistableParts(parts: UIMessage['parts'] | undefined) {
   })
 }
 
+function toUIMessage(row: {
+  id: string
+  role: 'user' | 'assistant' | 'system'
+  parts: Record<string, unknown>[] | null
+}): UIMessage {
+  return {
+    id: row.id,
+    role: row.role,
+    parts: (Array.isArray(row.parts) ? row.parts : []) as UIMessage['parts']
+  }
+}
+
+type LoosePart = { type?: string, text?: string, url?: string, mediaType?: string }
+
+/** 只比语义字段，避免 JSON 键序 / 可选字段导致误判「未落库」 */
+function normalizeUserPartsForCompare(
+  parts: UIMessage['parts'] | Record<string, unknown>[] | null | undefined
+) {
+  if (!Array.isArray(parts)) return []
+  return parts.map((raw) => {
+    const p = raw as LoosePart
+    if (p.type === 'text') return { type: 'text', text: p.text ?? '' }
+    if (p.type === 'file') {
+      return { type: 'file', url: p.url ?? '', mediaType: p.mediaType ?? '' }
+    }
+    return { type: String(p.type ?? '') }
+  })
+}
+
+function isSameUserParts(
+  a: UIMessage['parts'] | Record<string, unknown>[] | null | undefined,
+  b: UIMessage['parts'] | Record<string, unknown>[] | null | undefined
+) {
+  return JSON.stringify(normalizeUserPartsForCompare(a))
+    === JSON.stringify(normalizeUserPartsForCompare(b))
+}
+
+function historyHasFileParts(messages: UIMessage[]) {
+  return messages.some(msg =>
+    msg.parts?.some(p => (p as { type: string }).type === 'file')
+  )
+}
+
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event)
 
@@ -49,57 +92,116 @@ export default defineEventHandler(async (event) => {
     id: z.string()
   }).parse)
 
-  const { model: modelValue = DEFAULT_MODEL, messages, options } = await readValidatedBody(event, z.object({
-    model: z.string().optional(),
-    messages: z.array(UIMessageSchema),
-    options: z.object({
-      thinkingMode: z.boolean().optional(),
-      webSearch: z.boolean().optional()
-    }).optional()
-  }).parse)
-
-  // 非视觉模型拒绝图片
-  const hasImageParts = messages.some(msg =>
-    msg.parts?.some(p => (p as { type: string }).type === 'file')
-  )
-  if (hasImageParts && !(await modelSupportsImages(modelValue))) {
-    throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
-  }
-  for (const msg of messages) {
-    assertAllowedChatFileUrls(msg.parts)
-  }
+  const {
+    model: modelValue = DEFAULT_MODEL,
+    message,
+    trigger,
+    options
+  } = await readValidatedBody(event, PostChatBodySchema.parse)
 
   const chat = await db.query.chats.findFirst({
-    where: and(eq(schema.chats.id, id), eq(schema.chats.userId, user.id))
+    where: and(eq(schema.chats.id, id), eq(schema.chats.userId, user.id)),
+    with: {
+      messages: {
+        orderBy: () => asc(schema.messages.createdAt)
+      }
+    }
   })
 
   if (!chat) {
     throw raiseNotFound('Chat not found')
   }
 
+  let history = (chat.messages ?? []).map(toUIMessage)
+
+  if (trigger === 'regenerate-message') {
+    // 去掉末尾助手消息再重生成；计一次提问
+    await checkDailyLimit(user.id)
+    while (history.at(-1)?.role === 'assistant') {
+      const last = history.pop()!
+      await db.delete(schema.messages).where(eq(schema.messages.id, last.id))
+    }
+    if (history.at(-1)?.role !== 'user') {
+      throw createError({ statusCode: 400, statusMessage: '没有可重新生成的用户消息' })
+    }
+  } else {
+    // submit-message：以 body.message 为本轮用户输入
+    const incoming = message!
+    assertAllowedChatFileUrls(incoming.parts)
+
+    const lastDb = history.at(-1)
+
+    if (lastDb?.role === 'user') {
+      // 末条仍是 user：等待助手中，禁止再插一条。语义不同则更新末条（中断后改写）
+      if (!isSameUserParts(lastDb.parts, incoming.parts)) {
+        const nextParts = Array.isArray(incoming.parts) ? incoming.parts : []
+        assertAllowedChatFileUrls(nextParts)
+        await db.update(schema.messages)
+          .set({ parts: nextParts })
+          .where(eq(schema.messages.id, lastDb.id))
+        history = [
+          ...history.slice(0, -1),
+          {
+            id: lastDb.id,
+            role: 'user',
+            parts: nextParts as UIMessage['parts']
+          }
+        ]
+      }
+    } else {
+      // 末条是 assistant / 空会话：新一轮 user
+      if (history.length > 0) {
+        await checkDailyLimit(user.id)
+      }
+      await db.insert(schema.messages).values({
+        chatId: id,
+        role: 'user',
+        parts: Array.isArray(incoming.parts) ? incoming.parts : []
+      })
+      history = [
+        ...history,
+        {
+          id: incoming.id,
+          role: 'user' as const,
+          parts: (Array.isArray(incoming.parts) ? incoming.parts : []) as UIMessage['parts']
+        }
+      ]
+    }
+  }
+
+  if (history.length === 0 || history.at(-1)?.role !== 'user') {
+    throw createError({ statusCode: 400, statusMessage: '对话上下文无效' })
+  }
+
+  // 整段历史（含 regenerate）只要有图，就必须是视觉模型
+  if (historyHasFileParts(history) && !(await modelSupportsImages(modelValue))) {
+    throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
+  }
+
   const model = getModel(modelValue)
 
-  // 首轮对话：确保有临时标题，并在有文字时异步精炼（不阻塞流式）
-  if (messages.length === 1) {
-    const firstParts = messages[0]!.parts ?? []
+  // 首轮：仅有一条 user 时补临时标题并异步精炼
+  const userTurns = history.filter(m => m.role === 'user')
+  const assistantTurns = history.filter(m => m.role === 'assistant')
+  if (userTurns.length === 1 && assistantTurns.length === 0) {
+    const firstUser = userTurns[0]!
+    const firstParts = firstUser.parts ?? []
     const textParts = firstParts.filter(p => p.type === 'text') as { type: 'text', text: string }[]
     const userText = textParts.map(p => p.text).join(' ').trim()
     const provisionalTitle = getProvisionalChatTitle(firstParts as Array<{ type: string, text?: string }>)
 
-    // 创建接口若未写入 title（或旧数据），这里补上临时标题
     if (!chat.title) {
       await db.update(schema.chats)
         .set({ title: provisionalTitle, model: modelValue })
         .where(eq(schema.chats.id, id))
     }
 
-    // 有文字且尚未精炼过（title 仍为空或仍是临时截取）时异步精炼
     const alreadyRefined = Boolean(chat.title && chat.title !== provisionalTitle)
     if (userText && !alreadyRefined) {
       const titlePromise = generateText({
         model,
         instructions: '根据用户的第一条消息生成一个简短标题（最多15个字，不加标点和引号）。',
-        prompt: JSON.stringify(messages[0])
+        prompt: JSON.stringify(firstUser)
       }).then(async ({ text: title }) => {
         const safeTitle = title.trim()
           ? (title.length > 20 ? title.slice(0, 20) : title)
@@ -116,23 +218,11 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // 后续对话才检查限制（首次消息已在 chats.post.ts 中计数）并保存用户消息
-  const lastMessage = messages[messages.length - 1]
-  if (lastMessage?.role === 'user' && messages.length > 1) {
-    // Note: check-then-insert 非事务性，并发请求可能绕过限制
-    await checkDailyLimit(user.id)
-    await db.insert(schema.messages).values({
-      chatId: id,
-      role: 'user',
-      parts: Array.isArray(lastMessage.parts) ? lastMessage.parts : []
-    })
-  }
-
   // MiMo 官方建议：调用 tool（含 web_search）时关闭 thinking，否则易卡顿且不稳定
   const webSearchEnabled = options?.webSearch === true
     && await modelSupportsWebSearch(modelValue)
 
-  const canThink = modelSupportsThinking(modelValue)
+  const canThink = await modelSupportsThinking(modelValue)
   const thinkingType = canThink
     && options?.thinkingMode !== false
     && !webSearchEnabled
@@ -158,7 +248,7 @@ export default defineEventHandler(async (event) => {
 - type 按场景选择：趋势用 line/area，分类对比用 bar，占比构成用 donut
 - donut 每个扇区用不同颜色（data.color 或多样 series.color）
 - 不要只用 markdown 表格代替可视化`,
-        messages: await convertToModelMessages(messages as UIMessage[], tools ? { tools } : undefined),
+        messages: await convertToModelMessages(history, tools ? { tools } : undefined),
         abortSignal,
         ...(tools ? { tools, stopWhen: isStepCount(5) } : {}),
         providerOptions: {

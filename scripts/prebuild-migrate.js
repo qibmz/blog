@@ -45,6 +45,6 @@ try {
   const sanitized = raw.replaceAll(dbUrl, '[REDACTED]')
   console.error('[prebuild-migrate] ❌ Seed 失败:')
   console.error(sanitized)
-  // Seed 失败不阻塞部署（模型列表仍可通过 fallback 正常返回）
-  console.warn('[prebuild-migrate] ⚠️  继续部署（模型能力 fallback 到硬编码逻辑）')
+  // Seed 失败不阻塞部署；列表空时 /api/models 依赖上次成功缓存或返回空
+  console.warn('[prebuild-migrate] ⚠️  继续部署（models 目录未写入，列表可能为空）')
 }

@@ -23,6 +23,37 @@ export const UIMessageSchema = z.looseObject({
   parts: z.array(UIMessagePartSchema)
 })
 
+// ─── POST /api/chats/:id 请求体 ──────────────────
+// 多轮上下文由服务端从 DB 组装；客户端只传本轮触发信息。
+
+export const PostChatBodySchema = z.object({
+  model: z.string().optional(),
+  /** submit-message 时必填；regenerate 时可省略（服务端用 DB 最后一条 user） */
+  message: UIMessageSchema.optional(),
+  trigger: z.enum(['submit-message', 'regenerate-message']).default('submit-message'),
+  options: z.object({
+    thinkingMode: z.boolean().optional(),
+    webSearch: z.boolean().optional()
+  }).optional()
+}).superRefine((val, ctx) => {
+  if (val.trigger === 'submit-message' && !val.message) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'message is required for submit-message',
+      path: ['message']
+    })
+  }
+  if (val.message && val.message.role !== 'user') {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'message.role must be user',
+      path: ['message', 'role']
+    })
+  }
+})
+
+export type PostChatBody = z.infer<typeof PostChatBodySchema>
+
 // ─── PATCH /api/chats/:id 请求体 ──────────────────
 
 export const PatchChatBodySchema = z.discriminatedUnion('action', [
