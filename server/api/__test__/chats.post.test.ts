@@ -13,11 +13,11 @@ const mockAssertModelEnabled = vi.fn(async () => {})
 const mockModelSupportsImages = vi.fn(async () => true)
 
 vi.mock('../../utils/models', () => ({
-  assertModelEnabled: (...args: unknown[]) => mockAssertModelEnabled(...args),
+  assertModelEnabled: mockAssertModelEnabled,
   PREFERRED_DEFAULT_MODEL: 'deepseek-flash',
   pickDefaultModel: (list: { value: string }[]) => list[0]?.value ?? 'deepseek-flash',
   getModel: vi.fn(),
-  modelSupportsImages: (...args: unknown[]) => mockModelSupportsImages(...args),
+  modelSupportsImages: mockModelSupportsImages,
   modelSupportsThinking: vi.fn(async () => false),
   modelSupportsWebSearch: vi.fn(async () => false),
   modelSupportsCustomTools: vi.fn(() => false)
