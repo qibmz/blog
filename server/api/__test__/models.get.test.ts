@@ -3,7 +3,6 @@ import { mockDbSelectResult } from '../../utils/__test__/setup'
 
 vi.mock('../../utils/models', () => ({
   PREFERRED_DEFAULT_MODEL: 'deepseek-flash',
-  DEFAULT_MODEL: 'deepseek-flash',
   pickDefaultModel: (list: { value: string }[]) => {
     if (!list.length) return 'deepseek-flash'
     const flash = list.find(m => m.value === 'deepseek-flash')

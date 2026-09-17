@@ -2,7 +2,7 @@ import { createError, defineEventHandler, getValidatedRouterParams, readValidate
 import { and, asc, eq } from 'drizzle-orm'
 import {
   getModel,
-  DEFAULT_MODEL,
+  PREFERRED_DEFAULT_MODEL,
   modelSupportsCustomTools,
   modelSupportsImages,
   modelSupportsThinking,
@@ -29,6 +29,7 @@ import {
   generateText,
   isStepCount,
   streamText,
+  toUIMessageStream,
   type UIMessage
 } from 'ai'
 
@@ -93,7 +94,7 @@ export default defineEventHandler(async (event) => {
   }).parse)
 
   const {
-    model: modelValue = DEFAULT_MODEL,
+    model: modelValue = PREFERRED_DEFAULT_MODEL,
     message,
     trigger,
     options
@@ -263,9 +264,13 @@ export default defineEventHandler(async (event) => {
       })
 
       // finish 前注入 data-sources，客户端即时可见（勿只靠落库后 refresh）
-      // 使用 result.toUIMessageStream()：会带上 tools，且与 createUIMessageStream.merge 兼容
+      // 独立 toUIMessageStream + result.stream（实例方法已弃用）；传 tools 才能带上 tool parts
       writer.merge(withWebSearchSources(
-        result.toUIMessageStream({ sendReasoning: true }),
+        toUIMessageStream({
+          stream: result.stream,
+          ...(tools ? { tools } : {}),
+          sendReasoning: true
+        }),
         () => awaitMimoSources(mimoCtx)
       ))
     },

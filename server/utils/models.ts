@@ -59,9 +59,6 @@ export const PROVIDER_REGISTRY: ProviderConfig[] = [
 
 export const PREFERRED_DEFAULT_MODEL = 'deepseek-flash'
 
-/** @deprecated 使用 pickDefaultModel(models) */
-export const DEFAULT_MODEL = PREFERRED_DEFAULT_MODEL
-
 /**
  * 从 DB 列表推算默认模型：
  * deepseek-flash → 任意 deepseek-* → 列表第一项 → PREFERRED_DEFAULT_MODEL

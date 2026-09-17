@@ -23,7 +23,7 @@
        ```
     Seed（如有）：先在环境中设置 `DATABASE_URL`（勿把凭据写进命令行），再执行  
     `SEED_TARGET=production npx tsx server/db/seed-models.ts`（会有 3 秒取消窗口）
-- **提交前检查**：`pnpm lint && pnpm test` 全部通过再提交
+- **提交前检查**：`pnpm lint && pnpm typecheck && pnpm test` 全部通过再提交
 - **提交消息使用中文**
 - **改 API/utils 必须补测试**：修改 `server/api/` 或 `server/utils/` 的逻辑时，必须在对应的 `__test__/` 目录下补充或更新测试用例。新增功能至少覆盖核心路径（正常 + 边界/错误）
 - **不要重复造轮子**：写任何工具方法之前，先确认是否有成熟的库可以直接用（如 `compressorjs` 压缩图片、`lodash` 工具函数等）。优先使用已有库，不要手动实现
@@ -94,7 +94,7 @@ Chat 路由 SSR 当前被禁用（`routeRules` 中 `'/chat/**': { ssr: false }` 
 
 **AI 提供商：** DeepSeek 和 MiMo（小米）。对话列表与能力（图片 / 思考 / 联网）全部以 DB `models` 表 + `seed-models.ts` 为准；`server/utils/models.ts` 只负责按 ID 前缀选 SDK 实例与自定义 tools。API 密钥：`DEEPSEEK_API_KEY`、`MIMO_API_KEY`。
 
-**流式回复：** 使用 `createUIMessageStream` + `createUIMessageStreamResponse` + `result.toUIMessageStream()`（`ai` 包）构建 SSE 流。`streamText` / `generateText` 用 `instructions`（勿用已弃用的 `system`），流结束回调用 `onEnd`。DeepSeek 模型通过 `providerOptions.deepseek.thinking` 启用推理过程，前端 `UChatReasoning` 组件展示思维链。**不要使用 `smoothStream()`**，它会缓冲导致延迟感。**不要用独立的 `toUIMessageStream({ stream: result.stream })` 替代 `result.toUIMessageStream()`**，后者会带上 tools 且与 merge 兼容。
+**流式回复：** 使用 `createUIMessageStream` + `createUIMessageStreamResponse` + 独立 `toUIMessageStream({ stream: result.stream, tools })`（`ai` 包）构建 SSE 流。**不要**用已弃用的 `result.toUIMessageStream()`。`streamText` / `generateText` 用 `instructions`（勿用已弃用的 `system`），流结束回调用 `onEnd`。DeepSeek 模型通过 `providerOptions.deepseek.thinking` 启用推理过程，前端 `UChatReasoning` 组件展示思维链。**不要使用 `smoothStream()`**，它会缓冲导致延迟感。
 
 **图表 tool：** DeepSeek 支持自定义 function calling。`shared/utils/tools/chart.ts` 定义 `chartTool`（`type`: line / area / bar / donut），`streamText` 在 `modelSupportsCustomTools` 为 true 时传入 `tools: { chart }` + `stopWhen: isStepCount(5)`。前端 `ChatToolChart` 用 `nuxt-echarts`（`VChart`）按 type 渲染，支持导出 PNG。MiMo 的 openai-compatible 会丢掉自定义 tools，暂不开放。
 

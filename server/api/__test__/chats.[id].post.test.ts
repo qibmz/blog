@@ -18,7 +18,7 @@ const mockAbortSignal = new AbortController().signal
 const mockGetRequestAbortSignal = vi.fn(() => mockAbortSignal)
 const mockAwaitMimoSources = vi.fn(async () => [] as Array<{ url: string, title?: string }>)
 
-const mockToUIMessageStream = vi.fn(() => new ReadableStream({
+const mockToUIMessageStream = vi.fn((_args?: unknown) => new ReadableStream({
   start(controller) {
     controller.close()
   }
@@ -42,7 +42,6 @@ vi.mock('../../utils/rateLimiter', () => ({
 
 vi.mock('../../utils/models', () => ({
   getModel: mockGetModel,
-  DEFAULT_MODEL: 'deepseek-flash',
   PREFERRED_DEFAULT_MODEL: 'deepseek-flash',
   pickDefaultModel: (list: { value: string }[]) => list[0]?.value ?? 'deepseek-flash',
   MODEL_OPTIONS: [],
@@ -72,6 +71,7 @@ vi.mock('ai', () => ({
   generateText: (args: any) => mockGenerateText(args),
   smoothStream: () => mockSmoothStream(),
   streamText: (args: any) => mockStreamText(args),
+  toUIMessageStream: (args: any) => mockToUIMessageStream(args),
   isStepCount: (n: number) => mockIsStepCount(n),
   tool: (def: unknown) => def
 }))
@@ -114,7 +114,11 @@ beforeEach(() => {
   mockAwaitMimoSources.mockResolvedValue([])
   mockDbFindFirst.mockResolvedValue(chatFixture())
   mockStreamText.mockReturnValue({
-    toUIMessageStream: mockToUIMessageStream
+    stream: new ReadableStream({
+      start(controller) {
+        controller.close()
+      }
+    })
   })
 })
 

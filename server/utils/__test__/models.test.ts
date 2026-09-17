@@ -58,18 +58,17 @@ describe('pickDefaultModel', () => {
   })
 })
 
-describe('DEFAULT_MODEL', () => {
+describe('PREFERRED_DEFAULT_MODEL', () => {
   it('should prefer deepseek-flash', async () => {
-    const { DEFAULT_MODEL, PREFERRED_DEFAULT_MODEL } = await import('../models')
-    expect(DEFAULT_MODEL).toBe('deepseek-flash')
-    expect(DEFAULT_MODEL).toBe(PREFERRED_DEFAULT_MODEL)
+    const { PREFERRED_DEFAULT_MODEL } = await import('../models')
+    expect(PREFERRED_DEFAULT_MODEL).toBe('deepseek-flash')
   })
 })
 
 describe('getModel', () => {
   it('should return a model instance for a valid model value', async () => {
-    const { getModel, DEFAULT_MODEL } = await import('../models')
-    const instance = getModel(DEFAULT_MODEL)
+    const { getModel, PREFERRED_DEFAULT_MODEL } = await import('../models')
+    const instance = getModel(PREFERRED_DEFAULT_MODEL)
     expect(instance).toBeDefined()
     expect(typeof instance).toBe('object')
   })
