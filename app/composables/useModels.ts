@@ -29,7 +29,8 @@ export function useModels() {
 
   const { data: modelsData, pending, refresh, execute } = useAPI<ModelsApiData>(
     () => forceFresh.value ? '/api/models?fresh=1' : '/api/models',
-    { watch: false }
+    // 固定 key：fresh 切换 URL 时仍共用同一缓存槽，避免 refresh 结束后回落到旧数据
+    { key: 'models', watch: false }
   )
 
   const model = useCookie<string>('ai-model')
