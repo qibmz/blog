@@ -1,6 +1,6 @@
 import { defineEventHandler, readValidatedBody, createError } from 'h3'
 import { eq } from 'drizzle-orm'
-import { DEFAULT_MODEL, modelSupportsImages } from '../utils/models'
+import { assertModelEnabled, PREFERRED_DEFAULT_MODEL, modelSupportsImages } from '../utils/models'
 import { checkDailyLimit } from '../utils/rateLimiter'
 import { isUniqueViolation, raiseConflict } from '../utils/errors'
 import { assertAllowedChatFileUrls } from '../utils/r2'
@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const { id, message, model, options: _options } = await readValidatedBody(event, z.object({
     // 客户端生成 UUID，用于乐观跳转
-    id: z.string().uuid().optional(),
+    id: z.uuid().optional(),
     message: UIMessageSchema,
     model: z.string().optional(),
     options: z.object({
@@ -22,7 +22,8 @@ export default defineEventHandler(async (event) => {
   }).parse)
 
   // 非视觉模型拒绝图片
-  const modelValue = model ?? DEFAULT_MODEL
+  const modelValue = model ?? PREFERRED_DEFAULT_MODEL
+  await assertModelEnabled(modelValue)
   const hasImageParts = message.parts?.some(p => (p as { type: string }).type === 'file')
   if (hasImageParts && !(await modelSupportsImages(modelValue))) {
     throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
@@ -41,7 +42,7 @@ export default defineEventHandler(async (event) => {
       ...(id ? { id } : {}),
       userId: user.id,
       title: provisionalTitle,
-      model: model ?? DEFAULT_MODEL
+      model: model ?? PREFERRED_DEFAULT_MODEL
     }).returning()
     if (!chat) {
       throw createError({ statusCode: 500, statusMessage: 'Failed to create chat' })

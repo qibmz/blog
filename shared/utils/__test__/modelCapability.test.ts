@@ -1,18 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { modelShowsWebSearch } from '../modelCapability'
+import { resolveCapabilityOption } from '../modelCapability'
 
-describe('modelShowsWebSearch', () => {
-  it('honors explicit supportsWebSearch false even for MiMo ids', () => {
-    expect(modelShowsWebSearch({ supportsWebSearch: false }, 'mimo-v2.5-pro')).toBe(false)
+describe('resolveCapabilityOption', () => {
+  it('preserves preference when model metadata is not loaded yet', () => {
+    expect(resolveCapabilityOption(true, undefined, false)).toBe(true)
+    expect(resolveCapabilityOption(false, undefined, false)).toBe(false)
   })
 
-  it('honors explicit supportsWebSearch true', () => {
-    expect(modelShowsWebSearch({ supportsWebSearch: true }, 'deepseek-v4-pro')).toBe(true)
+  it('forces false when model is known not to support the capability', () => {
+    expect(resolveCapabilityOption(true, false, true)).toBe(false)
+    expect(resolveCapabilityOption(true, undefined, true)).toBe(false)
   })
 
-  it('falls back to MiMo chat ids when model metadata is missing', () => {
-    expect(modelShowsWebSearch(undefined, 'mimo-v2.5-pro')).toBe(true)
-    expect(modelShowsWebSearch(null, 'mimo-v2.5')).toBe(true)
-    expect(modelShowsWebSearch(undefined, 'deepseek-v4-pro')).toBe(false)
+  it('passes preference through when model supports the capability', () => {
+    expect(resolveCapabilityOption(true, true, true)).toBe(true)
+    expect(resolveCapabilityOption(false, true, true)).toBe(false)
   })
 })

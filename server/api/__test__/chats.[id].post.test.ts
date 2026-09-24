@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { createError } from 'h3'
 import { mockDbFindFirst, mockDbUpdate, mockDb, mockUser, mockReadValidatedBody } from '../../utils/__test__/setup'
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
@@ -6,19 +7,18 @@ const mockCheckDailyLimit = vi.fn()
 const mockGetModel = vi.fn(() => ({ provider: 'mock', modelId: 'mock' }))
 const mockModelSupportsImages = vi.fn(async () => true)
 const mockModelSupportsWebSearch = vi.fn(async () => false)
-const mockModelSupportsThinking = vi.fn(() => true)
+const mockModelSupportsThinking = vi.fn(async () => true)
 const mockModelSupportsCustomTools = vi.fn(() => true)
 const mockIsStepCount = vi.fn((n: number) => ({ _type: 'isStepCount', n }))
 const mockStreamText = vi.fn()
 const mockGenerateText = vi.fn()
 const mockConvertToModelMessages = vi.fn((msgs: unknown[]) => msgs)
-const mockSmoothStream = vi.fn(() => ({ _type: 'smoothStream' }))
 const mockConsumeStream = vi.fn()
 const mockAbortSignal = new AbortController().signal
 const mockGetRequestAbortSignal = vi.fn(() => mockAbortSignal)
 const mockAwaitMimoSources = vi.fn(async () => [] as Array<{ url: string, title?: string }>)
 
-const mockToUIMessageStream = vi.fn(() => new ReadableStream({
+const mockToUIMessageStream = vi.fn((_args?: unknown) => new ReadableStream({
   start(controller) {
     controller.close()
   }
@@ -40,9 +40,13 @@ vi.mock('../../utils/rateLimiter', () => ({
   DAILY_LIMIT: 5
 }))
 
+const mockAssertModelEnabled = vi.fn(async () => {})
+
 vi.mock('../../utils/models', () => ({
+  assertModelEnabled: mockAssertModelEnabled,
   getModel: mockGetModel,
-  DEFAULT_MODEL: 'deepseek-v4-pro',
+  PREFERRED_DEFAULT_MODEL: 'deepseek-flash',
+  pickDefaultModel: (list: { value: string }[]) => list[0]?.value ?? 'deepseek-flash',
   MODEL_OPTIONS: [],
   modelSupportsImages: mockModelSupportsImages,
   modelSupportsThinking: mockModelSupportsThinking,
@@ -68,35 +72,61 @@ vi.mock('ai', () => ({
   createUIMessageStreamResponse: mockCreateUIMessageStreamResponse,
   consumeStream: mockConsumeStream,
   generateText: (args: any) => mockGenerateText(args),
-  smoothStream: () => mockSmoothStream(),
   streamText: (args: any) => mockStreamText(args),
+  toUIMessageStream: (args: any) => mockToUIMessageStream(args),
   isStepCount: (n: number) => mockIsStepCount(n),
   tool: (def: unknown) => def
 }))
 
+const helloParts = [{ type: 'text', text: 'Hello' }] as const
+
+function chatFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'chat-1',
+    userId: mockUser.id,
+    title: 'Existing Chat',
+    model: 'deepseek-v4-pro',
+    messages: [
+      { id: 'db-msg-1', role: 'user' as const, parts: [...helloParts] }
+    ],
+    ...overrides
+  }
+}
+
+function bodyWith(
+  partial: Record<string, unknown>,
+  validateFn?: (b: unknown) => unknown
+) {
+  const body = {
+    model: 'deepseek-v4-pro',
+    trigger: 'submit-message' as const,
+    message: { id: 'msg-1', role: 'user' as const, parts: [...helloParts] },
+    ...partial
+  }
+  return typeof validateFn === 'function' ? validateFn(body) : body
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
+  mockAssertModelEnabled.mockResolvedValue(undefined)
   mockGetRequestAbortSignal.mockReturnValue(mockAbortSignal)
+  mockModelSupportsImages.mockResolvedValue(true)
   mockModelSupportsWebSearch.mockResolvedValue(false)
-  mockModelSupportsThinking.mockReturnValue(true)
+  mockModelSupportsThinking.mockResolvedValue(true)
   mockModelSupportsCustomTools.mockReturnValue(true)
   mockAwaitMimoSources.mockResolvedValue([])
+  mockDbFindFirst.mockResolvedValue(chatFixture())
+  mockStreamText.mockReturnValue({
+    stream: new ReadableStream({
+      start(controller) {
+        controller.close()
+      }
+    })
+  })
 })
 
 describe('POST /api/chats/:id', () => {
   it('should return a stream response for valid chat', async () => {
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
-      title: 'Existing Chat',
-      model: 'deepseek-v4-pro'
-    })
-
-    // Mock streamText to return a stream-like object
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
-
     const { default: handler } = await import('../chats/[id].post')
 
     const event = {
@@ -107,7 +137,6 @@ describe('POST /api/chats/:id', () => {
 
     const result = await handler(event)
 
-    // Should return a Response (from createUIMessageStreamResponse)
     expect(result).toBeInstanceOf(Response)
     expect(mockCreateUIMessageStreamResponse).toHaveBeenCalledWith(
       expect.objectContaining({ consumeSseStream: mockConsumeStream })
@@ -125,114 +154,128 @@ describe('POST /api/chats/:id', () => {
       waitUntil: vi.fn()
     } as any
 
-    await expect(handler(event)).rejects.toMatchObject({
-      statusCode: 404
-    })
+    await expect(handler(event)).rejects.toMatchObject({ statusCode: 404 })
   })
 
-  it('should skip rate limit check for first message in chat', async () => {
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
-      title: 'Existing Chat',
-      model: 'deepseek-v4-pro'
-    })
-
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
-
-    const { default: handler } = await import('../chats/[id].post')
-
-    const event = {
-      context: {},
-      path: '/api/chats/chat-1',
-      waitUntil: vi.fn()
-    } as any
-
-    await handler(event)
-
-    // First message (messages.length === 1) is counted in chats.post.ts,
-    // so checkDailyLimit should NOT be called for the first message in a chat
-    expect(mockCheckDailyLimit).not.toHaveBeenCalled()
-  })
-
-  it('should enable thinking by default when options not provided', async () => {
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
-      title: 'Existing Chat',
-      model: 'deepseek-v4-pro'
-    })
-
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
+  it('should assemble model context from DB history, not client full transcript', async () => {
+    mockDbFindFirst.mockResolvedValue(chatFixture({
+      messages: [
+        { id: 'db-1', role: 'user', parts: [{ type: 'text', text: '第一轮' }] },
+        { id: 'db-2', role: 'assistant', parts: [{ type: 'text', text: '答复' }] }
+      ]
+    }))
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_e, validateFn) => bodyWith({
+        message: { id: 'msg-new', role: 'user', parts: [{ type: 'text', text: '第二轮' }] }
+      }, validateFn)
+    )
 
     const { default: handler } = await import('../chats/[id].post')
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
-    const event = {
-      context: {},
-      path: '/api/chats/chat-1',
-      waitUntil: vi.fn()
-    } as any
-
-    await handler(event)
-
-    // streamText is called inside createUIMessageStream's lazy execute callback
     const executeFn = mockCreateUIMessageStream.mock.calls[0]?.[0]?.execute
-    expect(executeFn).toBeDefined()
     await executeFn({ writer: { merge: vi.fn() } })
 
-    expect(mockStreamText).toHaveBeenCalledWith(
-      expect.objectContaining({
-        abortSignal: mockAbortSignal,
-        providerOptions: {
-          deepseek: { thinking: { type: 'enabled' } },
-          mimo: { thinking: { type: 'enabled' } }
-        }
-      })
+    expect(mockConvertToModelMessages.mock.calls[0]?.[0]).toEqual([
+      { id: 'db-1', role: 'user', parts: [{ type: 'text', text: '第一轮' }] },
+      { id: 'db-2', role: 'assistant', parts: [{ type: 'text', text: '答复' }] },
+      { id: 'msg-new', role: 'user', parts: [{ type: 'text', text: '第二轮' }] }
+    ])
+  })
+
+  it('should reject disabled or unknown model before mutating history', async () => {
+    mockAssertModelEnabled.mockRejectedValueOnce(
+      createError({ statusCode: 400, statusMessage: '模型不可用或已禁用' })
     )
+    const { default: handler } = await import('../chats/[id].post')
+    await expect(
+      handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+    ).rejects.toMatchObject({ statusCode: 400, statusMessage: '模型不可用或已禁用' })
+    expect(mockDb.insert).not.toHaveBeenCalled()
+    expect(mockDb.delete).not.toHaveBeenCalled()
+  })
+
+  it('should not re-insert but still rate-limit when first user message already in DB', async () => {
+    const { default: handler } = await import('../chats/[id].post')
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+
+    expect(mockCheckDailyLimit).toHaveBeenCalledWith(mockUser.id)
+    expect(mockDb.insert).not.toHaveBeenCalled()
+  })
+
+  it('should not duplicate user when client parts only differ by optional fields', async () => {
+    mockDbFindFirst.mockResolvedValue(chatFixture({
+      messages: [{
+        id: 'db-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Hello' }]
+      }]
+    }))
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_e, validateFn) => bodyWith({
+        // 多一个 filename / 键序不同，语义仍是同一条
+        message: {
+          id: 'client-1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Hello', foo: 'bar' }]
+        }
+      }, validateFn)
+    )
+
+    const { default: handler } = await import('../chats/[id].post')
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+
+    expect(mockCheckDailyLimit).toHaveBeenCalledWith(mockUser.id)
+    expect(mockDb.insert).not.toHaveBeenCalled()
+    expect(mockDbUpdate).not.toHaveBeenCalled()
+  })
+
+  it('should reject non-vision model when DB history contains images (regenerate)', async () => {
+    mockModelSupportsImages.mockResolvedValue(false)
+    mockDbFindFirst.mockResolvedValue(chatFixture({
+      messages: [
+        {
+          id: 'db-1',
+          role: 'user',
+          parts: [
+            { type: 'file', url: 'https://img.qibmz.com/chat/u1/a.png', mediaType: 'image/png' },
+            { type: 'text', text: '这是什么' }
+          ]
+        },
+        { id: 'db-2', role: 'assistant', parts: [{ type: 'text', text: '旧答复' }] }
+      ]
+    }))
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_e, validateFn) => bodyWith({
+        trigger: 'regenerate-message',
+        message: undefined
+      }, validateFn)
+    )
+
+    const { default: handler } = await import('../chats/[id].post')
+    await expect(
+      handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+    ).rejects.toMatchObject({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
   })
 
   it('should disable thinking when options.thinkingMode is false', async () => {
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
-      title: 'Existing Chat',
-      model: 'deepseek-v4-pro'
-    })
-
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
-
     mockReadValidatedBody.mockImplementationOnce(
-      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
-        const body = {
-          model: 'deepseek-v4-pro',
-          messages: [
-            { id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] },
-            { id: 'msg-2', role: 'user', parts: [{ type: 'text', text: 'Follow up' }] }
-          ],
-          options: { thinkingMode: false }
-        }
-        return typeof validateFn === 'function' ? validateFn(body) : body
-      }
+      async (_e, validateFn) => bodyWith({
+        options: { thinkingMode: false },
+        message: { id: 'msg-2', role: 'user', parts: [{ type: 'text', text: 'Follow up' }] }
+      }, validateFn)
     )
+    mockDbFindFirst.mockResolvedValue(chatFixture({
+      messages: [
+        { id: 'db-1', role: 'user', parts: [...helloParts] },
+        { id: 'db-2', role: 'assistant', parts: [{ type: 'text', text: 'Hi' }] }
+      ]
+    }))
 
     const { default: handler } = await import('../chats/[id].post')
-
-    const event = {
-      context: {},
-      path: '/api/chats/chat-1',
-      waitUntil: vi.fn()
-    } as any
-
-    await handler(event)
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
     const executeFn = mockCreateUIMessageStream.mock.calls[0]?.[0]?.execute
-    expect(executeFn).toBeDefined()
     await executeFn({ writer: { merge: vi.fn() } })
 
     expect(mockStreamText).toHaveBeenCalledWith(
@@ -246,72 +289,107 @@ describe('POST /api/chats/:id', () => {
   })
 
   it('should check rate limit for follow-up messages', async () => {
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
-      title: 'Existing Chat',
-      model: 'deepseek-v4-pro'
-    })
-
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
-
-    // Override readValidatedBody to return 2 messages (simulating follow-up)
+    mockDbFindFirst.mockResolvedValue(chatFixture({
+      messages: [
+        { id: 'db-1', role: 'user', parts: [...helloParts] },
+        { id: 'db-2', role: 'assistant', parts: [{ type: 'text', text: 'Hi' }] }
+      ]
+    }))
     mockReadValidatedBody.mockImplementationOnce(
-      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
-        const body = {
-          model: 'deepseek-v4-pro',
-          messages: [
-            { id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] },
-            { id: 'msg-2', role: 'user', parts: [{ type: 'text', text: 'Follow up' }] }
-          ]
-        }
-        return typeof validateFn === 'function' ? validateFn(body) : body
-      }
+      async (_e, validateFn) => bodyWith({
+        message: { id: 'msg-2', role: 'user', parts: [{ type: 'text', text: 'Follow up' }] }
+      }, validateFn)
     )
 
     const { default: handler } = await import('../chats/[id].post')
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
-    const event = {
-      context: {},
-      path: '/api/chats/chat-1',
-      waitUntil: vi.fn()
-    } as any
-
-    await handler(event)
-
-    // Follow-up messages (messages.length > 1) should trigger rate limit check
     expect(mockCheckDailyLimit).toHaveBeenCalledWith(mockUser.id)
+    expect(mockDb.insert).toHaveBeenCalled()
+  })
+
+  it('should regenerate by dropping trailing assistant and rate-limiting', async () => {
+    mockDbFindFirst.mockResolvedValue(chatFixture({
+      messages: [
+        { id: 'db-1', role: 'user', parts: [...helloParts] },
+        { id: 'db-2', role: 'assistant', parts: [{ type: 'text', text: '旧答复' }] }
+      ]
+    }))
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_e, validateFn) => bodyWith({
+        trigger: 'regenerate-message',
+        message: undefined
+      }, validateFn)
+    )
+
+    const { default: handler } = await import('../chats/[id].post')
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+
+    expect(mockCheckDailyLimit).toHaveBeenCalledWith(mockUser.id)
+    expect(mockDb.delete).not.toHaveBeenCalled()
+
+    const streamOpts = mockCreateUIMessageStream.mock.calls[0]?.[0]
+    const executeFn = streamOpts?.execute
+    await executeFn({ writer: { merge: vi.fn() } })
+    expect(mockConvertToModelMessages.mock.calls[0]?.[0]).toEqual([
+      { id: 'db-1', role: 'user', parts: [...helloParts] }
+    ])
+
+    // 成功落库新回复时才删除旧 assistant；且必须先 insert 再 delete
+    await streamOpts?.onEnd({
+      responseMessage: { role: 'assistant', parts: [{ type: 'text', text: '新答复' }] },
+      isAborted: false
+    })
+    expect(mockDb.insert).toHaveBeenCalled()
+    expect(mockDb.delete).toHaveBeenCalled()
+    const insertOrder = mockDb.insert.mock.invocationCallOrder[0]!
+    const deleteOrder = mockDb.delete.mock.invocationCallOrder[0]!
+    expect(insertOrder).toBeLessThan(deleteOrder)
+  })
+
+  it('should rate-limit before inserting a new user message', async () => {
+    mockDbFindFirst.mockResolvedValue(chatFixture({
+      messages: [
+        { id: 'db-1', role: 'user', parts: [...helloParts] },
+        { id: 'db-2', role: 'assistant', parts: [{ type: 'text', text: 'Hi' }] }
+      ]
+    }))
+    mockCheckDailyLimit.mockRejectedValueOnce(
+      createError({ statusCode: 429, statusMessage: '今日提问次数已达上限' })
+    )
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_e, validateFn) => bodyWith({
+        message: { id: 'msg-2', role: 'user', parts: [{ type: 'text', text: 'Follow up' }] }
+      }, validateFn)
+    )
+
+    const { default: handler } = await import('../chats/[id].post')
+    await expect(
+      handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+    ).rejects.toMatchObject({ statusCode: 429 })
+
+    expect(mockCheckDailyLimit).toHaveBeenCalledWith(mockUser.id)
+    expect(mockDb.insert).not.toHaveBeenCalled()
   })
 
   it('should set provisional title for image-only first message without calling vision generateText', async () => {
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
+    const imageParts = [
+      { type: 'file', url: 'https://img.qibmz.com/chat/u1/a.png', mediaType: 'image/png' }
+    ]
+    mockDbFindFirst.mockResolvedValue(chatFixture({
       title: null,
-      model: 'mimo-v2.5'
-    })
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
+      model: 'mimo-v2.5',
+      messages: [{ id: 'db-1', role: 'user', parts: imageParts }]
+    }))
     mockReadValidatedBody.mockImplementationOnce(
-      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
-        const body = {
-          model: 'mimo-v2.5',
-          messages: [{
-            id: 'msg-1',
-            role: 'user',
-            parts: [{ type: 'file', url: 'https://img.qibmz.com/chat/u1/a.png', mediaType: 'image/png' }]
-          }]
-        }
-        return typeof validateFn === 'function' ? validateFn(body) : body
-      }
+      async (_e, validateFn) => bodyWith({
+        model: 'mimo-v2.5',
+        message: { id: 'msg-1', role: 'user', parts: imageParts }
+      }, validateFn)
     )
 
     const { default: handler } = await import('../chats/[id].post')
-    const event = { context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any
-    await handler(event)
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
     expect(mockDbUpdate).toHaveBeenCalled()
     const setFn = mockDbUpdate.mock.results[0]?.value?.set
@@ -320,31 +398,19 @@ describe('POST /api/chats/:id', () => {
   })
 
   it('should refine title with text prompt when first message has text', async () => {
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
+    const parts = [
+      { type: 'file', url: 'https://img.qibmz.com/chat/u1/a.png', mediaType: 'image/png' },
+      { type: 'text', text: '这是什么图' }
+    ]
+    mockDbFindFirst.mockResolvedValue(chatFixture({
       title: null,
-      model: 'deepseek-v4-pro'
-    })
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
+      messages: [{ id: 'db-1', role: 'user', parts }]
+    }))
     mockGenerateText.mockResolvedValue({ text: '精炼标题' })
     mockReadValidatedBody.mockImplementationOnce(
-      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
-        const body = {
-          model: 'deepseek-v4-pro',
-          messages: [{
-            id: 'msg-1',
-            role: 'user',
-            parts: [
-              { type: 'file', url: 'https://img.qibmz.com/chat/u1/a.png', mediaType: 'image/png' },
-              { type: 'text', text: '这是什么图' }
-            ]
-          }]
-        }
-        return typeof validateFn === 'function' ? validateFn(body) : body
-      }
+      async (_e, validateFn) => bodyWith({
+        message: { id: 'msg-1', role: 'user', parts }
+      }, validateFn)
     )
 
     const { default: handler } = await import('../chats/[id].post')
@@ -354,12 +420,9 @@ describe('POST /api/chats/:id', () => {
     expect(mockGenerateText).toHaveBeenCalledWith(
       expect.objectContaining({
         prompt: JSON.stringify({
-          id: 'msg-1',
+          id: 'db-1',
           role: 'user',
-          parts: [
-            { type: 'file', url: 'https://img.qibmz.com/chat/u1/a.png', mediaType: 'image/png' },
-            { type: 'text', text: '这是什么图' }
-          ]
+          parts
         })
       })
     )
@@ -367,28 +430,16 @@ describe('POST /api/chats/:id', () => {
   })
 
   it('should still refine when chat already has provisional title from create', async () => {
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
+    const parts = [{ type: 'text', text: '这是什么图' }]
+    mockDbFindFirst.mockResolvedValue(chatFixture({
       title: '这是什么图',
-      model: 'deepseek-v4-pro'
-    })
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
+      messages: [{ id: 'db-1', role: 'user', parts }]
+    }))
     mockGenerateText.mockResolvedValue({ text: '图片问答' })
     mockReadValidatedBody.mockImplementationOnce(
-      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
-        const body = {
-          model: 'deepseek-v4-pro',
-          messages: [{
-            id: 'msg-1',
-            role: 'user',
-            parts: [{ type: 'text', text: '这是什么图' }]
-          }]
-        }
-        return typeof validateFn === 'function' ? validateFn(body) : body
-      }
+      async (_e, validateFn) => bodyWith({
+        message: { id: 'msg-1', role: 'user', parts }
+      }, validateFn)
     )
 
     const { default: handler } = await import('../chats/[id].post')
@@ -400,47 +451,24 @@ describe('POST /api/chats/:id', () => {
   })
 
   it('should not refine again when title was already AI-refined', async () => {
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
+    const parts = [{ type: 'text', text: '这是什么图' }]
+    mockDbFindFirst.mockResolvedValue(chatFixture({
       title: '图片内容问答',
-      model: 'deepseek-v4-pro'
-    })
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
+      messages: [{ id: 'db-1', role: 'user', parts }]
+    }))
     mockReadValidatedBody.mockImplementationOnce(
-      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
-        const body = {
-          model: 'deepseek-v4-pro',
-          messages: [{
-            id: 'msg-1',
-            role: 'user',
-            parts: [{ type: 'text', text: '这是什么图' }]
-          }]
-        }
-        return typeof validateFn === 'function' ? validateFn(body) : body
-      }
+      async (_e, validateFn) => bodyWith({
+        message: { id: 'msg-1', role: 'user', parts }
+      }, validateFn)
     )
 
     const { default: handler } = await import('../chats/[id].post')
-    const event = { context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any
-    await handler(event)
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
     expect(mockGenerateText).not.toHaveBeenCalled()
   })
 
   it('should persist assistant message when stream finishes normally', async () => {
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
-      title: 'Existing Chat',
-      model: 'deepseek-v4-pro'
-    })
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
-
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
@@ -464,16 +492,6 @@ describe('POST /api/chats/:id', () => {
   })
 
   it('should persist partial assistant message when stream is aborted with content', async () => {
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
-      title: 'Existing Chat',
-      model: 'deepseek-v4-pro'
-    })
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
-
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
@@ -491,16 +509,6 @@ describe('POST /api/chats/:id', () => {
   })
 
   it('should skip persistence when stream is aborted without content', async () => {
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
-      title: 'Existing Chat',
-      model: 'deepseek-v4-pro'
-    })
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
-
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
@@ -519,20 +527,13 @@ describe('POST /api/chats/:id', () => {
 
   it('should swallow assistant persistence errors in onEnd', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
-      title: 'Existing Chat',
-      model: 'deepseek-v4-pro'
-    })
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
     mockDb.insert.mockImplementationOnce(() => ({
       values: vi.fn(() => {
         const pending = Promise.reject(new Error('db down'))
         return Object.assign(pending, {
-          returning: () => Promise.reject(new Error('db down'))
+          returning: () => Promise.reject(new Error('db down')),
+          onConflictDoNothing: vi.fn(() => Promise.reject(new Error('db down'))),
+          onConflictDoUpdate: vi.fn(() => Promise.reject(new Error('db down')))
         })
       })
     }))
@@ -559,28 +560,19 @@ describe('POST /api/chats/:id', () => {
     mockAwaitMimoSources.mockResolvedValue([
       { url: 'https://example.com/a', title: 'Source A' }
     ])
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
-      title: 'Existing Chat',
-      model: 'mimo-v2.5-pro'
-    })
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
+    mockDbFindFirst.mockResolvedValue(chatFixture({
+      model: 'mimo-v2.5-pro',
+      messages: [
+        { id: 'db-1', role: 'user', parts: [...helloParts] },
+        { id: 'db-2', role: 'assistant', parts: [{ type: 'text', text: 'Hi' }] }
+      ]
+    }))
     mockReadValidatedBody.mockImplementationOnce(
-      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
-        const body = {
-          model: 'mimo-v2.5-pro',
-          options: { webSearch: true },
-          messages: [
-            { id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] },
-            { id: 'msg-2', role: 'assistant', parts: [{ type: 'text', text: 'Hi' }] },
-            { id: 'msg-3', role: 'user', parts: [{ type: 'text', text: '搜一下新闻' }] }
-          ]
-        }
-        return typeof validateFn === 'function' ? validateFn(body) : body
-      }
+      async (_e, validateFn) => bodyWith({
+        model: 'mimo-v2.5-pro',
+        options: { webSearch: true },
+        message: { id: 'msg-3', role: 'user', parts: [{ type: 'text', text: '搜一下新闻' }] }
+      }, validateFn)
     )
 
     const { MIMO_WEB_SEARCH_FLAG } = await import('../../utils/webSearch')
@@ -595,7 +587,6 @@ describe('POST /api/chats/:id', () => {
         providerOptions: expect.objectContaining({
           mimo: expect.objectContaining({
             [MIMO_WEB_SEARCH_FLAG]: true,
-            // 联网时强制关思考，避免 tool + thinking 叠加卡顿
             thinking: { type: 'disabled' }
           })
         })
@@ -628,27 +619,12 @@ describe('POST /api/chats/:id', () => {
 
   it('should disable thinking even when thinkingMode is true if web search is enabled', async () => {
     mockModelSupportsWebSearch.mockResolvedValue(true)
-    mockModelSupportsThinking.mockReturnValue(true)
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
-      title: 'Existing Chat',
-      model: 'mimo-v2.5-pro'
-    })
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
+    mockModelSupportsThinking.mockResolvedValue(true)
     mockReadValidatedBody.mockImplementationOnce(
-      async (_event: unknown, validateFn?: (b: unknown) => unknown) => {
-        const body = {
-          model: 'mimo-v2.5-pro',
-          options: { thinkingMode: true, webSearch: true },
-          messages: [
-            { id: 'msg-1', role: 'user', parts: [{ type: 'text', text: 'Hello' }] }
-          ]
-        }
-        return typeof validateFn === 'function' ? validateFn(body) : body
-      }
+      async (_e, validateFn) => bodyWith({
+        model: 'mimo-v2.5-pro',
+        options: { thinkingMode: true, webSearch: true }
+      }, validateFn)
     )
 
     const { default: handler } = await import('../chats/[id].post')
@@ -669,16 +645,6 @@ describe('POST /api/chats/:id', () => {
   })
 
   it('should pass chart tool and stopWhen for models that support custom tools', async () => {
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
-      title: 'Existing Chat',
-      model: 'deepseek-v4-pro'
-    })
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
-
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
 
@@ -695,15 +661,6 @@ describe('POST /api/chats/:id', () => {
 
   it('should omit chart tool for models without custom tool support', async () => {
     mockModelSupportsCustomTools.mockReturnValue(false)
-    mockDbFindFirst.mockResolvedValue({
-      id: 'chat-1',
-      userId: mockUser.id,
-      title: 'Existing Chat',
-      model: 'mimo-v2.5-pro'
-    })
-    mockStreamText.mockReturnValue({
-      toUIMessageStream: mockToUIMessageStream
-    })
 
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)

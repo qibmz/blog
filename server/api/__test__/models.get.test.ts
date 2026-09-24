@@ -1,180 +1,189 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mock$Fetch } from '../../utils/__test__/setup'
+import { mockDbSelectResult } from '../../utils/__test__/setup'
 
-const MOCK_PROVIDER: {
-  name: string
-  prefixes: string[]
-  icon: string
-  modelsUrl: string
-  headers: () => Record<string, string>
-  exclude: string[]
-  include?: string[]
-  getInstance: ReturnType<typeof vi.fn>
-  supportsImages?: (id: string) => boolean
-  supportsThinking?: (id: string) => boolean
-  supportsWebSearch?: (id: string) => boolean
-} = {
-  name: 'TestProvider',
-  prefixes: ['test-'],
-  icon: 'i-simple-icons-test',
-  modelsUrl: 'https://test.api/v1/models',
-  headers: () => ({ Authorization: 'Bearer test' }),
-  exclude: [],
-  getInstance: vi.fn()
-}
-
-// Mock models module to avoid real provider initialization
 vi.mock('../../utils/models', () => ({
-  PROVIDER_REGISTRY: [MOCK_PROVIDER],
-  FALLBACK_MODELS: [
-    { value: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro', icon: 'i-simple-icons-deepseek' },
-    { value: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash', icon: 'i-simple-icons-deepseek' },
-    { value: 'mimo-v2.5-pro', label: 'MiMo V2.5 Pro', icon: 'i-simple-icons-xiaomi' }
-  ],
-  DEFAULT_MODEL: 'deepseek-v4-pro',
-  modelIdToLabel: vi.fn((_provider, id: string) => {
-    // Simple mock: strip prefix and capitalize
-    const rest = id.replace(/^(test-)/, '')
-    return rest.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
-  }),
+  PREFERRED_DEFAULT_MODEL: 'deepseek-flash',
+  pickDefaultModel: (list: { value: string }[]) => {
+    if (!list.length) return 'deepseek-flash'
+    const flash = list.find(m => m.value === 'deepseek-flash')
+    if (flash) return flash.value
+    const deepseek = list.find(m => m.value.startsWith('deepseek-'))
+    if (deepseek) return deepseek.value
+    return list[0]!.value
+  },
   getModel: vi.fn()
 }))
 
+function mockEvent(path = '/api/models', query: Record<string, string> = {}) {
+  const qs = new URLSearchParams(query).toString()
+  const url = qs ? `${path}?${qs}` : path
+  return {
+    context: {},
+    path: url,
+    node: {
+      req: {
+        method: 'GET',
+        url,
+        headers: { host: 'localhost' }
+      }
+    }
+  } as any
+}
+
+function catalogRows(overrides: Array<Record<string, unknown>> = []) {
+  const defaults = [
+    {
+      id: 'deepseek-flash',
+      label: 'DeepSeek Flash',
+      icon: 'i-simple-icons-deepseek',
+      supportsImages: true,
+      supportsThinking: true,
+      supportsWebSearch: false,
+      sortOrder: 10
+    },
+    {
+      id: 'mimo-v2.6-pro',
+      label: 'MiMo V2.6 Pro',
+      icon: 'i-simple-icons-xiaomi',
+      supportsImages: true,
+      supportsThinking: true,
+      supportsWebSearch: true,
+      sortOrder: 30
+    }
+  ]
+  return overrides.length ? overrides : defaults
+}
+
+async function loadHandler() {
+  const mod = await import('../models.get')
+  mod.__resetModelsCacheForTests()
+  return mod.default
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
+  mockDbSelectResult.mockResolvedValue([])
 })
 
-describe('GET /api/models', () => {
-  it('should return models list with default', async () => {
+describe('GET /api/models (DB catalog)', () => {
+  it('should return empty models with errors when DB fails', async () => {
     vi.resetModules()
-    mock$Fetch.mockRejectedValue(new Error('API unavailable'))
+    mockDbSelectResult.mockRejectedValue(new Error('Connection refused'))
 
-    const { default: handler } = await import('../models.get')
+    const handler = await loadHandler()
+    const result = await handler(mockEvent())
 
-    const event = { context: {}, path: '/api/models' } as any
-    const result = await handler(event)
-
-    expect(result).toHaveProperty('models')
-    expect(result).toHaveProperty('default')
-    expect(Array.isArray(result.models)).toBe(true)
-    expect(result.models.length).toBeGreaterThan(0)
-    expect(result.default).toBe('deepseek-v4-pro')
+    expect(result.models).toHaveLength(0)
+    expect(result.default).toBe('deepseek-flash')
+    expect(result.fetchedAt).toEqual(expect.any(Number))
+    expect(result.errors?.length).toBeGreaterThan(0)
+    expect(result.errors![0]!.provider).toBe('database')
+    expect(result.errors![0]!.message).toBe('Failed to load model catalog')
+    expect(result.errors![0]!.message).not.toContain('Connection refused')
   })
 
   it('should include required fields for each model', async () => {
     vi.resetModules()
-    mock$Fetch.mockRejectedValue(new Error('API unavailable'))
+    mockDbSelectResult.mockResolvedValue(catalogRows())
 
-    const { default: handler } = await import('../models.get')
+    const handler = await loadHandler()
+    const result = await handler(mockEvent())
 
-    const event = { context: {}, path: '/api/models' } as any
-    const result = await handler(event)
-
+    expect(result.models.length).toBeGreaterThan(0)
     for (const model of result.models) {
       expect(model).toHaveProperty('value')
       expect(model).toHaveProperty('label')
       expect(model).toHaveProperty('icon')
+      expect(model).toHaveProperty('supportsImages')
+      expect(model).toHaveProperty('supportsThinking')
+      expect(model).toHaveProperty('supportsWebSearch')
     }
+  })
+
+  it('should map DB rows to ModelOption', async () => {
+    vi.resetModules()
+    mockDbSelectResult.mockResolvedValue(catalogRows())
+
+    const handler = await loadHandler()
+    const result = await handler(mockEvent())
+
+    expect(result.models.map((m: any) => m.value)).toEqual([
+      'deepseek-flash',
+      'mimo-v2.6-pro'
+    ])
+    expect(result.default).toBe('deepseek-flash')
+    const flash = result.models.find((m: any) => m.value === 'deepseek-flash')
+    expect(flash!.supportsImages).toBe(true)
+    expect(flash!.supportsThinking).toBe(true)
+    expect(flash!.supportsWebSearch).toBe(false)
   })
 
   it('should return cached result on second call', async () => {
     vi.resetModules()
-    mock$Fetch.mockRejectedValue(new Error('API unavailable'))
+    mockDbSelectResult.mockResolvedValue(catalogRows())
 
-    const { default: handler } = await import('../models.get')
+    const handler = await loadHandler()
 
-    const event = { context: {}, path: '/api/models' } as any
-    const result1 = await handler(event)
-    const result2 = await handler(event)
+    const result1 = await handler(mockEvent())
+    const result2 = await handler(mockEvent())
 
     expect(result1).toEqual(result2)
-    // API failure → fallback; $fetch is called once per provider (1 provider)
-    expect(mock$Fetch).toHaveBeenCalledTimes(1)
-  })
-})
-
-describe('DB-backed model capabilities', () => {
-  it('should use DB supportsImages when DB has record (priority 1)', async () => {
-    vi.resetModules()
-    const { mockDbSelectResult, mock$Fetch } = await import('../../utils/__test__/setup')
-
-    // Provider returns two models
-    mock$Fetch.mockResolvedValueOnce({
-      data: [{ id: 'test-v1' }, { id: 'test-v2' }]
-    })
-
-    // DB returns supportsImages = true for test-v1, false for test-v2
-    mockDbSelectResult.mockResolvedValue([
-      { id: 'test-v1', supportsImages: true, supportsWebSearch: false },
-      { id: 'test-v2', supportsImages: false, supportsWebSearch: true }
-    ])
-
-    const { default: handler } = await import('../models.get')
-    const event = { context: {}, path: '/api/models' } as any
-    const result = await handler(event)
-
-    const v1 = result.models.find((m: any) => m.value === 'test-v1')
-    const v2 = result.models.find((m: any) => m.value === 'test-v2')
-    expect(v1!.supportsImages).toBe(true)
-    expect(v2!.supportsImages).toBe(false)
-    expect(v1!.supportsWebSearch).toBe(false)
-    expect(v2!.supportsWebSearch).toBe(true)
+    expect(mockDbSelectResult).toHaveBeenCalledTimes(1)
   })
 
-  it('should apply include allowlist when provider has include', async () => {
+  it('should bypass cache when fresh=1', async () => {
     vi.resetModules()
-    const { mock$Fetch, mockDbSelectResult } = await import('../../utils/__test__/setup')
+    mockDbSelectResult.mockResolvedValue(catalogRows())
 
-    MOCK_PROVIDER.include = ['test-keep']
-    mockDbSelectResult.mockResolvedValue([])
-    mock$Fetch.mockResolvedValueOnce({
-      data: [{ id: 'test-keep' }, { id: 'test-drop' }, { id: 'test-asr' }]
-    })
+    const handler = await loadHandler()
 
-    try {
-      const { default: handler } = await import('../models.get')
-      const event = { context: {}, path: '/api/models' } as any
-      const result = await handler(event)
+    await handler(mockEvent())
+    await handler(mockEvent('/api/models', { fresh: '1' }))
 
-      expect(result.models.map((m: any) => m.value)).toEqual(['test-keep'])
-    } finally {
-      delete MOCK_PROVIDER.include
-    }
+    expect(mockDbSelectResult).toHaveBeenCalledTimes(2)
   })
 
-  it('should fallback when DB has no record for model (priority 2)', async () => {
+  it('should serve stale snapshot when DB fails after a success', async () => {
     vi.resetModules()
-    const { mockDbSelectResult, mock$Fetch } = await import('../../utils/__test__/setup')
+    mockDbSelectResult
+      .mockResolvedValueOnce(catalogRows([{
+        id: 'deepseek-flash',
+        label: 'DeepSeek Flash',
+        icon: 'i-simple-icons-deepseek',
+        supportsImages: true,
+        supportsThinking: true,
+        supportsWebSearch: false,
+        sortOrder: 10
+      }]))
+      .mockRejectedValue(new Error('down'))
 
-    mock$Fetch.mockResolvedValueOnce({
-      data: [{ id: 'test-v1' }]
-    })
+    const handler = await loadHandler()
+    const ok = await handler(mockEvent())
+    expect(ok.models).toHaveLength(1)
 
-    // DB returns empty — model not found (dbOk=true, but no record)
-    mockDbSelectResult.mockResolvedValue([])
-
-    const { default: handler } = await import('../models.get')
-    const event = { context: {}, path: '/api/models' } as any
-    const result = await handler(event)
-
-    expect(result.models[0]!.supportsImages).toBe(false)
+    const stale = await handler(mockEvent('/api/models', { fresh: '1' }))
+    expect(stale.stale).toBe(true)
+    expect(stale.models).toHaveLength(1)
+    expect(stale.models[0]!.value).toBe('deepseek-flash')
+    expect(stale.errors?.length).toBeGreaterThan(0)
   })
 
-  it('should fallback when DB query fails (priority 3)', async () => {
+  it('should use empty label/icon fallbacks', async () => {
     vi.resetModules()
-    const { mockDbSelectResult, mock$Fetch } = await import('../../utils/__test__/setup')
+    mockDbSelectResult.mockResolvedValue([{
+      id: 'deepseek-flash',
+      label: '',
+      icon: '',
+      supportsImages: false,
+      supportsThinking: false,
+      supportsWebSearch: false,
+      sortOrder: 0
+    }])
 
-    mock$Fetch.mockResolvedValueOnce({
-      data: [{ id: 'test-v1' }]
-    })
+    const handler = await loadHandler()
+    const result = await handler(mockEvent())
 
-    // DB query throws
-    mockDbSelectResult.mockRejectedValue(new Error('Connection refused'))
-
-    const { default: handler } = await import('../models.get')
-    const event = { context: {}, path: '/api/models' } as any
-    const result = await handler(event)
-
-    expect(result.models[0]!.supportsImages).toBe(false)
+    expect(result.models[0]!.label).toBe('deepseek-flash')
+    expect(result.models[0]!.icon).toBe('i-lucide-bot')
   })
 })

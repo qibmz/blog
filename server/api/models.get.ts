@@ -1,130 +1,124 @@
-import { defineEventHandler } from 'h3'
-import { inArray } from 'drizzle-orm'
+import { defineEventHandler, getQuery } from 'h3'
+import { asc, eq } from 'drizzle-orm'
 import {
-  PROVIDER_REGISTRY,
-  FALLBACK_MODELS,
-  DEFAULT_MODEL,
-  modelIdToLabel,
+  pickDefaultModel,
   type ModelOption
 } from '../utils/models'
 
-// ─── 纯 API 驱动的模型列表 ────────────────────────────────────────────────────
-// 从各 Provider 的 GET /models 实时获取可用模型，不再维护静态列表。
-// 每个 Provider 独立容错：某家 API 失败时不影响其他 Provider。
-// 结果缓存 5 分钟，避免每次请求都调用外部 API。
+// ─── DB 目录驱动的模型列表 ───────────────────────────────────────────────────
+// 列表与能力全部以 models 表为准（seed-models.ts）；短缓存 + ?fresh=1。
 
-const CACHE_TTL_MS = 5 * 60 * 1000
+const CACHE_TTL_MS = 60 * 1000
 
-let _cachedModels: ModelOption[] | null = null
+export type ModelsApiError = { provider: string, message: string }
+
+export type ModelsApiResponse = {
+  models: ModelOption[]
+  default: string
+  errors?: ModelsApiError[]
+  fetchedAt: number
+  stale?: boolean
+}
+
+type CachePayload = ModelsApiResponse
+
+let _cache: CachePayload | null = null
 let _cacheExpiry = 0
+let _lastSuccess: CachePayload | null = null
 
-type CapabilityRow = {
-  id: string
-  supportsImages: boolean
-  supportsWebSearch: boolean
+/** 仅供测试重置进程内缓存 */
+export function __resetModelsCacheForTests() {
+  _cache = null
+  _cacheExpiry = 0
+  _lastSuccess = null
 }
 
-async function fetchAvailableModels(): Promise<ModelOption[]> {
-  const results = await Promise.allSettled(
-    PROVIDER_REGISTRY.map(async (provider) => {
-      const res = await $fetch<{ data: { id: string }[] }>(provider.modelsUrl, {
-        headers: provider.headers(),
-        timeout: 8000
+async function fetchModelsFromDb(): Promise<{ models: ModelOption[], error?: ModelsApiError }> {
+  try {
+    const rows = await db
+      .select({
+        id: models.id,
+        label: models.label,
+        icon: models.icon,
+        supportsImages: models.supportsImages,
+        supportsThinking: models.supportsThinking,
+        supportsWebSearch: models.supportsWebSearch,
+        sortOrder: models.sortOrder
       })
-      return new Set(res.data.map(m => m.id))
-    })
-  )
+      .from(models)
+      .where(eq(models.enabled, true))
+      .orderBy(asc(models.sortOrder), asc(models.id))
 
-  // 第一阶段：收集所有匹配的模型 ID
-  const allModelIds: string[] = []
-  const providerModelMap = new Map<number, string[]>()
+    const list: ModelOption[] = rows.map(row => ({
+      value: row.id,
+      label: row.label || row.id,
+      icon: row.icon || 'i-lucide-bot',
+      supportsImages: row.supportsImages,
+      supportsThinking: row.supportsThinking,
+      supportsWebSearch: row.supportsWebSearch
+    }))
 
-  PROVIDER_REGISTRY.forEach((provider, i) => {
-    const result = results[i]!
-
-    if (result.status === 'fulfilled') {
-      const matched = [...result.value]
-        .filter(id =>
-          provider.prefixes.some(px => id.startsWith(px))
-          && !provider.exclude.some(ex => id.toLowerCase().includes(ex.toLowerCase()))
-          && (!provider.include?.length || provider.include.includes(id))
-        )
-      allModelIds.push(...matched)
-      providerModelMap.set(i, matched)
-    }
-    // API 失败：该 provider 不出现在列表中（不做 fallback，保持列表干净）
-  })
-
-  // 第二阶段：批量 DB 查询
-  const dbMap = new Map<string, CapabilityRow>()
-  let dbOk = false
-  if (allModelIds.length > 0) {
-    try {
-      const records = await db
-        .select({
-          id: models.id,
-          supportsImages: models.supportsImages,
-          supportsWebSearch: models.supportsWebSearch
-        })
-        .from(models)
-        .where(inArray(models.id, allModelIds))
-      for (const r of records) {
-        dbMap.set(r.id, r)
-      }
-      dbOk = true
-    } catch (err) {
-      console.warn('[models] DB query failed, using provider fallback:', err)
+    return { models: list }
+  } catch (err) {
+    // 原始 err.message 可能含 SQL / 主机 / DB 用户名，仅记日志，不回传客户端
+    console.warn('[models] DB catalog query failed:', err)
+    return {
+      models: [],
+      error: { provider: 'database', message: 'Failed to load model catalog' }
     }
   }
-
-  // 第三阶段：构建 ModelOption[]
-  const modelOptions: ModelOption[] = []
-
-  PROVIDER_REGISTRY.forEach((provider, i) => {
-    const ids = providerModelMap.get(i)
-    if (!ids) return
-
-    for (const id of ids) {
-      const row = dbMap.get(id)
-      let supportsImages: boolean
-      let supportsWebSearch: boolean
-
-      if (row) {
-        supportsImages = row.supportsImages
-        supportsWebSearch = row.supportsWebSearch
-      } else if (dbOk) {
-        console.warn(`[models] DB miss for ${id}, model should be seeded`)
-        supportsImages = provider.supportsImages?.(id) ?? false
-        supportsWebSearch = provider.supportsWebSearch?.(id) ?? false
-      } else {
-        supportsImages = provider.supportsImages?.(id) ?? false
-        supportsWebSearch = provider.supportsWebSearch?.(id) ?? false
-      }
-
-      modelOptions.push({
-        value: id,
-        label: `${provider.name} ${modelIdToLabel(provider, id)}`,
-        icon: provider.icon,
-        supportsImages,
-        supportsThinking: provider.supportsThinking?.(id) ?? true,
-        supportsWebSearch
-      })
-    }
-  })
-
-  return modelOptions
 }
 
-export default defineEventHandler(async () => {
-  if (_cachedModels && Date.now() < _cacheExpiry) {
-    return { models: _cachedModels, default: DEFAULT_MODEL }
+function buildResponse(
+  modelList: ModelOption[],
+  errors: ModelsApiError[],
+  opts?: { stale?: boolean, fetchedAt?: number }
+): ModelsApiResponse {
+  const fetchedAt = opts?.fetchedAt ?? Date.now()
+  return {
+    models: modelList,
+    default: pickDefaultModel(modelList),
+    ...(errors.length ? { errors } : {}),
+    fetchedAt,
+    ...(opts?.stale ? { stale: true } : {})
+  }
+}
+
+export default defineEventHandler(async (event): Promise<ModelsApiResponse> => {
+  const query = getQuery(event)
+  const fresh = query.fresh === '1' || query.fresh === 'true'
+
+  if (!fresh && _cache && Date.now() < _cacheExpiry) {
+    return _cache
   }
 
-  const models = await fetchAvailableModels()
+  const { models: modelList, error } = await fetchModelsFromDb()
+  const errors = error ? [error] : []
 
-  // API 成功或有兜底都要缓存，避免反复重试宕机的 Provider
-  _cachedModels = models.length > 0 ? models : FALLBACK_MODELS
+  if (modelList.length > 0) {
+    const payload = buildResponse(modelList, errors)
+    _cache = payload
+    _cacheExpiry = Date.now() + CACHE_TTL_MS
+    _lastSuccess = payload
+    return payload
+  }
+
+  if (_lastSuccess?.models.length) {
+    const stalePayload: ModelsApiResponse = {
+      ..._lastSuccess,
+      errors: errors.length
+        ? errors
+        : [{ provider: 'database', message: 'DB catalog empty/failed; serving last successful snapshot' }],
+      fetchedAt: Date.now(),
+      stale: true
+    }
+    _cache = stalePayload
+    _cacheExpiry = Date.now() + CACHE_TTL_MS
+    return stalePayload
+  }
+
+  const empty = buildResponse([], errors)
+  _cache = empty
   _cacheExpiry = Date.now() + CACHE_TTL_MS
-
-  return { models: _cachedModels, default: DEFAULT_MODEL }
+  return empty
 })

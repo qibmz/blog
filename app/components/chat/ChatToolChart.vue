@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { ChartUIToolInvocation } from '#shared/utils/tools/chart'
 import {
+  isChartToolStrictInput,
+  mapChartToolInputToPayload
+} from '#shared/utils/tools/chart'
+import {
   buildChartOption,
   isChartPayload,
   normalizeChartType,
@@ -15,16 +19,23 @@ const colorMode = useColorMode()
 const toast = useToast()
 const chartRef = ref<{ getDataURL?: (opts?: Record<string, unknown>) => string } | null>(null)
 
-/** chart tool 的 execute 只是 echo；input 齐全即可渲染，不必死等 output-available */
+function asChartPayload(value: unknown): ChartPayload | null {
+  if (isChartPayload(value)) return value
+  if (isChartToolStrictInput(value)) return mapChartToolInputToPayload(value)
+  return null
+}
+
+/** execute 产出兼容 payload；流式阶段也可能先拿到 strict input */
 const chart = computed<ChartPayload | null>(() => {
-  if (props.invocation.state === 'output-available' && isChartPayload(props.invocation.output)) {
-    return props.invocation.output
+  if (props.invocation.state === 'output-available') {
+    const fromOutput = asChartPayload(props.invocation.output)
+    if (fromOutput) return fromOutput
   }
   if (
-    (props.invocation.state === 'input-available' || props.invocation.state === 'output-available')
-    && isChartPayload(props.invocation.input)
+    props.invocation.state === 'input-available'
+    || props.invocation.state === 'output-available'
   ) {
-    return props.invocation.input
+    return asChartPayload(props.invocation.input)
   }
   return null
 })

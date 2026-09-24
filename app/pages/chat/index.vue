@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { UIMessage } from 'ai'
 import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
-import { modelShowsWebSearch } from '#shared/utils/modelCapability'
+import { resolveCapabilityOption } from '#shared/utils/modelCapability'
 
 definePageMeta({ layout: 'chat', viewTransition: true })
 
@@ -14,7 +14,12 @@ const greeting = hour < 12 ? '早上好，Master' : hour < 18 ? '下午好，Mas
 
 const { loggedIn } = useUserSession()
 
-const { model: selectedModel, models: modelOptions } = useModels()
+const {
+  model: selectedModel,
+  models: modelOptions,
+  refreshing: modelsRefreshing,
+  refreshModels
+} = useModels()
 const { thinkingMode, webSearch, toggleThinkingMode, toggleWebSearch } = useChatOptions()
 const pendingChat = usePendingChat()
 
@@ -69,9 +74,24 @@ const currentModel = computed(() =>
   modelOptions.value.find(m => m.value === selectedModel.value)
 )
 
-const showWebSearch = computed(() =>
-  modelShowsWebSearch(currentModel.value, selectedModel.value)
-)
+const showWebSearch = computed(() => Boolean(currentModel.value?.supportsWebSearch))
+const showThinking = computed(() => Boolean(currentModel.value?.supportsThinking))
+
+function capabilityOptions() {
+  const hasMeta = !!currentModel.value
+  return {
+    thinkingMode: resolveCapabilityOption(
+      Boolean(thinkingMode.value),
+      currentModel.value?.supportsThinking,
+      hasMeta
+    ),
+    webSearch: resolveCapabilityOption(
+      Boolean(webSearch.value),
+      currentModel.value?.supportsWebSearch,
+      hasMeta
+    )
+  }
+}
 
 function createChat(text: string) {
   if (!loggedIn.value) {
@@ -96,10 +116,7 @@ function createChat(text: string) {
     id: chatId,
     message,
     model: selectedModel.value,
-    options: {
-      thinkingMode: currentModel.value?.supportsThinking === false ? false : Boolean(thinkingMode.value),
-      webSearch: showWebSearch.value ? Boolean(webSearch.value) : false
-    }
+    options: capabilityOptions()
   }
 
   // 乐观更新侧边栏，立即出现新对话
@@ -232,6 +249,7 @@ function goToLogin() {
                     @click="toggleWebSearch"
                   />
                   <UButton
+                    v-if="showThinking"
                     label="深度思考"
                     :variant="thinkingMode ? 'soft' : 'ghost'"
                     :color="thinkingMode ? 'primary' : 'neutral'"
@@ -260,6 +278,15 @@ function goToLogin() {
                       />
                     </template>
                   </USelectMenu>
+                  <UButton
+                    icon="i-lucide-refresh-cw"
+                    color="neutral"
+                    variant="ghost"
+                    size="sm"
+                    :loading="modelsRefreshing"
+                    aria-label="刷新模型列表"
+                    @click="refreshModels"
+                  />
                   <UChatPromptSubmit
                     status="ready"
                     color="neutral"

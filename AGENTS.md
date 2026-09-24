@@ -21,11 +21,11 @@
 - 前端请求：一律 `useAPI`（`app/composables/useApi.ts`）；禁止页面里直接 `$fetch` / `useFetch`（除非用户明确要求且说明原因）
 - UI：`@nuxt/ui` 的 `U*` 组件；图标 `UIcon`；图片 `<NuxtImg>`
 - 共享类型：`shared/types`、`shared/utils`（两端自动可用）；服务端用 `import type`
-- Chat 流式：AI SDK `useChat` + `DefaultChatTransport`；服务端 `result.toUIMessageStream()`；**禁止** `smoothStream()`
+- Chat 流式：AI SDK `useChat` + `DefaultChatTransport`；服务端独立 `toUIMessageStream({ stream: result.stream, tools })`；**禁止** `smoothStream()` / 已弃用的 `result.toUIMessageStream()`
 - OAuth 跳转：`login()` 用 `window.location.href`，**不要**改成 `navigateTo()`
 - 错误：服务端走 `raiseNotFound` / `raiseRateLimit` / 现有错误管道；前端 toast 走现有封装
 - 改 `server/api/` 或 `server/utils/`：同步补/改 `__test__/`（正常 + 边界/错误）
-- 提交信息：**中文**；提交前：`pnpm lint && pnpm test`
+- 提交信息：**中文**；提交前：`pnpm lint && pnpm typecheck && pnpm test`
 - 动画：优先现有 `motion-v`；不要随手引入另一套动画库
 
 ## 永远不要
@@ -70,6 +70,7 @@ pnpm build
 - [ ] 是否只改了任务相关文件？
 - [ ] 边界 / 异常 / 鉴权是否与现有 Chat、API 行为一致？
 - [ ] 若动了 `server/api` 或 `server/utils`，测试是否已补？
+- [ ] 提交前是否已通过 `pnpm lint && pnpm typecheck && pnpm test`？
 - [ ] 有不确定处是否已标明假设，而不是假装确定？
 
 ## 冲突时

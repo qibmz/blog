@@ -1,5 +1,5 @@
 title: 技术博客
-description: UniApp、Nuxt、Vue 实战踩坑与报错修复笔记（z-paging、RootPortal、payload.json、Wagmi 等）
+description: UniApp、Nuxt、Vue 实战踩坑与报错修复笔记（uni-push、z-paging、RootPortal、payload.json、Wagmi 等）
 navigation.icon: i-lucide-smile
 seo:
   title: 技术博客 | qibmz - UniApp / Nuxt / Vue 踩坑与报错修复

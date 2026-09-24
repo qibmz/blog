@@ -9,8 +9,24 @@ vi.mock('../../utils/rateLimiter', () => ({
   DAILY_LIMIT: 5
 }))
 
+const mockAssertModelEnabled = vi.fn(async () => {})
+const mockModelSupportsImages = vi.fn(async () => true)
+
+vi.mock('../../utils/models', () => ({
+  assertModelEnabled: mockAssertModelEnabled,
+  PREFERRED_DEFAULT_MODEL: 'deepseek-flash',
+  pickDefaultModel: (list: { value: string }[]) => list[0]?.value ?? 'deepseek-flash',
+  getModel: vi.fn(),
+  modelSupportsImages: mockModelSupportsImages,
+  modelSupportsThinking: vi.fn(async () => false),
+  modelSupportsWebSearch: vi.fn(async () => false),
+  modelSupportsCustomTools: vi.fn(() => false)
+}))
+
 beforeEach(() => {
   vi.clearAllMocks()
+  mockAssertModelEnabled.mockResolvedValue(undefined)
+  mockModelSupportsImages.mockResolvedValue(true)
   mockDbInsertValues.mockResolvedValue(undefined)
   mockDbDelete.mockResolvedValue(undefined)
 })

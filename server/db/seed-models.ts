@@ -1,19 +1,18 @@
 /**
- * 模型能力元数据 Seed 脚本
+ * 模型目录 Seed —— 列表与能力全部以本文件 + DB 为准（不读 Provider /models）。
  *
- * 全量初始化 models 表的能力数据，INSERT ... ON CONFLICT DO UPDATE 保证幂等。
+ * ON CONFLICT DO UPDATE：以本文件为权威。
+ *
  * Preview (develop): prebuild-migrate.js 自动执行
- * Production (main): schema 用
- *   `npx neonctl psql main --project-id <NEON_PROJECT_ID> -- --set ON_ERROR_STOP=on --single-transaction -f server/db/migrations/xxx.sql`
- *   seed 先在环境中设置 DATABASE_URL（勿把凭据写进命令行），再执行：
+ * Production (main): 先设置 DATABASE_URL，再
  *   `SEED_TARGET=production npx tsx server/db/seed-models.ts`
  */
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
+import { notInArray } from 'drizzle-orm'
 import * as schema from './schema'
 
 // ─── 生产环境安全保护 ────────────────────────────────────────────────────────
-// 本地默认 NODE_ENV=development，因此正式服 seed 需显式 SEED_TARGET=production
 if (process.env.NODE_ENV === 'production' || process.env.SEED_TARGET === 'production') {
   console.warn('⚠️  About to seed PRODUCTION database in 3s... Press Ctrl+C to cancel.')
   await new Promise(resolve => setTimeout(resolve, 3000))
@@ -27,44 +26,181 @@ if (!dbUrl) {
 
 const db = drizzle(neon(dbUrl), { schema })
 
-// ─── 全量模型能力数据 ─────────────────────────────────────────────────────────
-// 对话侧 MiMo 仅 mimo-v2.5-pro / mimo-v2.5；其余 seed 行作兼容/能力权威。
-const seedData: { id: string, supportsImages: boolean, supportsWebSearch: boolean }[] = [
-  // DeepSeek
-  { id: 'deepseek-v4-pro', supportsImages: false, supportsWebSearch: false },
-  { id: 'deepseek-v4-flash', supportsImages: false, supportsWebSearch: false },
-  // MiMo 当前对话模型
-  { id: 'mimo-v2.5-pro', supportsImages: false, supportsWebSearch: true },
-  { id: 'mimo-v2.5', supportsImages: true, supportsWebSearch: true },
-  // 非对话 / 已下线：保留能力记录
-  { id: 'mimo-v2.5-flash', supportsImages: false, supportsWebSearch: false },
-  { id: 'mimo-v2.5-asr', supportsImages: false, supportsWebSearch: false },
-  { id: 'mimo-v2-omni', supportsImages: true, supportsWebSearch: false },
-  { id: 'mimo-v2-omni-pro', supportsImages: false, supportsWebSearch: false },
-  { id: 'mimo-v2-omni-flash', supportsImages: false, supportsWebSearch: false }
+type SeedRow = {
+  id: string
+  label: string
+  icon: string
+  supportsImages: boolean
+  supportsThinking: boolean
+  supportsWebSearch: boolean
+  enabled: boolean
+  sortOrder: number
+}
+
+const DEEPSEEK_ICON = 'i-simple-icons-deepseek'
+const MIMO_ICON = 'i-simple-icons-xiaomi'
+
+/** 对话下拉：enabled=true；其余保留行供历史会话能力查询。
+ *  正式库 migration `0006_models_catalog_v26.sql` 内嵌同清单 —— 改这里时请同步改 SQL。
+ */
+const seedData: SeedRow[] = [
+  // ── DeepSeek ──────────────────────────────────────────────────────────────
+  {
+    id: 'deepseek-flash',
+    label: 'DeepSeek Flash',
+    icon: DEEPSEEK_ICON,
+    supportsImages: true,
+    supportsThinking: true,
+    supportsWebSearch: false,
+    enabled: true,
+    sortOrder: 10
+  },
+  {
+    id: 'deepseek-v4-pro',
+    label: 'DeepSeek V4 Pro',
+    icon: DEEPSEEK_ICON,
+    supportsImages: false,
+    supportsThinking: true,
+    supportsWebSearch: false,
+    enabled: true,
+    sortOrder: 20
+  },
+  // ── MiMo V2.6（主推，全模态）──────────────────────────────────────────────
+  {
+    id: 'mimo-v2.6-pro',
+    label: 'MiMo V2.6 Pro',
+    icon: MIMO_ICON,
+    supportsImages: true,
+    supportsThinking: true,
+    supportsWebSearch: true,
+    enabled: true,
+    sortOrder: 30
+  },
+  {
+    id: 'mimo-v2.6-flash',
+    label: 'MiMo V2.6 Flash',
+    icon: MIMO_ICON,
+    supportsImages: true,
+    supportsThinking: true,
+    supportsWebSearch: true,
+    enabled: true,
+    sortOrder: 40
+  },
+  // ── 已退役 / 即将下线：enabled=false，不出现在下拉 ─────────────────────────
+  {
+    id: 'deepseek-v4-flash',
+    label: 'DeepSeek V4 Flash',
+    icon: DEEPSEEK_ICON,
+    supportsImages: true,
+    supportsThinking: true,
+    supportsWebSearch: false,
+    enabled: false,
+    sortOrder: 100
+  },
+  {
+    id: 'mimo-v2.5-pro',
+    label: 'MiMo V2.5 Pro',
+    icon: MIMO_ICON,
+    supportsImages: false,
+    supportsThinking: true,
+    supportsWebSearch: true,
+    enabled: false,
+    sortOrder: 110
+  },
+  {
+    id: 'mimo-v2.5',
+    label: 'MiMo V2.5',
+    icon: MIMO_ICON,
+    supportsImages: true,
+    supportsThinking: true,
+    supportsWebSearch: true,
+    enabled: false,
+    sortOrder: 120
+  },
+  {
+    id: 'mimo-v2.5-flash',
+    label: 'MiMo V2.5 Flash',
+    icon: MIMO_ICON,
+    supportsImages: false,
+    supportsThinking: false,
+    supportsWebSearch: false,
+    enabled: false,
+    sortOrder: 130
+  },
+  {
+    id: 'mimo-v2.5-asr',
+    label: 'MiMo V2.5 ASR',
+    icon: MIMO_ICON,
+    supportsImages: false,
+    supportsThinking: false,
+    supportsWebSearch: false,
+    enabled: false,
+    sortOrder: 140
+  },
+  {
+    id: 'mimo-v2-omni',
+    label: 'MiMo V2 Omni',
+    icon: MIMO_ICON,
+    supportsImages: true,
+    supportsThinking: false,
+    supportsWebSearch: false,
+    enabled: false,
+    sortOrder: 150
+  },
+  {
+    id: 'mimo-v2-omni-pro',
+    label: 'MiMo V2 Omni Pro',
+    icon: MIMO_ICON,
+    supportsImages: false,
+    supportsThinking: false,
+    supportsWebSearch: false,
+    enabled: false,
+    sortOrder: 160
+  },
+  {
+    id: 'mimo-v2-omni-flash',
+    label: 'MiMo V2 Omni Flash',
+    icon: MIMO_ICON,
+    supportsImages: false,
+    supportsThinking: false,
+    supportsWebSearch: false,
+    enabled: false,
+    sortOrder: 170
+  }
 ]
 
-console.log(`[seed-models] Seeding ${seedData.length} models...`)
+console.log(`[seed-models] Seeding ${seedData.length} catalog rows (DO UPDATE on conflict)...`)
 
 for (const model of seedData) {
+  const now = new Date()
   await db
     .insert(schema.models)
     .values({
-      id: model.id,
-      supportsImages: model.supportsImages,
-      supportsWebSearch: model.supportsWebSearch,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      ...model,
+      createdAt: now,
+      updatedAt: now
     })
     .onConflictDoUpdate({
       target: schema.models.id,
       set: {
+        label: model.label,
+        icon: model.icon,
         supportsImages: model.supportsImages,
+        supportsThinking: model.supportsThinking,
         supportsWebSearch: model.supportsWebSearch,
-        updatedAt: new Date()
+        enabled: model.enabled,
+        sortOrder: model.sortOrder,
+        updatedAt: now
       }
     })
 }
+
+// 清单外孤儿行关闭，避免 /api/models 冒出空白 label
+const catalogIds = seedData.map(m => m.id)
+await db
+  .update(schema.models)
+  .set({ enabled: false, updatedAt: new Date() })
+  .where(notInArray(schema.models.id, catalogIds))
 
 console.log('[seed-models] ✅ Seed complete')
 process.exit(0)
