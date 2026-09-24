@@ -1,8 +1,13 @@
-/** 模型是否展示联网搜索开关：有元数据时以 supportsWebSearch 为准，否则按已知 MiMo 对话模型 ID 兜底 */
-export function modelShowsWebSearch(
-  model: { supportsWebSearch?: boolean } | undefined | null,
-  selectedId: string
+/**
+ * 将用户开关偏好解析为请求 options。
+ * - 尚无当前模型元数据：保留 preference（避免 /api/models 未就绪时误关）
+ * - 已有元数据：仅当 DB 声明支持时才透传 preference
+ */
+export function resolveCapabilityOption(
+  preference: boolean,
+  supported: boolean | undefined,
+  hasModelMeta: boolean
 ): boolean {
-  if (model) return Boolean(model.supportsWebSearch)
-  return selectedId === 'mimo-v2.5-pro' || selectedId === 'mimo-v2.5'
+  if (!hasModelMeta) return preference
+  return Boolean(supported) && preference
 }

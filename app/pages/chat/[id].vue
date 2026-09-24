@@ -4,7 +4,7 @@ import { DefaultChatTransport, getToolName, isReasoningUIPart, isTextUIPart, isT
 import { isPartStreaming } from '@nuxt/ui/utils/ai'
 import type { UIMessage, FileUIPart } from 'ai'
 import { getProvisionalChatTitle } from '#shared/utils/chatTitle'
-import { modelShowsWebSearch } from '#shared/utils/modelCapability'
+import { resolveCapabilityOption } from '#shared/utils/modelCapability'
 import type { ChartUIToolInvocation } from '#shared/utils/tools/chart'
 
 definePageMeta({ layout: 'chat', viewTransition: true })
@@ -46,6 +46,7 @@ if (optimistic) {
 const {
   model: selectedModel,
   models: modelOptions,
+  pending: modelsPending,
   refreshing: modelsRefreshing,
   refreshModels
 } = useModels()
@@ -103,9 +104,37 @@ const currentModel = computed(() =>
   modelOptions.value.find(m => m.value === selectedModel.value)
 )
 
-const showWebSearch = computed(() =>
-  modelShowsWebSearch(currentModel.value, selectedModel.value)
-)
+const showWebSearch = computed(() => Boolean(currentModel.value?.supportsWebSearch))
+const showThinking = computed(() => Boolean(currentModel.value?.supportsThinking))
+
+function capabilityOptions() {
+  const hasMeta = !!currentModel.value
+  return {
+    thinkingMode: resolveCapabilityOption(
+      Boolean(thinkingMode.value),
+      currentModel.value?.supportsThinking,
+      hasMeta
+    ),
+    webSearch: resolveCapabilityOption(
+      Boolean(webSearch.value),
+      currentModel.value?.supportsWebSearch,
+      hasMeta
+    )
+  }
+}
+
+/** 等模型目录落地，避免首包 body 在 supports* 未知时误关开关 */
+async function waitForModelsSettled() {
+  if (!modelsPending.value) return
+  await new Promise<void>((resolve) => {
+    const stop = watch(modelsPending, (pending) => {
+      if (!pending) {
+        stop()
+        resolve()
+      }
+    }, { immediate: true })
+  })
+}
 
 // 仅在没有 cookie 偏好时回退到聊天记录中的模型
 if (!selectedModel.value) {
@@ -162,10 +191,7 @@ const { messages, status, sendMessage, regenerate, stop } = useChat({
     api: `/api/chats/${id}`,
     body: () => ({
       model: selectedModel.value,
-      options: {
-        thinkingMode: currentModel.value?.supportsThinking === false ? false : Boolean(thinkingMode.value),
-        webSearch: showWebSearch.value ? Boolean(webSearch.value) : false
-      }
+      options: capabilityOptions()
     }),
     // 多轮上下文由服务端从 DB 组装；只传本轮触发信息
     prepareSendMessagesRequest: ({ body, messages, trigger }) => {
@@ -433,12 +459,14 @@ onMounted(async () => {
       return
     }
     refreshNuxtData('sidebar-chats')
+    await waitForModelsSettled()
     nextTick(() => sendMessage())
     return
   }
 
   const existing = chatData.value?.messages ?? []
   if (existing.at(-1)?.role === 'user') {
+    await waitForModelsSettled()
     nextTick(() => sendMessage())
   }
 })
@@ -678,6 +706,7 @@ onMounted(async () => {
                     @click="toggleWebSearch"
                   />
                   <UButton
+                    v-if="showThinking"
                     label="深度思考"
                     :variant="thinkingMode ? 'soft' : 'ghost'"
                     :color="thinkingMode ? 'primary' : 'neutral'"

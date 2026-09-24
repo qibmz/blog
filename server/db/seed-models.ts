@@ -41,9 +41,10 @@ const DEEPSEEK_ICON = 'i-simple-icons-deepseek'
 const MIMO_ICON = 'i-simple-icons-xiaomi'
 
 /** 对话下拉：enabled=true；其余保留行供历史会话能力查询。
- *  正式库 migration `0005_models_catalog.sql` 内嵌同清单 —— 改这里时请同步改 SQL。
+ *  正式库 migration `0006_models_catalog_v26.sql` 内嵌同清单 —— 改这里时请同步改 SQL。
  */
 const seedData: SeedRow[] = [
+  // ── DeepSeek ──────────────────────────────────────────────────────────────
   {
     id: 'deepseek-flash',
     label: 'DeepSeek Flash',
@@ -64,6 +65,28 @@ const seedData: SeedRow[] = [
     enabled: true,
     sortOrder: 20
   },
+  // ── MiMo V2.6（主推，全模态）──────────────────────────────────────────────
+  {
+    id: 'mimo-v2.6-pro',
+    label: 'MiMo V2.6 Pro',
+    icon: MIMO_ICON,
+    supportsImages: true,
+    supportsThinking: true,
+    supportsWebSearch: true,
+    enabled: true,
+    sortOrder: 30
+  },
+  {
+    id: 'mimo-v2.6-flash',
+    label: 'MiMo V2.6 Flash',
+    icon: MIMO_ICON,
+    supportsImages: true,
+    supportsThinking: true,
+    supportsWebSearch: true,
+    enabled: true,
+    sortOrder: 40
+  },
+  // ── 已退役 / 即将下线：enabled=false，不出现在下拉 ─────────────────────────
   {
     id: 'deepseek-v4-flash',
     label: 'DeepSeek V4 Flash',
@@ -71,8 +94,8 @@ const seedData: SeedRow[] = [
     supportsImages: true,
     supportsThinking: true,
     supportsWebSearch: false,
-    enabled: true,
-    sortOrder: 30
+    enabled: false,
+    sortOrder: 100
   },
   {
     id: 'mimo-v2.5-pro',
@@ -81,8 +104,8 @@ const seedData: SeedRow[] = [
     supportsImages: false,
     supportsThinking: true,
     supportsWebSearch: true,
-    enabled: true,
-    sortOrder: 40
+    enabled: false,
+    sortOrder: 110
   },
   {
     id: 'mimo-v2.5',
@@ -91,10 +114,9 @@ const seedData: SeedRow[] = [
     supportsImages: true,
     supportsThinking: true,
     supportsWebSearch: true,
-    enabled: true,
-    sortOrder: 50
+    enabled: false,
+    sortOrder: 120
   },
-  // ── 已下线 / 非对话：enabled=false，不出现在下拉 ──────────────────────────
   {
     id: 'mimo-v2.5-flash',
     label: 'MiMo V2.5 Flash',
@@ -103,7 +125,7 @@ const seedData: SeedRow[] = [
     supportsThinking: false,
     supportsWebSearch: false,
     enabled: false,
-    sortOrder: 100
+    sortOrder: 130
   },
   {
     id: 'mimo-v2.5-asr',
@@ -113,7 +135,7 @@ const seedData: SeedRow[] = [
     supportsThinking: false,
     supportsWebSearch: false,
     enabled: false,
-    sortOrder: 110
+    sortOrder: 140
   },
   {
     id: 'mimo-v2-omni',
@@ -123,7 +145,7 @@ const seedData: SeedRow[] = [
     supportsThinking: false,
     supportsWebSearch: false,
     enabled: false,
-    sortOrder: 120
+    sortOrder: 150
   },
   {
     id: 'mimo-v2-omni-pro',
@@ -133,7 +155,7 @@ const seedData: SeedRow[] = [
     supportsThinking: false,
     supportsWebSearch: false,
     enabled: false,
-    sortOrder: 130
+    sortOrder: 160
   },
   {
     id: 'mimo-v2-omni-flash',
@@ -143,7 +165,7 @@ const seedData: SeedRow[] = [
     supportsThinking: false,
     supportsWebSearch: false,
     enabled: false,
-    sortOrder: 140
+    sortOrder: 170
   }
 ]
 

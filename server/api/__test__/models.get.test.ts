@@ -42,13 +42,13 @@ function catalogRows(overrides: Array<Record<string, unknown>> = []) {
       sortOrder: 10
     },
     {
-      id: 'mimo-v2.5-pro',
-      label: 'MiMo V2.5 Pro',
+      id: 'mimo-v2.6-pro',
+      label: 'MiMo V2.6 Pro',
       icon: 'i-simple-icons-xiaomi',
-      supportsImages: false,
+      supportsImages: true,
       supportsThinking: true,
       supportsWebSearch: true,
-      sortOrder: 40
+      sortOrder: 30
     }
   ]
   return overrides.length ? overrides : defaults
@@ -107,7 +107,7 @@ describe('GET /api/models (DB catalog)', () => {
 
     expect(result.models.map((m: any) => m.value)).toEqual([
       'deepseek-flash',
-      'mimo-v2.5-pro'
+      'mimo-v2.6-pro'
     ])
     expect(result.default).toBe('deepseek-flash')
     const flash = result.models.find((m: any) => m.value === 'deepseek-flash')
