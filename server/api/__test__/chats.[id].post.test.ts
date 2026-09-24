@@ -335,12 +335,41 @@ describe('POST /api/chats/:id', () => {
       { id: 'db-1', role: 'user', parts: [...helloParts] }
     ])
 
-    // 成功落库新回复时才删除旧 assistant
+    // 成功落库新回复时才删除旧 assistant；且必须先 insert 再 delete
     await streamOpts?.onEnd({
       responseMessage: { role: 'assistant', parts: [{ type: 'text', text: '新答复' }] },
       isAborted: false
     })
+    expect(mockDb.insert).toHaveBeenCalled()
     expect(mockDb.delete).toHaveBeenCalled()
+    const insertOrder = mockDb.insert.mock.invocationCallOrder[0]!
+    const deleteOrder = mockDb.delete.mock.invocationCallOrder[0]!
+    expect(insertOrder).toBeLessThan(deleteOrder)
+  })
+
+  it('should rate-limit before inserting a new user message', async () => {
+    mockDbFindFirst.mockResolvedValue(chatFixture({
+      messages: [
+        { id: 'db-1', role: 'user', parts: [...helloParts] },
+        { id: 'db-2', role: 'assistant', parts: [{ type: 'text', text: 'Hi' }] }
+      ]
+    }))
+    mockCheckDailyLimit.mockRejectedValueOnce(
+      createError({ statusCode: 429, statusMessage: '今日提问次数已达上限' })
+    )
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_e, validateFn) => bodyWith({
+        message: { id: 'msg-2', role: 'user', parts: [{ type: 'text', text: 'Follow up' }] }
+      }, validateFn)
+    )
+
+    const { default: handler } = await import('../chats/[id].post')
+    await expect(
+      handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+    ).rejects.toMatchObject({ statusCode: 429 })
+
+    expect(mockCheckDailyLimit).toHaveBeenCalledWith(mockUser.id)
+    expect(mockDb.insert).not.toHaveBeenCalled()
   })
 
   it('should set provisional title for image-only first message without calling vision generateText', async () => {

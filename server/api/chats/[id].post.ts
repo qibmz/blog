@@ -128,6 +128,11 @@ export default defineEventHandler(async (event) => {
     if (history.at(-1)?.role !== 'user') {
       throw createError({ statusCode: 400, statusMessage: '没有可重新生成的用户消息' })
     }
+    if (historyHasFileParts(history) && !(await modelSupportsImages(modelValue))) {
+      throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
+    }
+    // 每次发起补全都计次（含 regenerate）；须在任何写库之前
+    await checkDailyLimit(user.id)
   } else {
     // submit-message：以 body.message 为本轮用户输入
     const incoming = message!
@@ -135,7 +140,7 @@ export default defineEventHandler(async (event) => {
 
     const lastDb = history.at(-1)
 
-    // 先算「落库后」历史，用于视觉校验（避免先写脏数据再 400）
+    // 先算「落库后」历史，用于校验（避免先写脏数据再 400 / 429）
     let prospective = history
     if (lastDb?.role === 'user') {
       if (!isSameUserParts(lastDb.parts, incoming.parts)) {
@@ -161,9 +166,16 @@ export default defineEventHandler(async (event) => {
       ]
     }
 
+    if (prospective.length === 0 || prospective.at(-1)?.role !== 'user') {
+      throw createError({ statusCode: 400, statusMessage: '对话上下文无效' })
+    }
+
     if (historyHasFileParts(prospective) && !(await modelSupportsImages(modelValue))) {
       throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
     }
+
+    // 限流须在 user 消息写入之前，避免 429 后留下无 assistant 的悬空轮次
+    await checkDailyLimit(user.id)
 
     if (lastDb?.role === 'user') {
       // 末条仍是 user：等待助手中，禁止再插一条。语义不同则更新末条（中断后改写）
@@ -172,7 +184,6 @@ export default defineEventHandler(async (event) => {
         await db.update(schema.messages)
           .set({ parts: nextParts })
           .where(eq(schema.messages.id, lastDb.id))
-        history = prospective
       }
     } else {
       // 末条是 assistant / 空会话：新一轮 user
@@ -181,21 +192,9 @@ export default defineEventHandler(async (event) => {
         role: 'user',
         parts: Array.isArray(incoming.parts) ? incoming.parts : []
       })
-      history = prospective
     }
+    history = prospective
   }
-
-  if (history.length === 0 || history.at(-1)?.role !== 'user') {
-    throw createError({ statusCode: 400, statusMessage: '对话上下文无效' })
-  }
-
-  // regenerate 路径未走上面的 prospective 校验
-  if (historyHasFileParts(history) && !(await modelSupportsImages(modelValue))) {
-    throw createError({ statusCode: 400, statusMessage: '当前模型不支持图片输入' })
-  }
-
-  // 每次发起补全都计次（含 pending user 重试、regenerate）
-  await checkDailyLimit(user.id)
 
   const model = getModel(modelValue)
 
@@ -307,14 +306,15 @@ export default defineEventHandler(async (event) => {
       }
 
       try {
-        if (pendingAssistantIds.length > 0) {
-          await db.delete(schema.messages).where(inArray(schema.messages.id, pendingAssistantIds))
-        }
+        // 先插入新回复，成功后再删旧 assistant（neon-http 无事务；倒序会在 insert 失败时丢历史）
         await db.insert(schema.messages).values({
           chatId: chat.id,
           role: responseMessage.role as 'user' | 'assistant',
           parts
         })
+        if (pendingAssistantIds.length > 0) {
+          await db.delete(schema.messages).where(inArray(schema.messages.id, pendingAssistantIds))
+        }
       } catch (err) {
         // 流已开始，落库失败不能变成未处理 rejection
         console.error('Failed to persist assistant message:', err)

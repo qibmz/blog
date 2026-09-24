@@ -60,11 +60,11 @@ async function fetchModelsFromDb(): Promise<{ models: ModelOption[], error?: Mod
 
     return { models: list }
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    console.warn('[models] DB catalog query failed:', message)
+    // 原始 err.message 可能含 SQL / 主机 / DB 用户名，仅记日志，不回传客户端
+    console.warn('[models] DB catalog query failed:', err)
     return {
       models: [],
-      error: { provider: 'database', message }
+      error: { provider: 'database', message: 'Failed to load model catalog' }
     }
   }
 }

@@ -78,6 +78,8 @@ describe('GET /api/models (DB catalog)', () => {
     expect(result.fetchedAt).toEqual(expect.any(Number))
     expect(result.errors?.length).toBeGreaterThan(0)
     expect(result.errors![0]!.provider).toBe('database')
+    expect(result.errors![0]!.message).toBe('Failed to load model catalog')
+    expect(result.errors![0]!.message).not.toContain('Connection refused')
   })
 
   it('should include required fields for each model', async () => {
