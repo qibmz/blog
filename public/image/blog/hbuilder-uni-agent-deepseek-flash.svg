@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="HBuilder uni-agent DeepSeek Flash">
+  <rect width="1200" height="630" fill="#0b1220"/>
+  <rect x="64" y="64" width="1072" height="502" rx="28" fill="#121a2b" stroke="#2a3a55" stroke-width="2"/>
+  <text x="108" y="210" fill="#8fb4ff" font-family="ui-sans-serif, system-ui, sans-serif" font-size="36">HBuilderX / HBuilderV</text>
+  <text x="108" y="330" fill="#f4f7fb" font-family="ui-sans-serif, system-ui, sans-serif" font-size="64" font-weight="700">uni-agent ??? Key</text>
+  <text x="108" y="430" fill="#c5d4ea" font-family="ui-sans-serif, system-ui, sans-serif" font-size="40">DeepSeek Flash</text>
+  <text x="108" y="510" fill="#7f93b0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="26">UNI_AGENT_MODEL=deepseek-flash</text>
+</svg>
