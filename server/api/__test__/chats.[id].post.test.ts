@@ -644,6 +644,34 @@ describe('POST /api/chats/:id', () => {
     )
   })
 
+  it('should disable thinking when custom chart tools are injected', async () => {
+    mockModelSupportsCustomTools.mockReturnValue(true)
+    mockModelSupportsThinking.mockResolvedValue(true)
+    mockReadValidatedBody.mockImplementationOnce(
+      async (_e, validateFn) => bodyWith({
+        model: 'mimo-v2.6-pro',
+        options: { thinkingMode: true, webSearch: false }
+      }, validateFn)
+    )
+
+    const { default: handler } = await import('../chats/[id].post')
+    await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)
+
+    const streamOpts = mockCreateUIMessageStream.mock.calls[0]?.[0]
+    await streamOpts.execute({ writer: { merge: vi.fn() } })
+
+    expect(mockStreamText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tools: expect.objectContaining({ chart: expect.anything() }),
+        providerOptions: expect.objectContaining({
+          mimo: expect.objectContaining({
+            thinking: { type: 'disabled' }
+          })
+        })
+      })
+    )
+  })
+
   it('should pass chart tool and stopWhen for models that support custom tools', async () => {
     const { default: handler } = await import('../chats/[id].post')
     await handler({ context: {}, path: '/api/chats/chat-1', waitUntil: vi.fn() } as any)

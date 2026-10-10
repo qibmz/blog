@@ -240,16 +240,18 @@ export default defineEventHandler(async (event) => {
   const webSearchEnabled = options?.webSearch === true
     && await modelSupportsWebSearch(modelValue)
 
+  const tools = modelSupportsCustomTools(modelValue)
+    ? { chart: chartTool }
+    : undefined
+
+  // MiMo：调 tool（含 web_search / chart）时开 thinking 易输出伪 XML tool_call 或不稳定
   const canThink = await modelSupportsThinking(modelValue)
   const thinkingType = canThink
     && options?.thinkingMode !== false
     && !webSearchEnabled
+    && !tools
     ? 'enabled' as const
     : 'disabled' as const
-
-  const tools = modelSupportsCustomTools(modelValue)
-    ? { chart: chartTool }
-    : undefined
 
   const abortSignal = getRequestAbortSignal(event)
   const mimoCtx = { webSearch: webSearchEnabled, sources: [] as ChatSource[] }
