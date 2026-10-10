@@ -1,6 +1,7 @@
 /**
- * MiMo 联网搜索：通过 transformRequestBody / 自定义 fetch 注入 tools。
- * （openai-compatible 会把顶层 tools 写成 undefined，不能只靠 streamText tools）
+ * MiMo 联网搜索：通过 transformRequestBody / 自定义 fetch 注入内置 web_search。
+ * （web_search 是厂商插件 type，不是 AI SDK function tool，不能只靠 streamText tools）
+ * 开启联网时追加到已有 function tools，勿整段替换。
  * @see https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/text-generation/tool-calling/web-search
  */
 
@@ -55,10 +56,16 @@ export function applyMimoWebSearchToRequestBody(args: Record<string, unknown>): 
   const { [MIMO_WEB_SEARCH_FLAG]: _flag, ...rest } = args
   if (!enabled) return rest
 
+  // 保留 SDK 已序列化的 function tools（如 chart），再追加内置 web_search
+  const existing = Array.isArray(rest.tools) ? rest.tools as unknown[] : []
+  const withoutWebSearch = existing.filter(
+    t => !(t && typeof t === 'object' && (t as { type?: string }).type === 'web_search')
+  )
+
   return {
     ...rest,
-    tools: [MIMO_WEB_SEARCH_TOOL],
-    tool_choice: 'auto'
+    tools: [...withoutWebSearch, MIMO_WEB_SEARCH_TOOL],
+    tool_choice: rest.tool_choice ?? 'auto'
   }
 }
 

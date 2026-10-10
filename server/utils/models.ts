@@ -55,8 +55,9 @@ export const PROVIDER_REGISTRY: ProviderConfig[] = [
     name: 'MiMo',
     prefixes: ['mimo-'],
     getInstance: id => mimo(id),
-    // openai-compatible 会丢掉自定义 tools
-    supportsCustomTools: () => false
+    // 标准 function tools（如 chart）由 openai-compatible prepareTools 透传；
+    // 内置 web_search 仍靠 transformRequestBody 追加，勿覆盖已有 function tools
+    supportsCustomTools: () => true
   }
 ]
 

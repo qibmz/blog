@@ -54,6 +54,32 @@ describe('applyMimoWebSearchToRequestBody', () => {
     expect(result[MIMO_WEB_SEARCH_FLAG]).toBeUndefined()
   })
 
+  it('should append web_search alongside existing function tools', () => {
+    const chartTool = {
+      type: 'function' as const,
+      function: { name: 'chart', description: 'chart', parameters: {} }
+    }
+    const result = applyMimoWebSearchToRequestBody({
+      model: 'mimo-v2.6-pro',
+      tools: [chartTool],
+      tool_choice: 'auto',
+      [MIMO_WEB_SEARCH_FLAG]: true
+    })
+
+    expect(result.tools).toEqual([chartTool, MIMO_WEB_SEARCH_TOOL])
+    expect(result.tool_choice).toBe('auto')
+  })
+
+  it('should not duplicate web_search if already present', () => {
+    const result = applyMimoWebSearchToRequestBody({
+      model: 'mimo-v2.6-pro',
+      tools: [MIMO_WEB_SEARCH_TOOL],
+      [MIMO_WEB_SEARCH_FLAG]: true
+    })
+
+    expect(result.tools).toEqual([MIMO_WEB_SEARCH_TOOL])
+  })
+
   it('should not inject tools when flag is absent', () => {
     const result = applyMimoWebSearchToRequestBody({
       model: 'mimo-v2.5-pro'
