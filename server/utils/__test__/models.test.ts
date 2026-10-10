@@ -139,10 +139,10 @@ describe('modelSupportsCustomTools', () => {
     expect(modelSupportsCustomTools('deepseek-v4-pro')).toBe(true)
   })
 
-  it('should return true for MiMo (function tools / chart)', async () => {
+  it('should return false for MiMo', async () => {
     const { modelSupportsCustomTools } = await import('../models')
-    expect(modelSupportsCustomTools('mimo-v2.6-pro')).toBe(true)
-    expect(modelSupportsCustomTools('mimo-v2.5-pro')).toBe(true)
+    expect(modelSupportsCustomTools('mimo-v2.5-pro')).toBe(false)
+    expect(modelSupportsCustomTools('mimo-v2.5')).toBe(false)
   })
 })
 

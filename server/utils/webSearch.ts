@@ -1,7 +1,6 @@
 /**
- * MiMo 联网搜索：通过 transformRequestBody / 自定义 fetch 注入内置 web_search。
- * （web_search 是厂商插件 type，不是 AI SDK function tool，不能只靠 streamText tools）
- * 开启联网时追加到已有 function tools，勿整段替换。
+ * MiMo 联网搜索：通过 transformRequestBody / 自定义 fetch 注入 tools。
+ * （openai-compatible 会把顶层 tools 写成 undefined，不能只靠 streamText tools）
  * @see https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/text-generation/tool-calling/web-search
  */
 
@@ -51,38 +50,15 @@ export const MIMO_WEB_SEARCH_TOOL = {
 /** 写入 providerOptions.mimo，供 transformRequestBody 转成 tools */
 export const MIMO_WEB_SEARCH_FLAG = 'x_web_search' as const
 
-/** DeepSeek beta 的 function.strict 对 MiMo 易干扰；剥离后保留标准 function tools */
-export function stripMimoFunctionToolStrict(tools: unknown[]): unknown[] {
-  return tools.map((t) => {
-    if (!t || typeof t !== 'object') return t
-    const tool = t as { type?: string, function?: Record<string, unknown> }
-    if (tool.type !== 'function' || !tool.function || !('strict' in tool.function)) return t
-    const { strict: _strict, ...fn } = tool.function
-    return { ...tool, function: fn }
-  })
-}
-
 export function applyMimoWebSearchToRequestBody(args: Record<string, unknown>): Record<string, unknown> {
   const enabled = Boolean(args[MIMO_WEB_SEARCH_FLAG])
   const { [MIMO_WEB_SEARCH_FLAG]: _flag, ...rest } = args
-
-  // 始终剥离 function.strict（chart 等），与是否开联网无关
-  const existingRaw = Array.isArray(rest.tools) ? rest.tools as unknown[] : undefined
-  const existing = existingRaw ? stripMimoFunctionToolStrict(existingRaw) : undefined
-
-  if (!enabled) {
-    return existing ? { ...rest, tools: existing } : rest
-  }
-
-  // 保留 SDK 已序列化的 function tools（如 chart），再追加内置 web_search
-  const withoutWebSearch = (existing ?? []).filter(
-    t => !(t && typeof t === 'object' && (t as { type?: string }).type === 'web_search')
-  )
+  if (!enabled) return rest
 
   return {
     ...rest,
-    tools: [...withoutWebSearch, MIMO_WEB_SEARCH_TOOL],
-    tool_choice: rest.tool_choice ?? 'auto'
+    tools: [MIMO_WEB_SEARCH_TOOL],
+    tool_choice: 'auto'
   }
 }
 

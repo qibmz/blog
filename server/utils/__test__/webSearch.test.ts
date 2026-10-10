@@ -4,7 +4,6 @@ import {
   MIMO_WEB_SEARCH_TOOL,
   MIMO_WEB_SEARCH_FLAG,
   applyMimoWebSearchToRequestBody,
-  stripMimoFunctionToolStrict,
   createMimoFetch,
   bindMimoRequestContext,
   withWebSearchSources,
@@ -43,23 +42,6 @@ describe('extractUrlCitations', () => {
   })
 })
 
-describe('stripMimoFunctionToolStrict', () => {
-  it('should remove strict from function tools only', () => {
-    const tools = stripMimoFunctionToolStrict([
-      {
-        type: 'function',
-        function: { name: 'chart', parameters: {}, strict: true }
-      },
-      MIMO_WEB_SEARCH_TOOL
-    ])
-    expect(tools[0]).toEqual({
-      type: 'function',
-      function: { name: 'chart', parameters: {} }
-    })
-    expect(tools[1]).toEqual(MIMO_WEB_SEARCH_TOOL)
-  })
-})
-
 describe('applyMimoWebSearchToRequestBody', () => {
   it('should inject web_search tools when flag is set', () => {
     const result = applyMimoWebSearchToRequestBody({
@@ -70,50 +52,6 @@ describe('applyMimoWebSearchToRequestBody', () => {
     expect(result.tools).toEqual([MIMO_WEB_SEARCH_TOOL])
     expect(result.tool_choice).toBe('auto')
     expect(result[MIMO_WEB_SEARCH_FLAG]).toBeUndefined()
-  })
-
-  it('should strip function.strict even when web search is off', () => {
-    const result = applyMimoWebSearchToRequestBody({
-      model: 'mimo-v2.6-pro',
-      tools: [{
-        type: 'function',
-        function: { name: 'chart', parameters: {}, strict: true }
-      }]
-    })
-
-    expect(result.tools).toEqual([{
-      type: 'function',
-      function: { name: 'chart', parameters: {} }
-    }])
-  })
-
-  it('should append web_search alongside existing function tools', () => {
-    const chartTool = {
-      type: 'function' as const,
-      function: { name: 'chart', description: 'chart', parameters: {}, strict: true }
-    }
-    const result = applyMimoWebSearchToRequestBody({
-      model: 'mimo-v2.6-pro',
-      tools: [chartTool],
-      tool_choice: 'auto',
-      [MIMO_WEB_SEARCH_FLAG]: true
-    })
-
-    expect(result.tools).toEqual([
-      { type: 'function', function: { name: 'chart', description: 'chart', parameters: {} } },
-      MIMO_WEB_SEARCH_TOOL
-    ])
-    expect(result.tool_choice).toBe('auto')
-  })
-
-  it('should not duplicate web_search if already present', () => {
-    const result = applyMimoWebSearchToRequestBody({
-      model: 'mimo-v2.6-pro',
-      tools: [MIMO_WEB_SEARCH_TOOL],
-      [MIMO_WEB_SEARCH_FLAG]: true
-    })
-
-    expect(result.tools).toEqual([MIMO_WEB_SEARCH_TOOL])
   })
 
   it('should not inject tools when flag is absent', () => {
